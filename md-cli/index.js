@@ -16,7 +16,6 @@ new Promise(async () => {
   ;[port, testPort, replayPort] = await Promise.all([port, port+1, port+2].map(item => getPort({port: item}) )).catch(err => console.log(`err`, err))
   const line = Object.entries({
     ...arg,
-    proxy: `https://doocs.gitee.io/`,
     port,
     testPort,
     replayPort,
