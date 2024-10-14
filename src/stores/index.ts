@@ -53,6 +53,7 @@ export const useStore = defineStore(`store`, () => {
   const editor = ref<CodeMirror.EditorFromTextArea | null>(null)
   // 编辑区域内容
   const editorContent = useStorage(`__editor_content`, DEFAULT_CONTENT)
+  const default_content = useStorage(`__default_content`, DEFAULT_CONTENT)
 
   // 格式化文档
   const formatContent = () => {
@@ -61,6 +62,16 @@ export const useStore = defineStore(`store`, () => {
       (editor.value!).setValue(doc)
     })
   }
+
+  // 清空文档
+  const resetContent = () => {
+    (editor.value!).setValue('')
+    }
+  
+  // 重新加载默认markdown
+  const reloadDefaultContent = () => {
+    (editor.value!).setValue(default_content.value)
+    }
 
   // 切换 highlight.js 代码主题
   const codeThemeChange = () => {
@@ -344,7 +355,7 @@ export const useStore = defineStore(`store`, () => {
     const input = document.createElement(`input`)
     input.type = `file`
     input.name = `filename`
-    input.accept = `.md`
+    input.accept = `.md,.txt,.markdown`
     input.onchange = () => {
       const file = input.files![0]
       if (!file) {
@@ -436,6 +447,11 @@ export const useStore = defineStore(`store`, () => {
     setCssEditorValue,
     tabChanged,
     renameTab,
+
+    // add by fireworld
+    resetContent,
+    reloadDefaultContent,
+    
   }
 })
 

@@ -16,6 +16,8 @@ const {
   exportEditorContent2HTML,
   exportEditorContent2MD,
   importMarkdownContent,
+  resetContent,
+  reloadDefaultContent,
 } = store
 </script>
 
@@ -25,6 +27,18 @@ const {
       文件
     </MenubarTrigger>
     <MenubarContent align="start">
+      <MenubarItem @click="resetContent()">
+        <el-icon class="mr-2 h-4 w-4">
+          <ElIconRefresh />
+        </el-icon>
+        清空内容
+      </MenubarItem> 
+      <MenubarItem @click="reloadDefaultContent()">
+        <el-icon class="mr-2 h-4 w-4">
+          <ElIconLoading />
+        </el-icon>
+        重新加载默认MD
+      </MenubarItem>  
       <MenubarItem @click="importMarkdownContent()">
         <el-icon class="mr-2 h-4 w-4">
           <ElIconUpload />
