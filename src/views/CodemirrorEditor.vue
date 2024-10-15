@@ -8,14 +8,14 @@ import UploadImgDialog from '@/components/CodemirrorEditor/UploadImgDialog.vue'
 import RunLoading from '@/components/RunLoading.vue'
 import {
   ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuShortcut,
+  // ContextMenuContent,
+  // ContextMenuItem,
+  // ContextMenuSeparator,
+  // ContextMenuShortcut,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 
-import { altKey, altSign, ctrlKey, shiftKey, shiftSign } from '@/config'
+import { altKey, ctrlKey, shiftKey } from '@/config'
 import { useDisplayStore, useStore } from '@/stores'
 import {
   checkImage,
@@ -38,16 +38,16 @@ const { isShowCssEditor } = storeToRefs(displayStore)
 
 const {
   editorRefresh,
-  exportEditorContent2HTML,
-  exportEditorContent2MD,
+  //exportEditorContent2HTML,
+  //exportEditorContent2MD,
   formatContent,
-  importMarkdownContent,
-  resetStyleConfirm,
+  //importMarkdownContent,
+  //resetStyleConfirm,
 } = store
 
 const {
-  toggleShowInsertFormDialog,
-  toggleShowUploadImgDialog,
+ //toggleShowInsertFormDialog,
+ toggleShowUploadImgDialog,
 } = displayStore
 
 const isImgLoading = ref(false)
@@ -105,6 +105,27 @@ onMounted(() => {
     leftAndRightScroll()
   }, 300)
 })
+
+// 尝试定义一个copy函数
+// function handleCopy() {
+//   //console.log("call copy")
+//   const selection = editor.value?.getSelection() as string
+//   //console.log(selection)
+//   try {
+//     if (window.isSecureContext) {
+//       //console.log("testme")
+//       navigator.clipboard.writeText(selection);
+//       } 
+//     else 
+//        {
+//         //console.log("exec")
+//         document.execCommand('copy');
+//      }           
+
+//     } catch (err) {
+//       console.error('failed copy');
+//     }
+// }
 
 // 更新编辑器
 function onEditorRefresh() {
@@ -231,13 +252,33 @@ function initEditor() {
         const selected = editor.getSelection()
         editor.replaceSelection(`\`${selected}\``)
       },
-      // 预备弃用
-      [`${ctrlKey}-L`]: function code(editor) {
+
+      [`${ctrlKey}-P`]: function code_pre(editor) {
         const selected = editor.getSelection()
-        editor.replaceSelection(`\`${selected}\``)
+        editor.replaceSelection(`\`\`\`\n${selected}\n\`\`\``)
+      },
+      [`${ctrlKey}-C`]: function copy(editor) {
+        const selected = editor.getSelection()
+        console.log(selected);
+        //console.log(window.isSecureContext);
+        if (selected) {
+          try {
+            if (window.isSecureContext) {
+              navigator.clipboard.writeText(selected);
+            } else {
+              document.execCommand('copy');
+              }
+            
+
+          } catch (err) {
+            console.error('failed copy');
+          }
+        }
       },
     },
+    
   })
+  
 
   editor.value.on(`change`, (e) => {
     clearTimeout(changeTimer.value)
@@ -408,31 +449,11 @@ onMounted(() => {
                 placeholder="Your markdown text here."
               />
             </ContextMenuTrigger>
-            <ContextMenuContent class="w-64">
-              <ContextMenuItem inset @click="toggleShowUploadImgDialog()">
-                上传图片
+            <!-- <ContextMenuContent class="w-64">
+              <ContextMenuItem inset @click="handleCopy" >
+                复制
               </ContextMenuItem>
-              <ContextMenuItem inset @click="toggleShowInsertFormDialog()">
-                插入表格
-              </ContextMenuItem>
-              <ContextMenuItem inset @click="resetStyleConfirm()">
-                恢复默认样式
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem inset @click="importMarkdownContent()">
-                导入 .md 文档
-              </ContextMenuItem>
-              <ContextMenuItem inset @click="exportEditorContent2MD()">
-                导出 .md 文档
-              </ContextMenuItem>
-              <ContextMenuItem inset @click="exportEditorContent2HTML()">
-                导出 .html
-              </ContextMenuItem>
-              <ContextMenuItem inset @click="formatContent()">
-                格式化
-                <ContextMenuShortcut>{{ altSign }} + {{ shiftSign }} + F</ContextMenuShortcut>
-              </ContextMenuItem>
-            </ContextMenuContent>
+            </ContextMenuContent> -->
           </ContextMenu>
         </ElCol>
         <ElCol

@@ -34,8 +34,9 @@ export default defineConfig({
             'vscode-uri', 
             'vscode-languageserver-textdocument', 
             'vscode-jsonrpc'],
+          // mermaid: ['mermaid'],
           vue: [
-            'mermaid', 
+            //'mermaid', 
             'element-plus', 
             'prettier',
             'codemirror'

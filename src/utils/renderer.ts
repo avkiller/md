@@ -5,9 +5,10 @@ import { cloneDeep, toMerged } from 'es-toolkit'
 import hljs from 'highlight.js'
 
 import { marked } from 'marked'
-import mermaid from 'mermaid'
+// import mermaid from 'mermaid'
 import { MDKatex } from './MDKatex'
 
+// import { defineAsyncComponent } from 'vue'
 marked.use(MDKatex({ nonStandard: true }))
 
 function buildTheme({ theme: _theme, fonts, size, isUseIndent }: IOpts): ThemeStyles {
@@ -165,10 +166,18 @@ export function initRenderer(opts: IOpts) {
     code({ text, lang = `` }: Tokens.Code): string {
       if (lang.startsWith(`mermaid`)) {
         clearTimeout(codeIndex)
-        codeIndex = setTimeout(() => {
-          mermaid.run()
-        }, 0) as any as number
-        return `<pre class="mermaid">${text}</pre>`
+        import('mermaid').then(mermaid => {
+          codeIndex = setTimeout(() => {
+            //mermaid.default.initialize({ startOnLoad: true });
+            mermaid.default.run()
+          }, 0) as any as number         
+         })
+         return `<pre class="mermaid">${text}</pre>`
+
+        // codeIndex = setTimeout(() => {
+        //   mermaid.run()
+        // }, 0) as any as number
+        // return `<pre class="mermaid">${text}</pre>`
       }
       const langText = lang.split(` `)[0]
       const language = hljs.getLanguage(langText) ? langText : `plaintext`

@@ -49,6 +49,11 @@ const emit = defineEmits([`addFormat`, `formatContent`, `startCopy`, `endCopy`])
 
 const formatItems = [
   {
+    label: `复制`,
+    kbd: [ctrlSign, `C`],
+    emitArgs: [`addFormat`, `${ctrlKey}-C`],
+  },
+  {
     label: `加粗`,
     kbd: [ctrlSign, `B`],
     emitArgs: [`addFormat`, `${ctrlKey}-B`],
@@ -74,10 +79,18 @@ const formatItems = [
     emitArgs: [`addFormat`, `${ctrlKey}-E`],
   },
   {
+    label: `块代码`,
+    kbd: [ctrlSign, `P`],
+    emitArgs: [`addFormat`, `${ctrlKey}-P`],
+  },
+
+  {
     label: `格式化`,
     kbd: [altSign, shiftSign, `F`],
     emitArgs: [`formatContent`],
   },
+  
+
 ] as const
 
 const store = useStore()

@@ -65,12 +65,12 @@ export const useStore = defineStore(`store`, () => {
 
   // 清空文档
   const resetContent = () => {
-    (editor.value!).setValue('')
+    toRaw(editor.value!).setValue('')
     }
   
   // 重新加载默认markdown
   const reloadDefaultContent = () => {
-    (editor.value!).setValue(default_content.value)
+    toRaw(editor.value!).setValue(default_content.value)
     }
 
   // 切换 highlight.js 代码主题
