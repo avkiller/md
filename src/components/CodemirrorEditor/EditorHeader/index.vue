@@ -48,11 +48,11 @@ import StyleDropdown from './StyleDropdown.vue'
 const emit = defineEmits([`addFormat`, `formatContent`, `startCopy`, `endCopy`])
 
 const formatItems = [
-  {
-    label: `复制`,
-    kbd: [ctrlSign, `C`],
-    emitArgs: [`addFormat`, `${ctrlKey}-C`],
-  },
+  // {
+  //   label: `复制`,
+  //   kbd: [ctrlSign, `C`],
+  //   emitArgs: [`addFormat`, `${ctrlKey}-C`],
+  // },
   {
     label: `加粗`,
     kbd: [ctrlSign, `B`],

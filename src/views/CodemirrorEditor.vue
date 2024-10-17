@@ -29,12 +29,21 @@ import { ElCol, ElMessage } from 'element-plus'
 
 import { storeToRefs } from 'pinia'
 
-import { onMounted, ref, toRaw, watch } from 'vue'
+import { onMounted, ref, toRaw, watch} from 'vue'
+
 
 const store = useStore()
 const displayStore = useDisplayStore()
 const { isDark, output, editor, editorContent } = storeToRefs(store)
 const { isShowCssEditor } = storeToRefs(displayStore)
+
+const isMobile = ref(false);
+
+// 检测是否为移动设备
+const checkIsMobile = () => {
+  const userAgent = navigator.userAgent;
+  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+};
 
 const {
   editorRefresh,
@@ -107,25 +116,25 @@ onMounted(() => {
 })
 
 // 尝试定义一个copy函数
-// function handleCopy() {
-//   //console.log("call copy")
-//   const selection = editor.value?.getSelection() as string
-//   //console.log(selection)
-//   try {
-//     if (window.isSecureContext) {
-//       //console.log("testme")
-//       navigator.clipboard.writeText(selection);
-//       } 
-//     else 
-//        {
-//         //console.log("exec")
-//         document.execCommand('copy');
-//      }           
+function handleCopy() {
+  //console.log("call copy")
+  const selection = editor.value?.getSelection() as string
+  //console.log(selection)
+  try {
+    if (window.isSecureContext) {
+      //console.log("testme")
+      navigator.clipboard.writeText(selection);
+      } 
+    else 
+       {
+        //console.log("exec")
+        document.execCommand('copy');
+     }           
 
-//     } catch (err) {
-//       console.error('failed copy');
-//     }
-// }
+    } catch (err) {
+      console.error('failed copy');
+    }
+}
 
 // 更新编辑器
 function onEditorRefresh() {
@@ -420,6 +429,7 @@ onMounted(() => {
   initEditor()
   onEditorRefresh()
   mdLocalToRemote()
+  checkIsMobile();
 })
 </script>
 
@@ -442,18 +452,18 @@ onMounted(() => {
           }"
         >
           <ContextMenu>
-            <ContextMenuTrigger>
+            <ContextMenuTrigger >
               <textarea
                 id="editor"
                 type="textarea"
                 placeholder="Your markdown text here."
               />
             </ContextMenuTrigger>
-            <!-- <ContextMenuContent class="w-64">
-              <ContextMenuItem inset @click="handleCopy" >
+            <ContextMenuContent v-if="isMobile ==false" class="w-64">
+              <ContextMenuItem @click="handleCopy" >
                 复制
               </ContextMenuItem>
-            </ContextMenuContent> -->
+            </ContextMenuContent>
           </ContextMenu>
         </ElCol>
         <ElCol
