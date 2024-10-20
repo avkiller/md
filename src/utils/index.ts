@@ -3,11 +3,12 @@ import type { Block, Inline, Theme } from '@/types'
 import type { PropertiesHyphen } from 'csstype'
 import { prefix } from '@/config'
 import juice from 'juice'
-import * as prettierPluginBabel from 'prettier/plugins/babel'
-import * as prettierPluginEstree from 'prettier/plugins/estree'
-import * as prettierPluginMarkdown from 'prettier/plugins/markdown'
-import * as prettierPluginCss from 'prettier/plugins/postcss'
-import { format } from 'prettier/standalone'
+// import * as prettierPluginBabel from 'prettier/plugins/babel'
+// import * as prettierPluginEstree from 'prettier/plugins/estree'
+// import * as prettierPluginMarkdown from 'prettier/plugins/markdown'
+// import * as prettierPluginCss from 'prettier/plugins/postcss'
+// import { format } from 'prettier/standalone'
+// import { defineAsyncComponent} from 'vue'
 
 export function addPrefix(str: string) {
   return `${prefix}__${str}`
@@ -123,9 +124,15 @@ export function css2json(css: string): Partial<Record<Block | Inline, Properties
  * @returns {Promise<string>} - 格式化后的内容
  */
 export async function formatDoc(content: string, type: `markdown` | `css` = `markdown`) {
+  // console.log("formatDoc start")
+  const prettierPluginMarkdown = await import(`prettier/plugins/markdown`);
+  const prettierPluginBabel = await import(`prettier/plugins/babel`);
+  const prettierPluginEstree = await import(`prettier/plugins/estree`);
+  const prettierPluginCss = await import(`prettier/plugins/postcss`);
+  const {format} = await import(`prettier/standalone`)
   const plugins = {
-    markdown: [prettierPluginMarkdown, prettierPluginBabel, prettierPluginEstree],
-    css: [prettierPluginCss],
+    markdown: [prettierPluginMarkdown.default, prettierPluginBabel.default, prettierPluginEstree.default],
+    css: [prettierPluginCss.default],
   }
 
   const parser = type in plugins ? type : `markdown`
@@ -133,6 +140,8 @@ export async function formatDoc(content: string, type: `markdown` | `css` = `mar
     parser,
     plugins: plugins[parser],
   })
+  
+  
 }
 
 /**

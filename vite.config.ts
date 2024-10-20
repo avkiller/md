@@ -20,7 +20,7 @@ export default defineConfig({
     process,
   },
   build: {
-    sourcemap: true,
+    // sourcemap: true,
     rollupOptions: {
       // 确保外部化处理那些你不想打包进库的依赖
       //external: ['vue','element-plus'], // 注意看这里
@@ -29,6 +29,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['vue', '@vueuse/core', 'pinia', 'radix-vue'], 
           utils: ['lodash', 'dayjs','langium', 'crypto-js', 'parse5'],
+          res: ['lucide-vue-next'],
           // cryptojs: ['crypto-js'],
           vscode: [
             'vscode-languageserver-types', 
@@ -39,7 +40,6 @@ export default defineConfig({
           vue: [
             //'mermaid', 
             'element-plus', 
-            'prettier',
             'codemirror'
           ],
         },
