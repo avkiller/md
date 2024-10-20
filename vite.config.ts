@@ -20,6 +20,7 @@ export default defineConfig({
     process,
   },
   build: {
+    sourcemap: true,
     rollupOptions: {
       // 确保外部化处理那些你不想打包进库的依赖
       //external: ['vue','element-plus'], // 注意看这里

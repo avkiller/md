@@ -55,6 +55,10 @@ export const useStore = defineStore(`store`, () => {
   const editorContent = useStorage(`__editor_content`, DEFAULT_CONTENT)
   const default_content = useStorage(`__default_content`, DEFAULT_CONTENT)
 
+  // 清空数据库
+  const clearLocalStorage = () => {
+    localStorage.clear();
+  }
   // 格式化文档
   const formatContent = () => {
     formatDoc((editor.value!).getValue()).then((doc) => {
@@ -451,6 +455,7 @@ export const useStore = defineStore(`store`, () => {
     // add by fireworld
     resetContent,
     reloadDefaultContent,
+    clearLocalStorage,
     
   }
 })

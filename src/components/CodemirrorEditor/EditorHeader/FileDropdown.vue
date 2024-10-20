@@ -18,6 +18,7 @@ const {
   importMarkdownContent,
   resetContent,
   reloadDefaultContent,
+  clearLocalStorage,
 } = store
 </script>
 
@@ -27,11 +28,17 @@ const {
       文件
     </MenubarTrigger>
     <MenubarContent align="start">
+      <MenubarItem @click="clearLocalStorage()">
+        <el-icon class="mr-2 h-4 w-4">
+          <ElIconDeleteFilled />
+        </el-icon>
+        清空本地缓存
+      </MenubarItem> 
       <MenubarItem @click="resetContent()">
         <el-icon class="mr-2 h-4 w-4">
           <ElIconRefresh />
         </el-icon>
-        清空内容
+        清空编辑区
       </MenubarItem> 
       <MenubarItem @click="reloadDefaultContent()">
         <el-icon class="mr-2 h-4 w-4">

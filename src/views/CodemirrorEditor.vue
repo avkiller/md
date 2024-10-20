@@ -2,30 +2,35 @@
 import type { ComponentPublicInstance } from 'vue'
 import CssEditor from '@/components/CodemirrorEditor/CssEditor.vue'
 import EditorHeader from '@/components/CodemirrorEditor/EditorHeader/index.vue'
-import InsertFormDialog from '@/components/CodemirrorEditor/InsertFormDialog.vue'
-import UploadImgDialog from '@/components/CodemirrorEditor/UploadImgDialog.vue'
+// import InsertFormDialog from '@/components/CodemirrorEditor/InsertFormDialog.vue'
+// import UploadImgDialog from '@/components/CodemirrorEditor/UploadImgDialog.vue'
 
 import RunLoading from '@/components/RunLoading.vue'
 import {
   ContextMenu,
-  // ContextMenuContent,
-  // ContextMenuItem,
+  ContextMenuContent,
+  ContextMenuItem,
   // ContextMenuSeparator,
   // ContextMenuShortcut,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 
+// import {
+//   Toolbar,
+//   ToolbarToggleGroup,
+//   ToolbarToggleItem,
+
+// } from '@/components/ui/toolbar'
+
 import { altKey, ctrlKey, shiftKey } from '@/config'
 import { useDisplayStore, useStore } from '@/stores'
 import {
-  checkImage,
   formatDoc,
-  toBase64,
 } from '@/utils'
-import fileApi from '@/utils/file'
+// import fileApi from '@/utils/file'
 import CodeMirror from 'codemirror'
 
-import { ElCol, ElMessage } from 'element-plus'
+import { ElCol } from 'element-plus'
 
 import { storeToRefs } from 'pinia'
 
@@ -56,10 +61,10 @@ const {
 
 const {
  //toggleShowInsertFormDialog,
- toggleShowUploadImgDialog,
+// toggleShowUploadImgDialog,
 } = displayStore
 
-const isImgLoading = ref(false)
+// const isImgLoading = ref(false)
 const timeout = ref<NodeJS.Timeout>()
 
 const preview = ref<typeof ElCol | null>(null)
@@ -157,61 +162,61 @@ function endCopy() {
   }, 800)
 }
 
-function beforeUpload(file: File) {
-  // validate image
-  const checkResult = checkImage(file)
-  if (!checkResult.ok) {
-    ElMessage.error(checkResult.msg)
-    return false
-  }
+// function beforeUpload(file: File) {
+//   // validate image
+//   const checkResult = checkImage(file)
+//   if (!checkResult.ok) {
+//     ElMessage.error(checkResult.msg)
+//     return false
+//   }
 
-  // check image host
-  const imgHost = localStorage.getItem(`imgHost`) || `default`
-  localStorage.setItem(`imgHost`, imgHost)
+//   // check image host
+//   const imgHost = localStorage.getItem(`imgHost`) || `default`
+//   localStorage.setItem(`imgHost`, imgHost)
 
-  const config = localStorage.getItem(`${imgHost}Config`)
-  const isValidHost = imgHost === `default` || config
-  if (!isValidHost) {
-    ElMessage.error(`请先配置 ${imgHost} 图床参数`)
-    return false
-  }
-  return true
-}
+//   const config = localStorage.getItem(`${imgHost}Config`)
+//   const isValidHost = imgHost === `default` || config
+//   if (!isValidHost) {
+//     ElMessage.error(`请先配置 ${imgHost} 图床参数`)
+//     return false
+//   }
+//   return true
+// }
 
 // 图片上传结束
-function uploaded(imageUrl: string) {
-  if (!imageUrl) {
-    ElMessage.error(`上传图片未知异常`)
-    return
-  }
-  toggleShowUploadImgDialog(false)
-  // 上传成功，获取光标
-  const cursor = editor.value!.getCursor()
-  const markdownImage = `![](${imageUrl})`
-  // 将 Markdown 形式的 URL 插入编辑框光标所在位置
-  toRaw(store.editor!).replaceSelection(`\n${markdownImage}\n`, cursor as any)
-  ElMessage.success(`图片上传成功`)
-}
-function uploadImage(file: File, cb?: { (url: any): void, (arg0: unknown): void } | undefined) {
-  isImgLoading.value = true
+// function uploaded(imageUrl: string) {
+//   if (!imageUrl) {
+//     ElMessage.error(`上传图片未知异常`)
+//     return
+//   }
+//   toggleShowUploadImgDialog(false)
+//   // 上传成功，获取光标
+//   const cursor = editor.value!.getCursor()
+//   const markdownImage = `![](${imageUrl})`
+//   // 将 Markdown 形式的 URL 插入编辑框光标所在位置
+//   toRaw(store.editor!).replaceSelection(`\n${markdownImage}\n`, cursor as any)
+//   ElMessage.success(`图片上传成功`)
+// }
+// function uploadImage(file: File, cb?: { (url: any): void, (arg0: unknown): void } | undefined) {
+//   isImgLoading.value = true
 
-  toBase64(file)
-    .then(base64Content => fileApi.fileUpload(base64Content, file))
-    .then((url) => {
-      if (cb) {
-        cb(url)
-      }
-      else {
-        uploaded(url)
-      }
-    })
-    .catch((err) => {
-      ElMessage.error(err.message)
-    })
-    .finally(() => {
-      isImgLoading.value = false
-    })
-}
+//   toBase64(file)
+//     .then(base64Content => fileApi.fileUpload(base64Content, file))
+//     .then((url) => {
+//       if (cb) {
+//         cb(url)
+//       }
+//       else {
+//         uploaded(url)
+//       }
+//     })
+//     .catch((err) => {
+//       ElMessage.error(err.message)
+//     })
+//     .finally(() => {
+//       isImgLoading.value = false
+//     })
+// }
 
 const changeTimer = ref<NodeJS.Timeout>()
 
@@ -268,7 +273,7 @@ function initEditor() {
       },
       [`${ctrlKey}-C`]: function copy(editor) {
         const selected = editor.getSelection()
-        console.log(selected);
+        //console.log(selected);
         //console.log(window.isSecureContext);
         if (selected) {
           try {
@@ -298,23 +303,23 @@ function initEditor() {
   })
 
   // 粘贴上传图片并插入
-  editor.value.on(`paste`, (_cm, e) => {
-    if (!(e.clipboardData && e.clipboardData.items) || isImgLoading.value) {
-      return
-    }
-    for (let i = 0, len = e.clipboardData.items.length; i < len; ++i) {
-      const item = e.clipboardData.items[i]
-      if (item.kind === `file`) {
-        // 校验图床参数
-        const pasteFile = item.getAsFile()!
-        const isValid = beforeUpload(pasteFile)
-        if (!isValid) {
-          continue
-        }
-        uploadImage(pasteFile)
-      }
-    }
-  })
+  // editor.value.on(`paste`, (_cm, e) => {
+  //   if (!(e.clipboardData && e.clipboardData.items) || isImgLoading.value) {
+  //     return
+  //   }
+  //   for (let i = 0, len = e.clipboardData.items.length; i < len; ++i) {
+  //     const item = e.clipboardData.items[i]
+  //     if (item.kind === `file`) {
+  //       // 校验图床参数
+  //       const pasteFile = item.getAsFile()!
+  //       const isValid = beforeUpload(pasteFile)
+  //       if (!isValid) {
+  //         continue
+  //       }
+  //       uploadImage(pasteFile)
+  //     }
+  //   }
+  // })
 }
 
 const container = ref(null)
@@ -328,107 +333,107 @@ const codeMirrorWrapper = ref<ComponentPublicInstance<typeof ElCol> | null>(null
 
 // 转换 markdown 中的本地图片为线上图片
 // todo 处理事件覆盖
-function mdLocalToRemote() {
-  const dom = codeMirrorWrapper.value!.$el as HTMLElement
+// function mdLocalToRemote() {
+//   const dom = codeMirrorWrapper.value!.$el as HTMLElement
 
-  // 上传 md 中的图片
-  const uploadMdImg = async ({ md, list }: { md: { str: string, path: string, file: File }, list: { path: string, file: File }[] }) => {
-    const mdImgList = [
-      ...(md.str.matchAll(/!\[(.*?)\]\((.*?)\)/g) || []),
-    ].filter((item) => {
-      return item // 获取所有相对地址的图片
-    })
-    const root = md.path.match(/.+?\//)![0]
-    const resList = await Promise.all<{ matchStr: string, url: string }>(
-      mdImgList.map((item) => {
-        return new Promise((resolve) => {
-          let [, , matchStr] = item
-          matchStr = matchStr.replace(/^.\//, ``) // 处理 ./img/ 为 img/ 统一相对路径风格
-          const { file }
-                = list.find(f => f.path === `${root}${matchStr}`) || {}
-          uploadImage(file!, (url) => {
-            resolve({ matchStr, url })
-          })
-        })
-      }),
-    )
-    resList.forEach((item) => {
-      md.str = md.str
-        .replace(`](./${item.matchStr})`, `](${item.url})`)
-        .replace(`](${item.matchStr})`, `](${item.url})`)
-    })
-    editor.value!.setValue(md.str)
-  }
+//   // 上传 md 中的图片
+//   const uploadMdImg = async ({ md, list }: { md: { str: string, path: string, file: File }, list: { path: string, file: File }[] }) => {
+//     const mdImgList = [
+//       ...(md.str.matchAll(/!\[(.*?)\]\((.*?)\)/g) || []),
+//     ].filter((item) => {
+//       return item // 获取所有相对地址的图片
+//     })
+//     const root = md.path.match(/.+?\//)![0]
+//     const resList = await Promise.all<{ matchStr: string, url: string }>(
+//       mdImgList.map((item) => {
+//         return new Promise((resolve) => {
+//           let [, , matchStr] = item
+//           matchStr = matchStr.replace(/^.\//, ``) // 处理 ./img/ 为 img/ 统一相对路径风格
+//           const { file }
+//                 = list.find(f => f.path === `${root}${matchStr}`) || {}
+//           uploadImage(file!, (url) => {
+//             resolve({ matchStr, url })
+//           })
+//         })
+//       }),
+//     )
+//     resList.forEach((item) => {
+//       md.str = md.str
+//         .replace(`](./${item.matchStr})`, `](${item.url})`)
+//         .replace(`](${item.matchStr})`, `](${item.url})`)
+//     })
+//     editor.value!.setValue(md.str)
+//   }
 
-  dom.ondragover = evt => evt.preventDefault()
-  dom.ondrop = async (evt: any) => {
-    evt.preventDefault()
-    for (const item of evt.dataTransfer.items) {
-      item.getAsFileSystemHandle().then(async (handle: { kind: string, getFile: () => any }) => {
-        if (handle.kind === `directory`) {
-          const list = await showFileStructure(handle) as { path: string, file: File }[]
-          const md = await getMd({ list })
-          uploadMdImg({ md, list })
-        }
-        else {
-          const file = await handle.getFile()
-          console.log(`file`, file)
-        }
-      })
-    }
-  }
+//   dom.ondragover = evt => evt.preventDefault()
+//   dom.ondrop = async (evt: any) => {
+//     evt.preventDefault()
+//     for (const item of evt.dataTransfer.items) {
+//       item.getAsFileSystemHandle().then(async (handle: { kind: string, getFile: () => any }) => {
+//         if (handle.kind === `directory`) {
+//           const list = await showFileStructure(handle) as { path: string, file: File }[]
+//           const md = await getMd({ list })
+//           uploadMdImg({ md, list })
+//         }
+//         else {
+//           const file = await handle.getFile()
+//           console.log(`file`, file)
+//         }
+//       })
+//     }
+//   }
 
-  // 从文件列表中查找一个 md 文件并解析
-  async function getMd({ list }: { list: { path: string, file: File }[] }) {
-    return new Promise<{ str: string, file: File, path: string }>((resolve) => {
-      const { path, file } = list.find(item => item.path.match(/\.md$/))!
-      const reader = new FileReader()
-      reader.readAsText(file!, `UTF-8`)
-      reader.onload = (evt) => {
-        resolve({
-          str: evt.target!.result as string,
-          file,
-          path,
-        })
-      }
-    })
-  }
+//   // 从文件列表中查找一个 md 文件并解析
+//   async function getMd({ list }: { list: { path: string, file: File }[] }) {
+//     return new Promise<{ str: string, file: File, path: string }>((resolve) => {
+//       const { path, file } = list.find(item => item.path.match(/\.md$/))!
+//       const reader = new FileReader()
+//       reader.readAsText(file!, `UTF-8`)
+//       reader.onload = (evt) => {
+//         resolve({
+//           str: evt.target!.result as string,
+//           file,
+//           path,
+//         })
+//       }
+//     })
+//   }
 
-  // 转换文件系统句柄中的文件为文件列表
-  async function showFileStructure(root: any) {
-    const result = []
-    let cwd = ``
-    try {
-      const dirs = [root]
-      for (const dir of dirs) {
-        cwd += `${dir.name}/`
-        for await (const [, handle] of dir) {
-          if (handle.kind === `file`) {
-            result.push({
-              path: cwd + handle.name,
-              file: await handle.getFile(),
-            })
-          }
-          else {
-            result.push({
-              path: `${cwd + handle.name}/`,
-            })
-            dirs.push(handle)
-          }
-        }
-      }
-    }
-    catch (err) {
-      console.error(err)
-    }
-    return result
-  }
-}
+//   // 转换文件系统句柄中的文件为文件列表
+//   async function showFileStructure(root: any) {
+//     const result = []
+//     let cwd = ``
+//     try {
+//       const dirs = [root]
+//       for (const dir of dirs) {
+//         cwd += `${dir.name}/`
+//         for await (const [, handle] of dir) {
+//           if (handle.kind === `file`) {
+//             result.push({
+//               path: cwd + handle.name,
+//               file: await handle.getFile(),
+//             })
+//           }
+//           else {
+//             result.push({
+//               path: `${cwd + handle.name}/`,
+//             })
+//             dirs.push(handle)
+//           }
+//         }
+//       }
+//     }
+//     catch (err) {
+//       console.error(err)
+//     }
+//     return result
+//   }
+// }
 
 onMounted(() => {
   initEditor()
   onEditorRefresh()
-  mdLocalToRemote()
+  // mdLocalToRemote()
   checkIsMobile();
 })
 </script>
@@ -465,6 +470,9 @@ onMounted(() => {
               </ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
+
+
+          
         </ElCol>
         <ElCol
           id="preview"
@@ -488,11 +496,11 @@ onMounted(() => {
       </el-row>
     </main>
 
-    <UploadImgDialog
+    <!-- <UploadImgDialog
       @upload-image="uploadImage"
     />
 
-    <InsertFormDialog />
+    <InsertFormDialog /> -->
 
     <RunLoading />
   </div>

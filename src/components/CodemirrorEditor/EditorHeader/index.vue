@@ -40,7 +40,7 @@ import { nextTick } from 'vue'
 import EditDropdown from './EditDropdown.vue'
 
 import FileDropdown from './FileDropdown.vue'
-import HelpDropdown from './HelpDropdown.vue'
+// import HelpDropdown from './HelpDropdown.vue'
 
 import PostInfo from './PostInfo.vue'
 import StyleDropdown from './StyleDropdown.vue'

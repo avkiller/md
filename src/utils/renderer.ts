@@ -6,10 +6,10 @@ import hljs from 'highlight.js'
 
 import { marked } from 'marked'
 // import mermaid from 'mermaid'
-import { MDKatex } from './MDKatex'
+// import { MDKatex } from './MDKatex'
 
-// import { defineAsyncComponent } from 'vue'
-marked.use(MDKatex({ nonStandard: true }))
+// marked.use(MDKatex({ nonStandard: true }))
+// import { defineAsyncComponent } from 'vue';
 
 function buildTheme({ theme: _theme, fonts, size, isUseIndent }: IOpts): ThemeStyles {
   const theme = cloneDeep(_theme)
@@ -141,6 +141,7 @@ export function initRenderer(opts: IOpts) {
   }
 
   const renderer: RendererObject = {
+    
     heading({ tokens, depth }: Tokens.Heading) {
       const text = this.parser.parseInline(tokens)
       const tag = `h${depth}`
@@ -274,7 +275,22 @@ export function initRenderer(opts: IOpts) {
     },
   }
 
-  marked.use({ renderer })
+
+  marked.use({ 
+    walkTokens(token) {
+			const {type, raw} = token
+      // console.log("fuck me")
+      // console.log(type, raw)
+      if (type === 'paragraph' && raw.startsWith('$$\n') && raw.endsWith('\n$$')) {
+        // console.log("发现代码")
+        import('./MDKatex').then(MDKatex => {
+          marked.use(MDKatex.MDKatex({ nonStandard: true }))
+        })
+        
+      }
+    },
+    renderer
+  });
 
   return {
     buildAddition,
