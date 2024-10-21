@@ -27,22 +27,45 @@ export default defineConfig({
       output: {
         // 在 UMD 构建模式下为这些外部化的依赖提供一个全局变量
         manualChunks: {
-          vendor: ['vue', '@vueuse/core', 'pinia', 'radix-vue'], 
-          utils: ['lodash', 'dayjs','langium', 'crypto-js', 'parse5'],
-          res: ['lucide-vue-next'],
-          // cryptojs: ['crypto-js'],
-          vscode: [
+  
+          vendor: [
+            'pinia', 
+            'radix-vue',
+            'vue',
+            '@vueuse/core',
+          ], 
+          utils: [
+            'lodash',
+            'lodash-es',
+            'dayjs',
+            'langium', 
+            'crypto-js', 
+            'parse5', 
             'vscode-languageserver-types', 
             'vscode-uri', 
             'vscode-languageserver-textdocument', 
-            'vscode-jsonrpc'],
-          // mermaid: ['mermaid'],
-          vue: [
-            //'mermaid', 
-            'element-plus', 
-            'codemirror'
+            'vscode-jsonrpc',
           ],
-        },
+          res: ['lucide-vue-next'],
+          // cryptojs: ['crypto-js'],
+          // vscode: [
+          //   'vscode-languageserver-types', 
+          //   'vscode-uri', 
+          //   'vscode-languageserver-textdocument', 
+          //   'vscode-jsonrpc'],
+          // mermaid: ['mermaid'],
+          // vue: [
+          //   //'mermaid', 
+          //   'vue', 
+          //   '@vueuse/core',
+          // ],
+
+          ui: [
+            'element-plus', 
+            'codemirror',
+            '@element-plus/icons-vue',
+          ]
+      },
       // 打印每个包的信息
       //   manualChunks: (id: string) => {
       //     try {
@@ -63,27 +86,6 @@ export default defineConfig({
 },
   plugins: [
     vue(),
-    // cdn({
-    //   modules: [
-    //     // {
-    //     //   name: "vue",
-    //     //   var: "Vue",
-    //     //   path: "https://cdn.jsdelivr.net/npm/vue@3.5.10/dist/vue.global.min.js",
-    //     // },
-    //     'vue',
-    //     'axios',
-    //     // {
-    //     //   name: '@element-plus/icons-vue',
-    //     //   var: 'ElementPlusIconsVue',
-    //     //   path: 'dist/index.iife.min.js',
-    //     // },
-    //     // {
-    //     //   name: '@element-plus/icons-vue',
-    //     //   var: 'ElementPlusIconsVue', // 根据main.js中定义的来
-    //     //   path: ''
-    //     // },
-    //    ],
-    //   }),
     importToCDN({
       modules: [
         // 'vue',
@@ -91,26 +93,45 @@ export default defineConfig({
         // {
         //   name: 'element-plus',
         //   var: 'ElementPlus',
-        //   path: 'https://cdn.jsdelivr.net/npm/element-plus@2.8.4/dist/index.full.min.js',
-        //   css: 'https://cdn.jsdelivr.net/npm/element-plus@2.8.4/dist/index.css'
+        //   path: 'https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/element-plus/2.8.4/index.full.min.js',
+        //   css: 'https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/element-plus/2.8.4/index.min.cssx.css'
+        // },
+        // {
+        //   name: '@element-plus/icons-vue',
+        //   var: 'ElementPlusIconsVue',
+        //   path: 'https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/element-plus-icons-vue/2.3.1/index.iife.min.js',
         // },
         {
           name: 'highlight.js',
           var: 'hljs',
-          path: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js',
-          css: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/default.min.css'
+          path: 'https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/highlight.js/11.10.0/highlight.min.js',
+          css: 'https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/highlight.js/11.10.0/styles/default.min.css'
         },
 
         {
           name: 'axios',
           var: 'axios',
-          path: 'https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.7/axios.min.js'
+          path: 'https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/axios/1.7.7/axios.min.js'
+        },
+        {
+          name: 'cytoscape',
+          var: 'cytoscape',
+          path: 'https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/cytoscape/3.29.2/cytoscape.min.js'
+        },{
+          name: 'katex',
+          var: 'katex',
+          path: 'https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/KaTeX/0.16.9/katex.min.js'
         },
 
+        {
+          name: 'prettier/standalone',
+          var: 'prettier',
+          path: 'https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/prettier/3.3.3/standalone.js'
+        },
         // {
-        //   name: 'pinia',
-        //   var: 'Pinia',
-        //   path: 'dist/pinia.iife.min.js'
+        //   name: 'mermaid',
+        //   var: 'mermaid',
+        //   path: 'https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/mermaid/11.2.1/mermaid.min.js'
         // },
         
       ]

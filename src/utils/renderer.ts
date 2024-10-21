@@ -225,9 +225,11 @@ export function initRenderer(opts: IOpts) {
       if (href.startsWith(`https://mp.weixin.qq.com`)) {
         return `<a href="${href}" title="${title || text}" ${styles(`wx_link`)}>${text}</a>`
       }
-      if (href === text) {
-        return text
-      }
+
+      // 去除相等的提示
+      // if (href === text) {
+      //   return text
+      // }
       if (opts.status) {
         const ref = addFootnote(title || text, href)
         return `<span ${styles(`link`)}>${text}<sup>[${ref}]</sup></span>`
