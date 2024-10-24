@@ -34,35 +34,34 @@ import { ElCol } from 'element-plus'
 
 import { storeToRefs } from 'pinia'
 
-import { onMounted, ref, toRaw, watch} from 'vue'
-
+import { onMounted, ref, toRaw, watch } from 'vue'
 
 const store = useStore()
 const displayStore = useDisplayStore()
 const { isDark, output, editor, editorContent } = storeToRefs(store)
 const { isShowCssEditor } = storeToRefs(displayStore)
 
-const isMobile = ref(false);
+const isMobile = ref(false)
 
 // 检测是否为移动设备
-const checkIsMobile = () => {
-  const userAgent = navigator.userAgent;
-  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-};
+function checkIsMobile() {
+  const userAgent = navigator.userAgent
+  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
+}
 
 const {
   editorRefresh,
-  //exportEditorContent2HTML,
-  //exportEditorContent2MD,
+  // exportEditorContent2HTML,
+  // exportEditorContent2MD,
   formatContent,
-  //importMarkdownContent,
-  //resetStyleConfirm,
+  // importMarkdownContent,
+  // resetStyleConfirm,
 } = store
 
-const {
- //toggleShowInsertFormDialog,
+// const {
+//   toggleShowInsertFormDialog,
 // toggleShowUploadImgDialog,
-} = displayStore
+// } = displayStore
 
 // const isImgLoading = ref(false)
 const timeout = ref<NodeJS.Timeout>()
@@ -122,23 +121,21 @@ onMounted(() => {
 
 // 尝试定义一个copy函数
 function handleCopy() {
-  //console.log("call copy")
+  // console.log("call copy")
   const selection = editor.value?.getSelection() as string
-  //console.log(selection)
+  // console.log(selection)
   try {
     if (window.isSecureContext) {
-      //console.log("testme")
-      navigator.clipboard.writeText(selection);
-      } 
-    else 
-       {
-        //console.log("exec")
-        document.execCommand('copy');
-     }           
-
-    } catch (err) {
-      console.error('failed copy');
+      navigator.clipboard.writeText(selection)
     }
+    else {
+      // console.log("exec")
+      document.execCommand(`copy`)
+    }
+  }
+  catch (err) {
+    console.error(`failed copy`)
+  }
 }
 
 // 更新编辑器
@@ -273,26 +270,25 @@ function initEditor() {
       },
       [`${ctrlKey}-C`]: function copy(editor) {
         const selected = editor.getSelection()
-        //console.log(selected);
-        //console.log(window.isSecureContext);
+        // console.log(selected);
+        // console.log(window.isSecureContext);
         if (selected) {
           try {
             if (window.isSecureContext) {
-              navigator.clipboard.writeText(selected);
-            } else {
-              document.execCommand('copy');
-              }
-            
-
-          } catch (err) {
-            console.error('failed copy');
+              navigator.clipboard.writeText(selected)
+            }
+            else {
+              document.execCommand(`copy`)
+            }
+          }
+          catch (err) {
+            console.error(`failed copy`)
           }
         }
       },
     },
-    
+
   })
-  
 
   editor.value.on(`change`, (e) => {
     clearTimeout(changeTimer.value)
@@ -434,7 +430,7 @@ onMounted(() => {
   initEditor()
   onEditorRefresh()
   // mdLocalToRemote()
-  checkIsMobile();
+  checkIsMobile()
 })
 </script>
 
@@ -457,22 +453,19 @@ onMounted(() => {
           }"
         >
           <ContextMenu>
-            <ContextMenuTrigger >
+            <ContextMenuTrigger>
               <textarea
                 id="editor"
                 type="textarea"
                 placeholder="Your markdown text here."
               />
             </ContextMenuTrigger>
-            <ContextMenuContent v-if="isMobile ==false" class="w-64">
-              <ContextMenuItem @click="handleCopy" >
+            <ContextMenuContent v-if="isMobile === false" class="w-64">
+              <ContextMenuItem @click="handleCopy">
                 复制
               </ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
-
-
-          
         </ElCol>
         <ElCol
           id="preview"
@@ -519,8 +512,7 @@ onMounted(() => {
 
 .container-main {
   overflow: hidden;
-  padding: 20px;
-  padding-top: 0;
+  padding: 0 20px 20px;
 }
 
 #output-wrapper {
