@@ -89,7 +89,6 @@ const formatItems = [
     kbd: [altSign, shiftSign, `F`],
     emitArgs: [`formatContent`],
   },
-  
 
 ] as const
 

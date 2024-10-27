@@ -125,11 +125,11 @@ export function css2json(css: string): Partial<Record<Block | Inline, Properties
  */
 export async function formatDoc(content: string, type: `markdown` | `css` = `markdown`) {
   // console.log("formatDoc start")
-  const prettierPluginMarkdown = await import(`prettier/plugins/markdown`);
-  const prettierPluginBabel = await import(`prettier/plugins/babel`);
-  const prettierPluginEstree = await import(`prettier/plugins/estree`);
-  const prettierPluginCss = await import(`prettier/plugins/postcss`);
-  const {format} = await import(`prettier/standalone`)
+  const prettierPluginMarkdown = await import(`prettier/plugins/markdown`)
+  const prettierPluginBabel = await import(`prettier/plugins/babel`)
+  const prettierPluginEstree = await import(`prettier/plugins/estree`)
+  const prettierPluginCss = await import(`prettier/plugins/postcss`)
+  const { format } = await import(`prettier/standalone`)
   const plugins = {
     markdown: [prettierPluginMarkdown.default, prettierPluginBabel.default, prettierPluginEstree.default],
     css: [prettierPluginCss.default],
@@ -140,8 +140,6 @@ export async function formatDoc(content: string, type: `markdown` | `css` = `mar
     parser,
     plugins: plugins[parser],
   })
-  
-  
 }
 
 /**

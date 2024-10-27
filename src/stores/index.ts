@@ -57,7 +57,7 @@ export const useStore = defineStore(`store`, () => {
 
   // 清空数据库
   const clearLocalStorage = () => {
-    localStorage.clear();
+    localStorage.clear()
   }
   // 格式化文档
   const formatContent = () => {
@@ -69,13 +69,13 @@ export const useStore = defineStore(`store`, () => {
 
   // 清空文档
   const resetContent = () => {
-    toRaw(editor.value!).setValue('')
-    }
-  
+    toRaw(editor.value!).setValue(``)
+  }
+
   // 重新加载默认markdown
   const reloadDefaultContent = () => {
     toRaw(editor.value!).setValue(default_content.value)
-    }
+  }
 
   // 切换 highlight.js 代码主题
   const codeThemeChange = () => {
@@ -455,7 +455,7 @@ export const useStore = defineStore(`store`, () => {
     resetContent,
     reloadDefaultContent,
     clearLocalStorage,
-    
+
   }
 })
 

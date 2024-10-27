@@ -6,11 +6,9 @@ import hljs from 'highlight.js'
 
 import { marked } from 'marked'
 // import mermaid from 'mermaid'
-// import { MDKatex } from './MDKatex'
+import { MDKatex } from './MDKatex'
 
-// marked.use(MDKatex({ nonStandard: true }))
-// import { defineAsyncComponent } from 'vue';
-
+marked.use(MDKatex({ nonStandard: true }))
 function buildTheme({ theme: _theme, fonts, size, isUseIndent }: IOpts): ThemeStyles {
   const theme = cloneDeep(_theme)
   const base = toMerged(theme.base, {
@@ -141,7 +139,7 @@ export function initRenderer(opts: IOpts) {
   }
 
   const renderer: RendererObject = {
-    
+
     heading({ tokens, depth }: Tokens.Heading) {
       const text = this.parser.parseInline(tokens)
       const tag = `h${depth}`
@@ -150,6 +148,7 @@ export function initRenderer(opts: IOpts) {
 
     paragraph({ tokens }: Tokens.Paragraph): string {
       const text = this.parser.parseInline(tokens)
+      // console.log(text)
       const isFigureImage = text.includes(`<figure`) && text.includes(`<img`)
       const isEmpty = text.trim() === ``
       if (isFigureImage || isEmpty) {
@@ -167,13 +166,13 @@ export function initRenderer(opts: IOpts) {
     code({ text, lang = `` }: Tokens.Code): string {
       if (lang.startsWith(`mermaid`)) {
         clearTimeout(codeIndex)
-        import('mermaid').then(mermaid => {
+        import(`mermaid`).then((mermaid) => {
           codeIndex = setTimeout(() => {
-            //mermaid.default.initialize({ startOnLoad: true });
+            // mermaid.default.initialize({ startOnLoad: true });
             mermaid.default.run()
-          }, 0) as any as number         
-         })
-         return `<pre class="mermaid">${text}</pre>`
+          }, 0) as any as number
+        })
+        return `<pre class="mermaid">${text}</pre>`
 
         // codeIndex = setTimeout(() => {
         //   mermaid.run()
@@ -277,22 +276,20 @@ export function initRenderer(opts: IOpts) {
     },
   }
 
-
-  marked.use({ 
-    walkTokens(token) {
-			const {type, raw} = token
-      // console.log("fuck me")
-      // console.log(type, raw)
-      if (type === 'paragraph' && raw.startsWith('$$\n') && raw.endsWith('\n$$')) {
-        // console.log("发现代码")
-        import('./MDKatex').then(MDKatex => {
-          marked.use(MDKatex.MDKatex({ nonStandard: true }))
-        })
-        
-      }
-    },
-    renderer
-  });
+  marked.use({
+    // async walkTokens(token) {
+    //   // const { type, raw } = token
+    //   // console.log(`walkTokens`)
+    //   console.log(`walkTokens`, token.type, token.raw)
+    //   // if (token.raw.startsWith(`$$\n`) && token.raw.endsWith(`\n$$`)) {
+    //   //   await import(`./MDKatex`).then((MDKatex) => {
+    //   //     marked.use(MDKatex.MDKatex({ nonStandard: true }))
+    //   //     console.log(`加载库`)
+    //   //   })
+    //   // }
+    // },
+    renderer,
+  })
 
   return {
     buildAddition,
