@@ -35,3 +35,5 @@ jobs:
         uses: cloudflare/wrangler-action@v3.11.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy YOUR_DIST_FOLDER --project-name=example
