@@ -31,3 +31,7 @@ jobs:
         with:
           branch: gh-pages
           folder: dist
+      - name: Deploy to Cloudflare Workers with Wrangler
+        uses: cloudflare/wrangler-action@v3.11.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
