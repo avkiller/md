@@ -4,4 +4,4 @@ export interface MarkedKatexOptions {
   nonStandard?: boolean
 }
 
-export function MDKatex(options?: MarkedKatexOptions = true): MarkedExtension
+export function MDKatex(options?: MarkedKatexOptions): MarkedExtension

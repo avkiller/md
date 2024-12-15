@@ -158,7 +158,8 @@ export const useStore = defineStore(`store`, () => {
   // 更新编辑器
   const editorRefresh = () => {
     codeThemeChange()
-    renderer.reset({ status: isCiteStatus.value, legend: legend.value, isUseIndent: isUseIndent.value })
+    renderer.reset({ citeStatus: isCiteStatus.value, legend: legend.value, isUseIndent: isUseIndent.value })
+
     let outputTemp = marked.parse(editor.value!.getValue()) as string
     // 去除第一行的 margin-top
     outputTemp = outputTemp.replace(/(style=".*?)"/, `$1;margin-top: 0"`)
@@ -171,12 +172,17 @@ export const useStore = defineStore(`store`, () => {
       outputTemp += `
         <style>
           .hljs.code__pre > .mac-sign {
-            display: inline-block;
+            display: flex;
           }
+        </style>
+      `
+    }
 
-          .hljs.code__pre {
-            padding: 0!important;
-          }
+    outputTemp += `
+      <style>
+        .code__pre {
+          padding: 0 !important;
+        }
 
           .hljs.code__pre code {
             display: -webkit-box;
@@ -186,7 +192,6 @@ export const useStore = defineStore(`store`, () => {
           }
         </style>
       `
-    }
 
     output.value = outputTemp
   }
@@ -343,7 +348,7 @@ export const useStore = defineStore(`store`, () => {
 
   // 导出编辑器内容为 HTML，并且下载到本地
   const exportEditorContent2HTML = () => {
-    exportHTML()
+    exportHTML(primaryColor.value)
     document.querySelector(`#output`)!.innerHTML = output.value
   }
 
@@ -368,7 +373,7 @@ export const useStore = defineStore(`store`, () => {
       const reader = new FileReader()
       reader.readAsText(file)
       reader.onload = (event) => {
-        (editor.value!).setValue((event.target !).result as string)
+        (editor.value!).setValue((event.target!).result as string)
         ElMessage.success(`文档导入成功`)
       }
     }

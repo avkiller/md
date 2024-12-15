@@ -6,6 +6,8 @@ import hljs from 'highlight.js'
 
 import { marked } from 'marked'
 // import mermaid from 'mermaid'
+import { getStyleString } from '.'
+import markedAlert from './MDAlert'
 import { MDKatex } from './MDKatex'
 
 marked.use(MDKatex({ nonStandard: true }))
@@ -57,9 +59,7 @@ function getStyles(styleMapping: ThemeStyles, tokenName: string, addition: strin
   if (!dict) {
     return ``
   }
-  const styles = Object.entries(dict)
-    .map(([key, value]) => `${key}:${value}`)
-    .join(`;`)
+  const styles = getStyleString(dict)
   return `style="${styles}${addition}"`
 }
 
@@ -87,10 +87,10 @@ function transform(legend: string, text: string | null, title: string | null): s
 }
 
 const macCodeSvg = `
-  <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
-    <ellipse cx="65" cy="65" rx="50" ry="52" stroke="rgb(220,60,54)" stroke-width="2" fill="rgb(237,108,96)" />
+  <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
+    <ellipse cx="50" cy="65" rx="50" ry="52" stroke="rgb(220,60,54)" stroke-width="2" fill="rgb(237,108,96)" />
     <ellipse cx="225" cy="65" rx="50" ry="52" stroke="rgb(218,151,33)" stroke-width="2" fill="rgb(247,193,81)" />
-    <ellipse cx="385" cy="65" rx="50" ry="52" stroke="rgb(27,161,37)" stroke-width="2" fill="rgb(100,200,86)" />
+    <ellipse cx="400" cy="65" rx="50" ry="52" stroke="rgb(27,161,37)" stroke-width="2" fill="rgb(100,200,86)" />
   </svg>
 `.trim()
 
@@ -125,6 +125,7 @@ export function initRenderer(opts: IOpts) {
   function setOptions(newOpts: Partial<IOpts>): void {
     opts = { ...opts, ...newOpts }
     styleMapping = buildTheme(opts)
+    marked.use(markedAlert({ styles: styleMapping }))
   }
 
   const buildFootnotes = () => {
@@ -201,11 +202,11 @@ export function initRenderer(opts: IOpts) {
       return styledContent(`listitem`, `${prefix}${content}`, `li`)
     },
 
-    list({ ordered, items }: Tokens.List): string {
+    list({ ordered, items, start = 1 }: Tokens.List): string {
       const listItems = []
       for (let i = 0; i < items.length; i++) {
         isOrdered = ordered
-        listIndex = i
+        listIndex = Number(start) + i - 1
         const item = items[i]
         listItems.push(this.listitem(item))
       }
@@ -220,20 +221,21 @@ export function initRenderer(opts: IOpts) {
       return `<figure ${figureStyles}><img ${imgStyles} src="${href}" title="${title}" alt="${text}"/>${subText}</figure>`
     },
 
-    link({ href, title, text }: Tokens.Link): string {
+    link({ href, title, text, tokens }: Tokens.Link): string {
+      const parsedText = this.parser.parseInline(tokens)
       if (href.startsWith(`https://mp.weixin.qq.com`)) {
-        return `<a href="${href}" title="${title || text}" ${styles(`wx_link`)}>${text}</a>`
+        return `<a href="${href}" title="${title || text}" ${styles(`wx_link`)}>${parsedText}</a>`
       }
 
       // 去除相等的提示
       // if (href === text) {
       //   return text
       // }
-      if (opts.status) {
+      if (opts.citeStatus) {
         const ref = addFootnote(title || text, href)
-        return `<span ${styles(`link`)}>${text}<sup>[${ref}]</sup></span>`
+        return `<span ${styles(`link`)}>${parsedText}<sup>[${ref}]</sup></span>`
       }
-      return styledContent(`link`, text, `span`)
+      return styledContent(`link`, parsedText, `span`)
     },
 
     strong({ tokens }: Tokens.Strong): string {
@@ -276,20 +278,7 @@ export function initRenderer(opts: IOpts) {
     },
   }
 
-  marked.use({
-    // async walkTokens(token) {
-    //   // const { type, raw } = token
-    //   // console.log(`walkTokens`)
-    //   console.log(`walkTokens`, token.type, token.raw)
-    //   // if (token.raw.startsWith(`$$\n`) && token.raw.endsWith(`\n$$`)) {
-    //   //   await import(`./MDKatex`).then((MDKatex) => {
-    //   //     marked.use(MDKatex.MDKatex({ nonStandard: true }))
-    //   //     console.log(`加载库`)
-    //   //   })
-    //   // }
-    // },
-    renderer,
-  })
+  marked.use({ renderer })
 
   return {
     buildAddition,

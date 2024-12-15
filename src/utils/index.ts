@@ -1,4 +1,4 @@
-import type { Block, Inline, Theme } from '@/types'
+import type { Block, ExtendedProperties, Inline, Theme } from '@/types'
 
 import type { PropertiesHyphen } from 'csstype'
 import { prefix } from '@/config'
@@ -8,7 +8,6 @@ import juice from 'juice'
 // import * as prettierPluginMarkdown from 'prettier/plugins/markdown'
 // import * as prettierPluginCss from 'prettier/plugins/postcss'
 // import { format } from 'prettier/standalone'
-// import { defineAsyncComponent} from 'vue'
 
 export function addPrefix(str: string) {
   return `${prefix}__${str}`
@@ -35,7 +34,7 @@ export function customizeTheme(theme: Theme, options: {
 export function customCssWithTemplate(jsonString: Partial<Record<Block | Inline, PropertiesHyphen>>, color: string, theme: Theme) {
   const newTheme = customizeTheme(theme, { color })
 
-  const mergeProperties = <T extends Block | Inline = Block>(target: Record<T, PropertiesHyphen>, source: Partial<Record<Block | Inline, PropertiesHyphen>>, keys: T[]) => {
+  const mergeProperties = <T extends Block | Inline = Block>(target: Record<T, PropertiesHyphen>, source: Partial<Record<Block | Inline | string, PropertiesHyphen>>, keys: T[]) => {
     keys.forEach((key) => {
       if (source[key]) {
         target[key] = Object.assign(target[key] || {}, source[key])
@@ -55,7 +54,23 @@ export function customCssWithTemplate(jsonString: Partial<Record<Block | Inline,
     `p`,
     `hr`,
     `blockquote`,
+    `blockquote_note`,
+    `blockquote_tip`,
+    `blockquote_important`,
+    `blockquote_warning`,
+    `blockquote_caution`,
     `blockquote_p`,
+    `blockquote_p_note`,
+    `blockquote_p_tip`,
+    `blockquote_p_important`,
+    `blockquote_p_warning`,
+    `blockquote_p_caution`,
+    `blockquote_title`,
+    `blockquote_title_note`,
+    `blockquote_title_tip`,
+    `blockquote_title_important`,
+    `blockquote_title_warning`,
+    `blockquote_title_caution`,
     `image`,
     `ul`,
     `ol`,
@@ -118,13 +133,21 @@ export function css2json(css: string): Partial<Record<Block | Inline, Properties
 }
 
 /**
+ * 将样式对象转换为 CSS 字符串
+ * @param {ExtendedProperties} style - 样式对象
+ * @returns {string} - CSS 字符串
+ */
+export function getStyleString(style: ExtendedProperties) {
+  return Object.entries(style ?? {}).map(([key, value]) => `${key}: ${value}`).join(`; `)
+}
+
+/**
  * 格式化内容
  * @param {string} content - 要格式化的内容
  * @param {'markdown' | 'css'} [type] - 内容类型，决定使用的解析器，默认为'markdown'
  * @returns {Promise<string>} - 格式化后的内容
  */
 export async function formatDoc(content: string, type: `markdown` | `css` = `markdown`) {
-  // console.log("formatDoc start")
   const prettierPluginMarkdown = await import(`prettier/plugins/markdown`)
   const prettierPluginBabel = await import(`prettier/plugins/babel`)
   const prettierPluginEstree = await import(`prettier/plugins/estree`)
@@ -162,10 +185,14 @@ export function downloadMD(doc: string) {
 /**
  * 导出 HTML 生成内容
  */
-export function exportHTML() {
+export function exportHTML(primaryColor: string) {
   const element = document.querySelector(`#output`)!
   setStyles(element)
   const htmlStr = element.innerHTML
+    .replaceAll(`var(--el-text-color-regular)`, `#3f3f3f`)
+    .replaceAll(`var(--blockquote-background)`, `#f7f7f7`)
+    .replaceAll(`var(--md-primary-color)`, primaryColor)
+    .replaceAll(/--md-primary-color:.+?;/g, ``)
 
   const downLink = document.createElement(`a`)
 
@@ -187,13 +214,21 @@ export function exportHTML() {
      * @param {排除的属性} excludes 如果某些属性对结果有不良影响，可以使用这个参数来排除
      * @returns 行内样式拼接结果
      */
-    function getElementStyles(element: Element, excludes = [`width`, `height`]) {
+    function getElementStyles(element: Element, excludes = [`width`, `height`, `inlineSize`, `webkitLogicalWidth`, `webkitLogicalHeight`]) {
       const styles = getComputedStyle(element, null)
       return Object.entries(styles)
         .filter(
-          ([key]) => styles.getPropertyValue(key) && !excludes.includes(key),
+          ([key]) => {
+            // 将驼峰转换为短横线格式
+            const kebabKey = key.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`)
+            return styles.getPropertyValue(kebabKey) && !excludes.includes(key)
+          },
         )
-        .map(([key, value]) => `${key}:${value};`)
+        .map(([key, value]) => {
+          // 将驼峰转换为短横线格式
+          const kebabKey = key.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`)
+          return `${kebabKey}:${value};`
+        })
         .join(``)
     }
 

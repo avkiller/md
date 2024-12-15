@@ -2,8 +2,7 @@
 import type { ComponentPublicInstance } from 'vue'
 import CssEditor from '@/components/CodemirrorEditor/CssEditor.vue'
 import EditorHeader from '@/components/CodemirrorEditor/EditorHeader/index.vue'
-// import InsertFormDialog from '@/components/CodemirrorEditor/InsertFormDialog.vue'
-// import UploadImgDialog from '@/components/CodemirrorEditor/UploadImgDialog.vue'
+import InsertFormDialog from '@/components/CodemirrorEditor/InsertFormDialog.vue'
 
 import RunLoading from '@/components/RunLoading.vue'
 import {
@@ -58,10 +57,7 @@ const {
   // resetStyleConfirm,
 } = store
 
-// const {
-//   toggleShowInsertFormDialog,
-// toggleShowUploadImgDialog,
-// } = displayStore
+// const { toggleShowInsertFormDialog, toggleShowUploadImgDialog } = displayStore
 
 // const isImgLoading = ref(false)
 const timeout = ref<NodeJS.Timeout>()
@@ -489,11 +485,11 @@ onMounted(() => {
       </el-row>
     </main>
 
-    <!-- <UploadImgDialog
-      @upload-image="uploadImage"
-    />
+    <!--    <UploadImgDialog -->
+    <!--      @upload-image="uploadImage" -->
+    <!--    /> -->
 
-    <InsertFormDialog /> -->
+    <InsertFormDialog />
 
     <RunLoading />
   </div>
@@ -512,7 +508,8 @@ onMounted(() => {
 
 .container-main {
   overflow: hidden;
-  padding: 0 20px 20px;
+  padding: 20px;
+  padding-top: 0;
 }
 
 #output-wrapper {

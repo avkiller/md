@@ -33,6 +33,8 @@ export default defineConfig({
             `radix-vue`,
             `vue`,
             `@vueuse/core`,
+            `tailwind-merge`,
+            `marked`,
             // `juice`,
           ],
           // parse5: [
@@ -49,6 +51,7 @@ export default defineConfig({
             `vscode-uri`,
             `vscode-languageserver-textdocument`,
             `vscode-jsonrpc`,
+            `mensch`,
           ],
           res: [
             `lucide-vue-next`,
@@ -109,12 +112,12 @@ export default defineConfig({
         //   var: `ElementPlusIconsVue`,
         //   path: `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/element-plus-icons-vue/2.3.1/index.iife.min.js`,
         // },
-        // {
-        //   name: `codemirror`,
-        //   var: `CodeMirror`,
-        //   path: `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/codemirror/5.65.18/codemirror.min.js`,
-        //   css: `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/codemirror/5.65.18/codemirror.min.css`,
-        // },
+        {
+          name: `codemirror`,
+          var: `CodeMirror`,
+          path: `https://s4.zstatic.net/ajax/libs/codemirror/5.65.18/codemirror.min.js`,
+          css: `https://s4.zstatic.net/ajax/libs/codemirror/5.65.18/codemirror.min.css`,
+        },
         // {
         //   name: `juice`,
         //   var: `juice`,
@@ -136,19 +139,19 @@ export default defineConfig({
         {
           name: `cytoscape`,
           var: `cytoscape`,
-          path: `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/cytoscape/3.29.2/cytoscape.min.js`,
+          path: `https://s4.zstatic.net/ajax/libs/cytoscape/3.29.2/cytoscape.min.js`,
         },
         {
           name: `katex`,
           var: `katex`,
-          path: `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/KaTeX/0.16.9/katex.min.js`,
-          css: `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/KaTeX/0.16.9/katex.min.css`,
+          path: `https://s4.zstatic.net/ajax/libs/KaTeX/0.16.9/katex.min.js`,
+          css: `https://s4.zstatic.net/ajax/libs/KaTeX/0.16.9/katex.min.css`,
         },
 
         // {
-        //   name: `prettier/standalone`,
-        //   var: `prettier`,
-        //   path: `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/prettier/3.3.3/standalone.js`,
+        //   name: `marked`,
+        //   var: `marked`,
+        //   path: `https://s4.zstatic.net/ajax/libs/marked/15.0.3/lib/marked.esm.min.js`,
         // },
         {
           name: `lodash`,
