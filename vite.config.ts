@@ -34,6 +34,8 @@ export default defineConfig({
             `@vueuse/core`,
             `tailwind-merge`,
             `marked`,
+            `htmlparser2`,
+            `cheerio`,
             // `juice`,
           ],
           // parse5: [
@@ -51,6 +53,7 @@ export default defineConfig({
             `vscode-languageserver-textdocument`,
             `vscode-jsonrpc`,
             `mensch`,
+            `entities`,
           ],
           res: [
             `lucide-vue-next`,
