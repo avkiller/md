@@ -20,11 +20,14 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install pnpm
+        run: npm install -g pnpm
+
       - name: Install dependencies
-        run: npm install
+        run: pnpm install
 
       - name: Build
-        run: npm run build:h5-netlify
+        run: pnpm build:h5-netlify
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
