@@ -16,7 +16,7 @@
     "release:cli": "node ./scripts/release.js",
     "lint": "eslint . --fix",
     "type-check": "vue-tsc --build --force",
-    "postinstall": "simple-git-hooks && wxt prepare"
+    "postinstall": "simple-git-hooks"
   },
   "dependencies": {
 
