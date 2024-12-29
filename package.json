@@ -10,16 +10,16 @@
     "build:only": "vite build",
     "build:h5-netlify": "run-p type-check \"build:h5-netlify:only {@}\" --",
     "build:h5-netlify:only": "cross-env SERVER_ENV=NETLIFY vite build",
-    "build:cli": "npm run build && npm run shx rm -rf md-cli/dist && npm run shx rm -rf dist/**/*.map && npm run shx cp -r dist md-cli/ && cd md-cli && npm run pack",
+    "build:cli": "npm run build && npx shx rm -rf md-cli/dist && npx shx rm -rf dist/**/*.map && npx shx cp -r dist md-cli/ && cd md-cli && npm pack",
     "build:analyze": "cross-env ANALYZE=true vite build",
     "preview": "npm run build && vite preview",
-    "release:cli": "node ./bin/release.js",
+    "release:cli": "node ./scripts/release.js",
     "lint": "eslint . --fix",
     "type-check": "vue-tsc --build --force",
-    "postinstall": "simple-git-hooks"
+    "postinstall": "simple-git-hooks && wxt prepare"
   },
   "dependencies": {
-    "@element-plus/icons-vue": "^2.3.1",
+
     "@vueuse/core": "^12.0.0",
     "axios": "^1.7.9",
     "buffer-from": "^1.1.2",
@@ -30,8 +30,7 @@
     "cos-js-sdk-v5": "^1.8.6",
     "crypto-js": "^4.2.0",
     "csstype": "^3.1.3",
-    "element-plus": "^2.9.0",
-    "es-toolkit": "^1.29.0",
+    "es-toolkit": "^1.27.0",
     "form-data": "4.0.1",
     "highlight.js": "^11.10.0",
     "juice": "^11.0.0",
@@ -47,7 +46,9 @@
     "tailwindcss-animate": "^1.0.7",
     "tiny-oss": "^0.5.1",
     "uuid": "^11.0.3",
-    "vue": "^3.5.13"
+    "vue": "^3.5.13",
+    "vue-pick-colors": "^1.7.8",
+    "vue-sonner": "^1.3.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "3.11.0",

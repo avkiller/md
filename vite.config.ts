@@ -5,7 +5,6 @@ import vue from '@vitejs/plugin-vue'
 import { visualizer } from 'rollup-plugin-visualizer'
 import UnoCSS from 'unocss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
-import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig } from 'vite'
 import { Plugin as importToCDN } from 'vite-plugin-cdn-import'
@@ -55,7 +54,7 @@ export default defineConfig({
           ],
           res: [
             `lucide-vue-next`,
-            `@element-plus/icons-vue`,
+            `vue-pick-colors`,
             // `juice`,
           ],
           // cryptojs: ['crypto-js'],
@@ -72,9 +71,8 @@ export default defineConfig({
           // ],
 
           ui: [
-            `element-plus`,
             `codemirror`,
-            // `@element-plus/icons-vue`,
+            `vue-sonner`,
           ],
         },
       // 打印每个包的信息
@@ -101,17 +99,6 @@ export default defineConfig({
       modules: [
         // 'vue',
         // 'axios',
-        // {
-        //   name: 'element-plus',
-        //   var: 'ElementPlus',
-        //   path: 'https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/element-plus/2.8.4/index.full.min.js',
-        //   css: 'https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/element-plus/2.8.4/index.min.cssx.css'
-        // },
-        // {
-        //   name: `@element-plus/icons-vue`,
-        //   var: `ElementPlusIconsVue`,
-        //   path: `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/element-plus-icons-vue/2.3.1/index.iife.min.js`,
-        // },
         {
           name: `codemirror`,
           var: `CodeMirror`,
@@ -187,11 +174,18 @@ export default defineConfig({
       open: true,
     }),
     AutoImport({
-      imports: [`vue`, `vue-router`, `vuex`],
-      resolvers: [ElementPlusResolver()],
+      imports: [
+        `vue`,
+        `pinia`,
+        `@vueuse/core`,
+      ],
+      dirs: [
+        `./src/stores`,
+        `./src/utils/toast`,
+      ],
     }),
     Components({
-      resolvers: [ElementPlusResolver()],
+      resolvers: [],
     }),
   ],
   resolve: {

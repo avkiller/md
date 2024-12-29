@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-
-import AboutDialog from './AboutDialog.vue'
-
 const aboutDialogVisible = ref(false)
 </script>
 
@@ -12,10 +8,9 @@ const aboutDialogVisible = ref(false)
       帮助
     </MenubarTrigger>
     <MenubarContent align="start">
-      <MenubarItem @click="aboutDialogVisible = true">
-        <el-icon class="mr-2 h-4 w-4" />
+      <MenubarCheckboxItem @click="aboutDialogVisible = true">
         <span>关于</span>
-      </MenubarItem>
+      </MenubarCheckboxItem>
     </MenubarContent>
   </MenubarMenu>
 

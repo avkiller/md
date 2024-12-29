@@ -3,13 +3,9 @@ import DEFAULT_CSS_CONTENT from '@/assets/example/theme-css.txt?raw'
 import { altKey, codeBlockThemeOptions, colorOptions, fontFamilyOptions, fontSizeOptions, legendOptions, shiftKey, themeMap, themeOptions } from '@/config'
 import { addPrefix, css2json, customCssWithTemplate, customizeTheme, downloadMD, exportHTML, formatDoc } from '@/utils'
 import { initRenderer } from '@/utils/renderer'
-import { useDark, useStorage, useToggle } from '@vueuse/core'
 
 import CodeMirror from 'codemirror'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import { marked } from 'marked'
-import { defineStore } from 'pinia'
-import { computed, markRaw, onMounted, ref, toRaw, watch } from 'vue'
 
 export const useStore = defineStore(`store`, () => {
   // 是否开启深色模式
@@ -54,27 +50,64 @@ export const useStore = defineStore(`store`, () => {
   // 编辑区域内容
   const editorContent = useStorage(`__editor_content`, DEFAULT_CONTENT)
   const default_content = useStorage(`__default_content`, DEFAULT_CONTENT)
+  const isOpenPostSlider = useStorage(addPrefix(`is_open_post_slider`), false)
+  // 文章列表
+  const posts = useStorage(addPrefix(`posts`), [{
+    title: `文章1`,
+    content: DEFAULT_CONTENT,
+  }])
+  // 当前文章
+  const currentPostIndex = useStorage(addPrefix(`current_post_index`), 0)
 
-  // 清空数据库
-  const clearLocalStorage = () => {
-    localStorage.clear()
-  }
-  // 格式化文档
-  const formatContent = () => {
-    formatDoc((editor.value!).getValue()).then((doc) => {
-      editorContent.value = doc
-      toRaw(editor.value!).setValue(doc)
-    })
+  const addPost = (title: string) => {
+    currentPostIndex.value = posts.value.push({
+      title,
+      content: `# ${title}`,
+    }) - 1
   }
 
+  const renamePost = (index: number, title: string) => {
+    posts.value[index].title = title
+  }
+
+  const delPost = (index: number) => {
+    posts.value.splice(index, 1)
+    currentPostIndex.value = Math.min(index, posts.value.length - 1)
+  }
+
+     
   // 清空文档
   const resetContent = () => {
     toRaw(editor.value!).setValue(``)
   }
-
+  // add by fireworld
   // 重新加载默认markdown
   const reloadDefaultContent = () => {
     toRaw(editor.value!).setValue(default_content.value)
+  }
+  // 清空数据库
+  const clearLocalStorage = () => {
+    localStorage.clear()
+  }
+
+  watch(currentPostIndex, () => {
+    toRaw(editor.value!).setValue(posts.value[currentPostIndex.value].content)
+  })
+
+  onMounted(() => {
+    // 迁移阶段，兼容之前的方案
+    if (editorContent.value !== DEFAULT_CONTENT) {
+      posts.value[currentPostIndex.value].content = editorContent.value
+      editorContent.value = DEFAULT_CONTENT
+    }
+  })
+
+  // 格式化文档
+  const formatContent = () => {
+    formatDoc((editor.value!).getValue()).then((doc) => {
+      posts.value[currentPostIndex.value].content = doc
+      toRaw(editor.value!).setValue(doc)
+    })
   }
 
   // 切换 highlight.js 代码主题
@@ -161,6 +194,7 @@ export const useStore = defineStore(`store`, () => {
     renderer.reset({ citeStatus: isCiteStatus.value, legend: legend.value, isUseIndent: isUseIndent.value })
 
     let outputTemp = marked.parse(editor.value!.getValue()) as string
+
     // 去除第一行的 margin-top
     outputTemp = outputTemp.replace(/(style=".*?)"/, `$1;margin-top: 0"`)
     // 引用脚注
@@ -184,16 +218,16 @@ export const useStore = defineStore(`store`, () => {
           padding: 0 !important;
         }
 
-          .hljs.code__pre code {
-            display: -webkit-box;
-            padding: 0.5em 1em 1em;
-            overflow-x: auto;
-            text-indent: 0;
-          }
-        </style>
-      `
+        .hljs.code__pre code {
+          display: -webkit-box;
+          padding: 0.5em 1em 1em;
+          overflow-x: auto;
+          text-indent: 0;
+        }
+      </style>
+    `
 
-    output.value = outputTemp
+    output.value = renderer.createContainer(outputTemp)
   }
 
   // 更新 CSS
@@ -203,6 +237,7 @@ export const useStore = defineStore(`store`, () => {
     renderer.setOptions({
       theme: newTheme,
     })
+
     editorRefresh()
   }
   // 初始化 CSS 编辑器
@@ -278,6 +313,8 @@ export const useStore = defineStore(`store`, () => {
 
     updateCss()
     editorRefresh()
+
+    toast.success(`样式重置成功~`)
   }
 
   // 为函数添加刷新编辑器的功能
@@ -374,7 +411,7 @@ export const useStore = defineStore(`store`, () => {
       reader.readAsText(file)
       reader.onload = (event) => {
         (editor.value!).setValue((event.target!).result as string)
-        ElMessage.success(`文档导入成功`)
+        toast.success(`文档导入成功`)
       }
     }
 
@@ -383,28 +420,11 @@ export const useStore = defineStore(`store`, () => {
     body.removeChild(input)
   }
 
+  const isOpenConfirmDialog = ref(false)
+
   // 重置样式
   const resetStyleConfirm = () => {
-    ElMessageBox.confirm(
-      `此操作将丢失本地自定义样式，是否继续？`,
-      `提示`,
-      {
-        confirmButtonText: `确定`,
-        cancelButtonText: `取消`,
-        type: `warning`,
-        center: true,
-      },
-    )
-      .then(() => {
-        resetStyle()
-        ElMessage({
-          type: `success`,
-          message: `样式重置成功~`,
-        })
-      })
-      .catch(() => {
-        (editor.value!).focus()
-      })
+    isOpenConfirmDialog.value = true
   }
 
   return {
@@ -446,8 +466,9 @@ export const useStore = defineStore(`store`, () => {
 
     importMarkdownContent,
 
+    isOpenConfirmDialog,
     resetStyleConfirm,
-    editorContent,
+    resetStyle,
 
     cssContentConfig,
     addCssContentTab,
@@ -455,12 +476,16 @@ export const useStore = defineStore(`store`, () => {
     setCssEditorValue,
     tabChanged,
     renameTab,
-
+    posts,
+    currentPostIndex,
+    addPost,
+    renamePost,
+    delPost,
+    isOpenPostSlider,
     // add by fireworld
     resetContent,
     reloadDefaultContent,
     clearLocalStorage,
-
   }
 })
 

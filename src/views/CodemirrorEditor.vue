@@ -1,26 +1,5 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance } from 'vue'
-import CssEditor from '@/components/CodemirrorEditor/CssEditor.vue'
-import EditorHeader from '@/components/CodemirrorEditor/EditorHeader/index.vue'
-import InsertFormDialog from '@/components/CodemirrorEditor/InsertFormDialog.vue'
-
-import RunLoading from '@/components/RunLoading.vue'
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  // ContextMenuSeparator,
-  // ContextMenuShortcut,
-  ContextMenuTrigger,
-} from '@/components/ui/context-menu'
-
-// import {
-//   Toolbar,
-//   ToolbarToggleGroup,
-//   ToolbarToggleItem,
-
-// } from '@/components/ui/toolbar'
-
 import { altKey, ctrlKey, shiftKey } from '@/config'
 import { useDisplayStore, useStore } from '@/stores'
 import {
@@ -29,15 +8,9 @@ import {
 // import fileApi from '@/utils/file'
 import CodeMirror from 'codemirror'
 
-import { ElCol } from 'element-plus'
-
-import { storeToRefs } from 'pinia'
-
-import { onMounted, ref, toRaw, watch } from 'vue'
-
 const store = useStore()
 const displayStore = useDisplayStore()
-const { isDark, output, editor, editorContent } = storeToRefs(store)
+const { isDark, output, editor } = storeToRefs(store)
 const { isShowCssEditor } = storeToRefs(displayStore)
 
 const isMobile = ref(false)
@@ -62,7 +35,7 @@ const {
 // const isImgLoading = ref(false)
 const timeout = ref<NodeJS.Timeout>()
 
-const preview = ref<typeof ElCol | null>(null)
+const preview = ref<HTMLDivElement | null>(null)
 
 // 使浏览区与编辑区滚动条建立同步联系
 function leftAndRightScroll() {
@@ -72,7 +45,7 @@ function leftAndRightScroll() {
 
     clearTimeout(timeout.value)
     if (text === `preview`) {
-      source = preview.value!.$el
+      source = preview.value!
       target = document.querySelector<HTMLElement>(`.CodeMirror-scroll`)!
 
       editor.value!.off(`scroll`, editorScrollCB)
@@ -82,7 +55,7 @@ function leftAndRightScroll() {
     }
     else {
       source = document.querySelector<HTMLElement>(`.CodeMirror-scroll`)!
-      target = preview.value!.$el
+      target = preview.value!
 
       target.removeEventListener(`scroll`, previewScrollCB, false)
       timeout.value = setTimeout(() => {
@@ -105,7 +78,7 @@ function leftAndRightScroll() {
     scrollCB(`preview`)
   }
 
-  (preview.value!.$el).addEventListener(`scroll`, previewScrollCB, false)
+  (preview.value!).addEventListener(`scroll`, previewScrollCB, false)
   editor.value!.on(`scroll`, editorScrollCB)
 }
 
@@ -159,7 +132,7 @@ function endCopy() {
 //   // validate image
 //   const checkResult = checkImage(file)
 //   if (!checkResult.ok) {
-//     ElMessage.error(checkResult.msg)
+//     toast.error(checkResult.msg!)
 //     return false
 //   }
 
@@ -170,7 +143,7 @@ function endCopy() {
 //   const config = localStorage.getItem(`${imgHost}Config`)
 //   const isValidHost = imgHost === `default` || config
 //   if (!isValidHost) {
-//     ElMessage.error(`请先配置 ${imgHost} 图床参数`)
+//     toast.error(`请先配置 ${imgHost} 图床参数`)
 //     return false
 //   }
 //   return true
@@ -179,7 +152,7 @@ function endCopy() {
 // 图片上传结束
 // function uploaded(imageUrl: string) {
 //   if (!imageUrl) {
-//     ElMessage.error(`上传图片未知异常`)
+//     toast.error(`上传图片未知异常`)
 //     return
 //   }
 //   toggleShowUploadImgDialog(false)
@@ -188,7 +161,7 @@ function endCopy() {
 //   const markdownImage = `![](${imageUrl})`
 //   // 将 Markdown 形式的 URL 插入编辑框光标所在位置
 //   toRaw(store.editor!).replaceSelection(`\n${markdownImage}\n`, cursor as any)
-//   ElMessage.success(`图片上传成功`)
+//   toast.success(`图片上传成功`)
 // }
 // function uploadImage(file: File, cb?: { (url: any): void, (arg0: unknown): void } | undefined) {
 //   isImgLoading.value = true
@@ -204,7 +177,7 @@ function endCopy() {
 //       }
 //     })
 //     .catch((err) => {
-//       ElMessage.error(err.message)
+//       toast.error(err.message)
 //     })
 //     .finally(() => {
 //       isImgLoading.value = false
@@ -224,7 +197,7 @@ function initEditor() {
   const editorDom = document.querySelector<HTMLTextAreaElement>(`#editor`)!
 
   if (!editorDom.value) {
-    editorDom.value = editorContent.value
+    editorDom.value = store.posts[store.currentPostIndex].content
   }
   editor.value = CodeMirror.fromTextArea(editorDom, {
     mode: `text/x-markdown`,
@@ -290,7 +263,7 @@ function initEditor() {
     clearTimeout(changeTimer.value)
     changeTimer.value = setTimeout(() => {
       onEditorRefresh()
-      editorContent.value = e.getValue()
+      store.posts[store.currentPostIndex].content = e.getValue()
     }, 300)
   })
 
@@ -321,12 +294,12 @@ function addFormat(cmd: string | number) {
   (editor.value as any).options.extraKeys[cmd](editor.value)
 }
 
-const codeMirrorWrapper = ref<ComponentPublicInstance<typeof ElCol> | null>(null)
+const codeMirrorWrapper = ref<ComponentPublicInstance<HTMLDivElement> | null>(null)
 
 // 转换 markdown 中的本地图片为线上图片
 // todo 处理事件覆盖
 // function mdLocalToRemote() {
-//   const dom = codeMirrorWrapper.value!.$el as HTMLElement
+//   const dom = codeMirrorWrapper.value!
 
 //   // 上传 md 中的图片
 //   const uploadMdImg = async ({ md, list }: { md: { str: string, path: string, file: File }, list: { path: string, file: File }[] }) => {
@@ -439,11 +412,11 @@ onMounted(() => {
       @end-copy="endCopy"
     />
     <main class="container-main flex-1">
-      <el-row class="container-main-section h-full border-1">
-        <ElCol
+      <div class="container-main-section h-full flex border-1">
+        <PostSlider />
+        <div
           ref="codeMirrorWrapper"
-          :span="isShowCssEditor ? 8 : 12"
-          class="codeMirror-wrapper border-r-1"
+          class="codeMirror-wrapper flex-1 border-r-1"
           :class="{
             'order-1': !store.isEditOnLeft,
           }"
@@ -462,12 +435,12 @@ onMounted(() => {
               </ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
-        </ElCol>
-        <ElCol
+        </div>
+        <div
           id="preview"
           ref="preview"
           :span="isShowCssEditor ? 8 : 12"
-          class="preview-wrapper p-5"
+          class="preview-wrapper flex-1 p-5"
         >
           <div id="output-wrapper" :class="{ output_night: !backLight }">
             <div class="preview border shadow-xl">
@@ -480,9 +453,9 @@ onMounted(() => {
               </div>
             </div>
           </div>
-        </ElCol>
-        <CssEditor />
-      </el-row>
+        </div>
+        <CssEditor class="flex-1" />
+      </div>
     </main>
 
     <!--    <UploadImgDialog -->
@@ -492,6 +465,23 @@ onMounted(() => {
     <InsertFormDialog />
 
     <RunLoading />
+
+    <AlertDialog v-model:open="store.isOpenConfirmDialog">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>提示</AlertDialogTitle>
+          <AlertDialogDescription>
+            此操作将丢失本地自定义样式，是否继续？
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>取消</AlertDialogCancel>
+          <AlertDialogAction @click="store.resetStyle()">
+            确认
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
 
@@ -525,8 +515,8 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   text-align: center;
-  color: var(--el-text-color-regular);
-  background-color: var(--el-bg-color);
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
 
   .loading-mask-box {
     position: sticky;

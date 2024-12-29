@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-
 const loading = ref(true)
 
 onMounted(() => {
@@ -34,7 +32,7 @@ onMounted(() => {
   width: 100vw;
   height: 100vh;
   font-size: 18px;
-  background-color: var(--el-bg-color-page);
+  background-color: hsl(var(--background));
 
   &::before {
     content: url('../assets/images/favicon.png');
