@@ -49,3 +49,5 @@ public/upload/**
 # Package manager lock file
 # package-lock.json
 yarn.lock
+# stat files
+stats.html
