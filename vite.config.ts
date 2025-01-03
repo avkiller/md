@@ -10,6 +10,7 @@ import { defineConfig } from 'vite'
 import { Plugin as importToCDN } from 'vite-plugin-cdn-import'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import vueDevTools from 'vite-plugin-vue-devtools'
+import externalGlobals from "rollup-plugin-external-globals";
 // import cdn from 'vite-plugin-cdn-import'
 
 // https://vitejs.dev/config/
@@ -22,14 +23,18 @@ export default defineConfig({
     // sourcemap: true,
     rollupOptions: {
       // 确保外部化处理那些你不想打包进库的依赖
-      // external: ['vue','element-plus'], // 注意看这里
+      external: [`juice`],
+      plugins: [
+        externalGlobals({
+          juice: "juice"
+        })
+      ],
       output: {
         // 在 UMD 构建模式下为这些外部化的依赖提供一个全局变量
         manualChunks: {
 
           vendor: [
             `pinia`,
-            `radix-vue`,
             `vue`,
             `@vueuse/core`,
             `tailwind-merge`,
@@ -76,6 +81,7 @@ export default defineConfig({
           ui: [
             `codemirror`,
             `vue-sonner`,
+            `radix-vue`,
           ],
         },
       // 打印每个包的信息
@@ -111,7 +117,7 @@ export default defineConfig({
         // {
         //   name: `juice`,
         //   var: `juice`,
-        //   path: `https://cdn.jsdelivr.net/npm/juice@11.0.0/client.min.js`,
+        //   path: `https://fastly.jsdelivr.net/npm/juice@11.0.0/+esm`,
         // },
 
         {
