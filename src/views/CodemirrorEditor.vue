@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance } from 'vue'
-import { altKey, altSign, ctrlKey, shiftKey, shiftSign } from '@/config'
+import { altKey, ctrlKey, shiftKey } from '@/config'
 import { useDisplayStore, useStore } from '@/stores'
 import {
   formatDoc,

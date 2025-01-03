@@ -48,6 +48,7 @@ export const useStore = defineStore(`store`, () => {
   // 内容编辑器编辑器
   const editor = ref<CodeMirror.EditorFromTextArea | null>(null)
   // 编辑区域内容
+  // 预备弃用
   const editorContent = useStorage(`__editor_content`, DEFAULT_CONTENT)
   const default_content = useStorage(`__default_content`, DEFAULT_CONTENT)
   const isOpenPostSlider = useStorage(addPrefix(`is_open_post_slider`), false)

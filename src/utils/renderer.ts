@@ -11,6 +11,7 @@ import markedAlert from './MDAlert'
 import { MDKatex } from './MDKatex'
 
 marked.use(MDKatex({ nonStandard: true }))
+
 function buildTheme({ theme: _theme, fonts, size, isUseIndent }: IOpts): ThemeStyles {
   const theme = cloneDeep(_theme)
   const base = toMerged(theme.base, {
@@ -140,7 +141,6 @@ export function initRenderer(opts: IOpts) {
   }
 
   const renderer: RendererObject = {
-
     heading({ tokens, depth }: Tokens.Heading) {
       const text = this.parser.parseInline(tokens)
       const tag = `h${depth}`
