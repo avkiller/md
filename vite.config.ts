@@ -108,12 +108,12 @@ export default defineConfig({
       modules: [
         // 'vue',
         // 'axios',
-        {
-          name: `codemirror`,
-          var: `CodeMirror`,
-          path: `https://s4.zstatic.net/ajax/libs/codemirror/5.65.18/codemirror.min.js`,
-          css: `https://s4.zstatic.net/ajax/libs/codemirror/5.65.18/codemirror.min.css`,
-        },
+        // {
+        //   name: `codemirror`,
+        //   var: `CodeMirror`,
+        //   path: `https://s4.zstatic.net/ajax/libs/codemirror/5.65.18/codemirror.min.js`,
+        //   css: `https://s4.zstatic.net/ajax/libs/codemirror/5.65.18/codemirror.min.css`,
+        // },
         // {
         //   name: `juice`,
         //   var: `juice`,
