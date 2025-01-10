@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance } from 'vue'
 import { altKey, ctrlKey, shiftKey } from '@/config'
-import { useDisplayStore, useStore } from '@/stores'
+import { useStore } from '@/stores'
 import {
   formatDoc,
 } from '@/utils'
@@ -9,9 +9,8 @@ import {
 import CodeMirror from 'codemirror'
 
 const store = useStore()
-const displayStore = useDisplayStore()
-const { isDark, output, editor } = storeToRefs(store)
-const { isShowCssEditor } = storeToRefs(displayStore)
+// const displayStore = useDisplayStore()
+const { isDark, output, editor, readingTime } = storeToRefs(store)
 
 const isMobile = ref(false)
 
@@ -64,7 +63,7 @@ function leftAndRightScroll() {
     }
 
     const percentage
-          = source.scrollTop / (source.scrollHeight - source.offsetHeight)
+      = source.scrollTop / (source.scrollHeight - source.offsetHeight)
     const height = percentage * (target.scrollHeight - target.offsetHeight)
 
     target.scrollTo(0, height)
@@ -411,14 +410,15 @@ onMounted(() => {
       @start-copy="startCopy"
       @end-copy="endCopy"
     />
-    <main class="container-main flex-1">
-      <div class="container-main-section h-full flex border-1">
+    <main class="container-main flex flex-1 flex-col">
+      <div class="container-main-section border-radius-10 relative flex flex-1 overflow-hidden border-1">
         <PostSlider />
         <div
           ref="codeMirrorWrapper"
-          class="codeMirror-wrapper flex-1 border-r-1"
+          class="codeMirror-wrapper flex-1"
           :class="{
-            'order-1': !store.isEditOnLeft,
+            'order-1 border-l': !store.isEditOnLeft,
+            'border-r': store.isEditOnLeft,
           }"
         >
           <ContextMenu>
@@ -439,11 +439,10 @@ onMounted(() => {
         <div
           id="preview"
           ref="preview"
-          :span="isShowCssEditor ? 8 : 12"
           class="preview-wrapper flex-1 p-5"
         >
           <div id="output-wrapper" :class="{ output_night: !backLight }">
-            <div class="preview border shadow-xl">
+            <div class="preview border-x-1 shadow-xl">
               <section id="output" v-html="output" />
               <div v-if="isCoping" class="loading-mask">
                 <div class="loading-mask-box">
@@ -453,10 +452,14 @@ onMounted(() => {
               </div>
             </div>
           </div>
+          <BackTop target="preview" :right="40" :bottom="40" />
         </div>
-        <CssEditor class="flex-1" />
+        <CssEditor class="order-2 flex-1" />
+        <RightSlider class="order-2" />
       </div>
-    </main>
+      <footer class="h-[30px] flex select-none items-center justify-end text-[12px]">
+        字数 {{ readingTime?.words }}， 阅读大约需 {{ Math.ceil(readingTime?.minutes ?? 0) }} 分钟
+      </footer>
 
     <!--    <UploadImgDialog -->
     <!--      @upload-image="uploadImage" -->
@@ -482,6 +485,7 @@ onMounted(() => {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    </main>
   </div>
 </template>
 
@@ -498,8 +502,7 @@ onMounted(() => {
 
 .container-main {
   overflow: hidden;
-  padding: 20px;
-  padding-top: 0;
+  padding: 0 20px;
 }
 
 #output-wrapper {

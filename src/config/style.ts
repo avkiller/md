@@ -103,7 +103,7 @@ export const colorOptions: IConfigOption[] = [
     desc: `浪漫甜美`,
   },
 ]
-const codeBlockUrlPrefix = `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/highlight.js/11.10.0/styles/`
+const codeBlockUrlPrefix = `https://s4.zstatic.net/ajax/libs/highlight.js/11.10.0/styles/`
 const codeBlockThemeList = [
   `1c-light.min.css`,
   `a11y-dark.min.css`,

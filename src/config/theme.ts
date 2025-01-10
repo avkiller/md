@@ -79,12 +79,12 @@ const defaultTheme: Theme = {
     // 引用
     blockquote: {
       'font-style': `normal`,
-      'border-left': `none`,
       'padding': `1em`,
-      'border-radius': `8px`,
+      'border-left': `4px solid var(--md-primary-color)`,
+      'border-radius': `6px`,
       'color': `rgba(0,0,0,0.5)`,
       'background': `var(--blockquote-background)`,
-      'margin': `2em 8px`,
+      'margin-bottom': `1em`,
     },
 
     // 引用内容
@@ -206,12 +206,14 @@ const defaultTheme: Theme = {
 
     hr: {
       'border-style': `solid`,
-      'border-width': `1px 0 0`,
+      'border-width': `2px 0 0`,
       'border-color': `rgba(0,0,0,0.1)`,
       '-webkit-transform-origin': `0 0`,
       '-webkit-transform': `scale(1, 0.5)`,
       'transform-origin': `0 0`,
       'transform': `scale(1, 0.5)`,
+      'height': `0.4em`,
+      'margin': `1.5em 0`,
     },
   },
   inline: {
@@ -333,6 +335,7 @@ const graceTheme = toMerged(defaultTheme, {
       'border-radius': `6px`,
       'color': `rgba(0,0,0,0.6)`,
       'box-shadow': `0 4px 6px rgba(0,0,0,0.05)`,
+      'margin-bottom': `1em`,
     },
 
     'blockquote_p': {

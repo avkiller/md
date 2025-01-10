@@ -1,9 +1,10 @@
+import type { ReadTimeResults } from 'reading-time'
 import DEFAULT_CONTENT from '@/assets/example/markdown.md?raw'
 import DEFAULT_CSS_CONTENT from '@/assets/example/theme-css.txt?raw'
 import { altKey, codeBlockThemeOptions, colorOptions, fontFamilyOptions, fontSizeOptions, legendOptions, shiftKey, themeMap, themeOptions } from '@/config'
 import { addPrefix, css2json, customCssWithTemplate, customizeTheme, downloadMD, exportHTML, formatDoc } from '@/utils'
-import { initRenderer } from '@/utils/renderer'
 
+import { initRenderer } from '@/utils/renderer'
 import CodeMirror from 'codemirror'
 import { marked } from 'marked'
 
@@ -23,6 +24,10 @@ export const useStore = defineStore(`store`, () => {
   // 是否开启微信外链接底部引用
   const isCiteStatus = useStorage(`isCiteStatus`, false)
   const toggleCiteStatus = useToggle(isCiteStatus)
+
+  // 是否统计字数和阅读时间
+  const isCountStatus = useStorage(`isCountStatus`, false)
+  const toggleCountStatus = useToggle(isCountStatus)
 
   // 是否开启段落首行缩进
   const isUseIndent = useStorage(addPrefix(`use_indent`), false)
@@ -51,13 +56,14 @@ export const useStore = defineStore(`store`, () => {
   // 预备弃用
   const editorContent = useStorage(`__editor_content`, DEFAULT_CONTENT)
   const default_content = useStorage(`__default_content`, DEFAULT_CONTENT)
+  const isOpenRightSlider = useStorage(addPrefix(`is_open_right_slider`), false)
   const isOpenPostSlider = useStorage(addPrefix(`is_open_post_slider`), false)
-  // 文章列表
+  // 内容列表
   const posts = useStorage(addPrefix(`posts`), [{
-    title: `文章1`,
+    title: `内容1`,
     content: DEFAULT_CONTENT,
   }])
-  // 当前文章
+  // 当前内容
   const currentPostIndex = useStorage(addPrefix(`current_post_index`), 0)
 
   const addPost = (title: string) => {
@@ -189,12 +195,22 @@ export const useStore = defineStore(`store`, () => {
     isUseIndent: isUseIndent.value,
   })
 
-  // 更新编辑器
-  const editorRefresh = () => {
-    codeThemeChange()
-    renderer.reset({ citeStatus: isCiteStatus.value, legend: legend.value, isUseIndent: isUseIndent.value })
+  const readingTime = ref<ReadTimeResults | null>(null)
 
-    let outputTemp = marked.parse(editor.value!.getValue()) as string
+  // 更新编辑器
+  const editorRefresh = async() => {
+    codeThemeChange()
+    renderer.reset({ citeStatus: isCiteStatus.value, legend: legend.value, isUseIndent: isUseIndent.value, countStatus: isCountStatus.value })
+
+    const { markdownContent, readingTime: readingTimeResult } = await renderer.parseFrontMatterAndContent(editor.value!.getValue())
+    // console.log(`Reading time result:`, readingTimeResult)
+    readingTime.value = readingTimeResult
+    let outputTemp = marked.parse(markdownContent) as string
+
+    // console.log(readingTime.value)
+
+    // 阅读时间及字数统计
+    outputTemp = renderer.buildReadingTime(readingTimeResult) + outputTemp
 
     // 去除第一行的 margin-top
     outputTemp = outputTemp.replace(/(style=".*?)"/, `$1;margin-top: 0"`)
@@ -289,13 +305,14 @@ export const useStore = defineStore(`store`, () => {
   const resetStyle = () => {
     isCiteStatus.value = false
     isMacCodeBlock.value = true
+    isCountStatus.value = false
 
     theme.value = themeOptions[0].value
     fontFamily.value = fontFamilyOptions[0].value
     fontFamily.value = fontFamilyOptions[0].value
     fontSize.value = fontSizeOptions[2].value
     primaryColor.value = colorOptions[0].value
-    codeBlockTheme.value = codeBlockThemeOptions[2].value
+    codeBlockTheme.value = codeBlockThemeOptions[23].value
     legend.value = legendOptions[3].value
 
     cssContentConfig.value = {
@@ -380,6 +397,10 @@ export const useStore = defineStore(`store`, () => {
     toggleCiteStatus()
   })
 
+  const countStatusChanged = withAfterRefresh(() => {
+    toggleCountStatus()
+  })
+
   const useIndentChanged = withAfterRefresh(() => {
     toggleUseIndent()
   })
@@ -441,6 +462,9 @@ export const useStore = defineStore(`store`, () => {
     isUseIndent,
     useIndentChanged,
 
+    isCountStatus,
+    countStatusChanged,
+
     output,
     editor,
     cssEditor,
@@ -450,6 +474,7 @@ export const useStore = defineStore(`store`, () => {
     primaryColor,
     codeBlockTheme,
     legend,
+    readingTime,
 
     editorRefresh,
 
@@ -483,6 +508,7 @@ export const useStore = defineStore(`store`, () => {
     renamePost,
     delPost,
     isOpenPostSlider,
+    isOpenRightSlider,
     // add by fireworld
     resetContent,
     reloadDefaultContent,

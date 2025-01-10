@@ -20,6 +20,7 @@ declare module 'vue' {
     AlertDialogTitle: typeof import('./src/components/ui/alert-dialog/AlertDialogTitle.vue')['default']
     AlertDialogTrigger: typeof import('./src/components/ui/alert-dialog/AlertDialogTrigger.vue')['default']
     AlertTitle: typeof import('./src/components/ui/alert/AlertTitle.vue')['default']
+    BackTop: typeof import('./src/components/ui/back-top/BackTop.vue')['default']
     Button: typeof import('./src/components/ui/button/Button.vue')['default']
     ContextMenu: typeof import('./src/components/ui/context-menu/ContextMenu.vue')['default']
     ContextMenuCheckboxItem: typeof import('./src/components/ui/context-menu/ContextMenuCheckboxItem.vue')['default']
@@ -97,6 +98,7 @@ declare module 'vue' {
     PopoverTrigger: typeof import('./src/components/ui/popover/PopoverTrigger.vue')['default']
     PostInfo: typeof import('./src/components/CodemirrorEditor/EditorHeader/PostInfo.vue')['default']
     PostSlider: typeof import('./src/components/CodemirrorEditor/PostSlider.vue')['default']
+    RightSlider: typeof import('./src/components/CodemirrorEditor/RightSlider.vue')['default']
     RunLoading: typeof import('./src/components/RunLoading.vue')['default']
     Select: typeof import('./src/components/ui/select/Select.vue')['default']
     SelectContent: typeof import('./src/components/ui/select/SelectContent.vue')['default']
@@ -119,6 +121,10 @@ declare module 'vue' {
     TabsList: typeof import('./src/components/ui/tabs/TabsList.vue')['default']
     TabsTrigger: typeof import('./src/components/ui/tabs/TabsTrigger.vue')['default']
     Textarea: typeof import('./src/components/ui/textarea/Textarea.vue')['default']
+    Tooltip: typeof import('./src/components/ui/tooltip/Tooltip.vue')['default']
+    TooltipContent: typeof import('./src/components/ui/tooltip/TooltipContent.vue')['default']
+    TooltipProvider: typeof import('./src/components/ui/tooltip/TooltipProvider.vue')['default']
+    TooltipTrigger: typeof import('./src/components/ui/tooltip/TooltipTrigger.vue')['default']
     UploadImgDialog: typeof import('./src/components/CodemirrorEditor/UploadImgDialog.vue')['default']
   }
 }

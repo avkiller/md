@@ -1,15 +1,22 @@
 import type { ExtendedProperties, IOpts, ThemeStyles } from '@/types'
 import type { PropertiesHyphen } from 'csstype'
 import type { Renderer, RendererObject, Tokens } from 'marked'
+import type { ReadTimeResults } from 'reading-time'
 import { cloneDeep, toMerged } from 'es-toolkit'
+//import frontMatter from 'front-matter'
+
 import hljs from 'highlight.js'
 
 import { marked } from 'marked'
 // import mermaid from 'mermaid'
+// import readingTime from 'reading-time'
 import { getStyleString } from '.'
 import markedAlert from './MDAlert'
 import { MDKatex } from './MDKatex'
 
+marked.setOptions({
+  breaks: true,
+})
 marked.use(MDKatex({ nonStandard: true }))
 
 function buildTheme({ theme: _theme, fonts, size, isUseIndent }: IOpts): ThemeStyles {
@@ -34,6 +41,16 @@ function buildTheme({ theme: _theme, fonts, size, isUseIndent }: IOpts): ThemeSt
     ...mergeStyles(theme.inline),
     ...mergeStyles(theme.block),
   } as ThemeStyles
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, `&amp;`) // 转义 &
+    .replace(/</g, `&lt;`) // 转义 <
+    .replace(/>/g, `&gt;`) // 转义 >
+    .replace(/"/g, `&quot;`) // 转义 "
+    .replace(/'/g, `&#39;`) // 转义 '
+    .replace(/`/g, `&#96;`) // 转义 `
 }
 
 function buildAddition(): string {
@@ -95,6 +112,41 @@ const macCodeSvg = `
   </svg>
 `.trim()
 
+interface ParseResult {
+  yamlData: Record<string, any>
+  markdownContent: string
+  readingTime: ReadTimeResults
+}
+
+async function parseFrontMatterAndContent(markdownText: string): Promise<ParseResult> {
+
+  const { default: frontMatter } = await import('front-matter');
+  const { default: readingTime } = await import('reading-time');
+  try {
+    
+    const parsed = frontMatter(markdownText)
+    const yamlData = parsed.attributes
+    const markdownContent = parsed.body
+
+  
+  const readingTimeResult = readingTime(markdownContent)
+  
+  return {
+    yamlData: yamlData as Record<string, any>,
+    markdownContent,
+    readingTime: readingTimeResult,
+  } as ParseResult;
+  }
+  catch  (error) {
+    console.error(`Error parsing front-matter:`, error)
+    return {
+      yamlData: {},
+      markdownContent: markdownText,
+      readingTime: readingTime(markdownText),
+    } as ParseResult;
+  }
+}
+
 export function initRenderer(opts: IOpts) {
   const footnotes: [number, string, string][] = []
   let footnoteIndex: number = 0
@@ -127,6 +179,20 @@ export function initRenderer(opts: IOpts) {
     opts = { ...opts, ...newOpts }
     styleMapping = buildTheme(opts)
     marked.use(markedAlert({ styles: styleMapping }))
+  }
+
+  function buildReadingTime(readingTime: ReadTimeResults): string {
+    if (!opts.countStatus) {
+      return ``
+    }
+    if (!readingTime.words) {
+      return ``
+    }
+    return `
+      <blockquote ${styles(`blockquote`)}>
+        <p ${styles(`blockquote_p`)}>字数 ${readingTime?.words}，阅读大约需 ${Math.ceil(readingTime?.minutes)} 分钟</p>
+      </blockquote>
+    `
   }
 
   const buildFootnotes = () => {
@@ -184,7 +250,7 @@ export function initRenderer(opts: IOpts) {
       const language = hljs.getLanguage(langText) ? langText : `plaintext`
       let highlighted = hljs.highlight(text, { language }).value
       // tab to 4 spaces
-      highlighted = highlighted.replace(/\t/g, '    ')
+      highlighted = highlighted.replace(/\t/g, `    `)
       highlighted = highlighted
         .replace(/\r\n/g, `<br/>`)
         .replace(/\n/g, `<br/>`)
@@ -195,7 +261,8 @@ export function initRenderer(opts: IOpts) {
     },
 
     codespan({ text }: Tokens.Codespan): string {
-      return styledContent(`codespan`, text, `code`)
+      const escapedText = escapeHtml(text)
+      return styledContent(`codespan`, escapedText, `code`)
     },
 
     listitem(item: Tokens.ListItem): string {
@@ -287,6 +354,8 @@ export function initRenderer(opts: IOpts) {
     buildFootnotes,
     setOptions,
     reset,
+    parseFrontMatterAndContent,
+    buildReadingTime,
     createContainer(content: string) {
       return styledContent(`container`, content, `section`)
     },

@@ -39,6 +39,7 @@ export default defineConfig({
             `@vueuse/core`,
             `tailwind-merge`,
             `marked`,
+            //`front-matte`,
             // `htmlparser2`,
             // `cheerio`,
             // `juice`,
@@ -77,7 +78,7 @@ export default defineConfig({
           //   'vue',
           //   '@vueuse/core',
           // ],
-
+          // front: [`front-matter`],
           ui: [
             `codemirror`,
             `vue-sonner`,
@@ -123,14 +124,14 @@ export default defineConfig({
         {
           name: `highlight.js`,
           var: `hljs`,
-          path: `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/highlight.js/11.10.0/highlight.min.js`,
-          css: `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/highlight.js/11.10.0/styles/default.min.css`,
+          path: `https://s4.zstatic.net/ajax/libs/highlight.js/11.10.0/highlight.min.js`,
+          css: `https://s4.zstatic.net/ajax/libs/highlight.js/11.10.0/styles/default.min.css`,
         },
 
         {
           name: `axios`,
           var: `axios`,
-          path: `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/axios/1.7.7/axios.min.js`,
+          path: `https://s4.zstatic.net/ajax/libs/axios/1.7.7/axios.min.js`,
         },
         {
           name: `cytoscape`,
@@ -152,7 +153,7 @@ export default defineConfig({
         {
           name: `lodash`,
           var: `lodash`,
-          path: `https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/lodash.js/4.17.21/lodash.min.js`,
+          path: `https://s4.zstatic.net/ajax/libs/lodash.js/4.17.21/lodash.min.js`,
         },
         // {
         //   name: `mermaid`,
