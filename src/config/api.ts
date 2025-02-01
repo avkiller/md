@@ -1,9 +1,9 @@
 export const githubConfig = {
-  username: `bucketio`,
-  repoList: Array.from({ length: 20 }, (_, i) => `img${i}`),
+  username: `avkiller`,
+  repoList: ["imgs"],
   branch: `main`,
   accessTokenList: [
-    `ghp_sqQg5y7XC7Fy8XdoocsmdVEYRiRiTZPvbwzTL4MRjQc`,
+    `github token api`,
   ],
 }
 

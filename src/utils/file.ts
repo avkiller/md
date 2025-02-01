@@ -1,12 +1,12 @@
 import { giteeConfig, githubConfig } from '@/config'
 import fetch from '@/utils/fetch'
-import * as tokenTools from '@/utils/tokenTools'
+// import * as tokenTools from '@/utils/tokenTools'
 
 //import { base64encode, safe64, utf16to8 } from '@/utils/tokenTools'
 // import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
-import Buffer from 'buffer-from'
+// import Buffer from 'buffer-from'
 // import COS from 'cos-js-sdk-v5'
-import CryptoJS from 'crypto-js'
+// import CryptoJS from 'crypto-js'
 // import * as Minio from 'minio'
 // import * as qiniu from 'qiniu-js'
 // import OSS from 'tiny-oss'
@@ -117,36 +117,36 @@ async function ghFileUpload(content: string, filename: string) {
 // Gitee File Upload
 // -----------------------------------------------------------------------
 
-async function giteeUpload(content: any, filename: string) {
-  const useDefault = localStorage.getItem(`imgHost`) === `default`
-  const { username, repo, branch, accessToken } = getConfig(useDefault, `gitee`)
-  const dir = getDir()
-  const dateFilename = getDateFilename(filename)
-  const url = `https://gitee.com/api/v5/repos/${username}/${repo}/contents/${dir}/${dateFilename}`
-  const res = await fetch<{ content: {
-    download_url: string
-  } }, {
-      content: {
-        download_url: string
-      }
-      data: {
-        content: {
-          download_url: string
-        }
-      }
-    }>({
-    url,
-    method: `POST`,
-    data: {
-      content,
-      branch,
-      access_token: accessToken,
-      message: `Upload by ${window.location.href}`,
-    },
-  })
-  res.content = res.data?.content || res.content
-  return encodeURI(res.content.download_url)
-}
+// async function giteeUpload(content: any, filename: string) {
+//   const useDefault = localStorage.getItem(`imgHost`) === `default`
+//   const { username, repo, branch, accessToken } = getConfig(useDefault, `gitee`)
+//   const dir = getDir()
+//   const dateFilename = getDateFilename(filename)
+//   const url = `https://gitee.com/api/v5/repos/${username}/${repo}/contents/${dir}/${dateFilename}`
+//   const res = await fetch<{ content: {
+//     download_url: string
+//   } }, {
+//       content: {
+//         download_url: string
+//       }
+//       data: {
+//         content: {
+//           download_url: string
+//         }
+//       }
+//     }>({
+//     url,
+//     method: `POST`,
+//     data: {
+//       content,
+//       branch,
+//       access_token: accessToken,
+//       message: `Upload by ${window.location.href}`,
+//     },
+//   })
+//   res.content = res.data?.content || res.content
+//   return encodeURI(res.content.download_url)
+// }
 
 // -----------------------------------------------------------------------
 // Qiniu File Upload
@@ -299,43 +299,119 @@ async function giteeUpload(content: any, filename: string) {
 //     }
 //   })
 // }
+// -----------------------------------------------------------------------
+// mp File Upload
+// -----------------------------------------------------------------------
+interface MpResponse {
+  access_token: string
+  expires_in: number
+  errcode: number
+  errmsg: string
+}
+async function getMpToken(appID: string, appsecret: string, proxyOrigin: string) {
+  const data = localStorage.getItem(`mpToken:${appID}`)
+  if (data) {
+    const token = JSON.parse(data)
+    if (token.expire && token.expire > new Date().getTime()) {
+      return token.access_token
+    }
+  }
+  const requestOptions = {
+    method: `POST`,
+    data: {
+      grant_type: `client_credential`,
+      appid: appID,
+      secret: appsecret,
+    },
+  }
+  let url = `https://api.weixin.qq.com/cgi-bin/stable_token`
+  if (proxyOrigin) {
+    url = `${proxyOrigin}/cgi-bin/stable_token`
+  }
+  const res = await fetch<any, MpResponse>(url, requestOptions)
+  if (res.access_token) {
+    const tokenInfo = {
+      ...res,
+      expire: new Date().getTime() + res.expires_in * 1000,
+    }
+    localStorage.setItem(`mpToken:${appID}`, JSON.stringify(tokenInfo))
+    return res.access_token
+  }
+  return ``
+}
+async function mpFileUpload(file: File) {
+  const { appID, appsecret, proxyOrigin } = JSON.parse(
+    localStorage.getItem(`mpConfig`)!,
+  )
+
+  const access_token = await getMpToken(appID, appsecret, proxyOrigin)
+  if (!access_token) {
+    throw new Error(`获取 access_token 失败`)
+  }
+
+  const formdata = new FormData()
+  formdata.append(`media`, file, file.name)
+
+  const requestOptions = {
+    method: `POST`,
+    data: formdata,
+  }
+
+  let url = `https://api.weixin.qq.com/cgi-bin/material/add_material?access_token=${access_token}&type=image`
+  if (proxyOrigin) {
+    url = `${proxyOrigin}/cgi-bin/material/add_material?access_token=${access_token}&type=image`
+  }
+
+  const res = await fetch<any, { url: string }>(url, requestOptions)
+
+  if (!res.url) {
+    throw new Error(`上传失败，未获取到URL`)
+  }
+
+  let imageUrl = res.url
+  // if (proxyOrigin && window.location.href.startsWith(`http`)) {
+  //   imageUrl = `https://wsrv.nl?url=${encodeURIComponent(imageUrl)}`
+  // }
+
+  return imageUrl
+}
 
 // -----------------------------------------------------------------------
 // formCustom File Upload
 // -----------------------------------------------------------------------
 
-async function formCustomUpload(content: string, file: File) {
-  const str = `
-    async (CUSTOM_ARG) => {
-      ${localStorage.getItem(`formCustomConfig`)}
-    }
-  `
-  return new Promise<string>((resolve, reject) => {
-    const exportObj = {
-      content, // 待上传图片的 base64
-      file, // 待上传图片的 file 对象
-      util: {
-        axios: fetch, // axios 实例
-        CryptoJS, // 加密库
-        // OSS, // tiny-oss
-        // COS, // cos-js-sdk-v5
-        Buffer, // buffer-from
-        uuidv4, // uuid
-        // qiniu, // qiniu-js
-        tokenTools, // 一些编码转换函数
-        getDir, // 获取 年/月/日 形式的目录
-        getDateFilename, // 根据文件名获取它以 时间戳+uuid 的形式
-      },
-      okCb: resolve, // 重要: 上传成功后给此回调传 url 即可
-      errCb: reject, // 上传失败调用的函数
-    }
-    // eslint-disable-next-line no-eval
-    eval(str)(exportObj).catch((err: any) => {
-      console.error(err)
-      reject(err)
-    })
-  })
-}
+// async function formCustomUpload(content: string, file: File) {
+//   const str = `
+//     async (CUSTOM_ARG) => {
+//       ${localStorage.getItem(`formCustomConfig`)}
+//     }
+//   `
+//   return new Promise<string>((resolve, reject) => {
+//     const exportObj = {
+//       content, // 待上传图片的 base64
+//       file, // 待上传图片的 file 对象
+//       util: {
+//         axios: fetch, // axios 实例
+//         CryptoJS, // 加密库
+//         // OSS, // tiny-oss
+//         // COS, // cos-js-sdk-v5
+//         Buffer, // buffer-from
+//         uuidv4, // uuid
+//         // qiniu, // qiniu-js
+//         tokenTools, // 一些编码转换函数
+//         getDir, // 获取 年/月/日 形式的目录
+//         getDateFilename, // 根据文件名获取它以 时间戳+uuid 的形式
+//       },
+//       okCb: resolve, // 重要: 上传成功后给此回调传 url 即可
+//       errCb: reject, // 上传失败调用的函数
+//     }
+//     // eslint-disable-next-line no-eval
+//     eval(str)(exportObj).catch((err: any) => {
+//       console.error(err)
+//       reject(err)
+//     })
+//   })
+// }
 
 function fileUpload(content: string, file: File) {
   const imgHost = localStorage.getItem(`imgHost`)
@@ -351,12 +427,16 @@ function fileUpload(content: string, file: File) {
     //   return txCOSFileUpload(file)
     // case `qiniu`:
     //   return qiniuUpload(file)
-    case `gitee`:
-      return giteeUpload(content, file.name)
-    case `github`:
-      return ghFileUpload(content, file.name)
-    case `formCustom`:
-      return formCustomUpload(content, file)
+    // case `gitee`:
+    //   return giteeUpload(content, file.name)
+    // case `github`:
+    //   return ghFileUpload(content, file.name)
+    case `mp`:
+      return mpFileUpload(file)
+    // case `r2`:
+    //  return r2Upload(file)
+    // case `formCustom`:
+    //   return formCustomUpload(content, file)
     default:
       // return file.size / 1024 < 1024
       //     ? giteeUpload(content, file.name)

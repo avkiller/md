@@ -1,57 +1,85 @@
 <script setup lang="ts">
+import type { Post, PostAccount } from '@/types'
 import { useStore } from '@/stores'
-import { Info } from 'lucide-vue-next'
+import { Check, Info } from 'lucide-vue-next'
+import { CheckboxIndicator, CheckboxRoot, Primitive } from 'radix-vue'
 
 const store = useStore()
-const { output } = storeToRefs(store)
+const { output, editor } = storeToRefs(store)
 
 const dialogVisible = ref(false)
+const extensionInstalled = ref(false)
+const allAccounts = ref<PostAccount[]>([])
+const postTaskDialogVisible = ref(false)
 
-const form = ref<any>({
+const form = ref<Post>({
   title: ``,
   desc: ``,
   thumb: ``,
   content: ``,
-  auto: {},
+  markdown: ``,
+  accounts: [] as PostAccount[],
 })
 
-function prePost() {
-  let auto = {}
+const allowPost = computed(() => extensionInstalled.value && form.value.accounts.some(a => a.checked))
+
+async function prePost() {
+  if (extensionInstalled.value && allAccounts.value.length === 0) {
+    await getAccounts()
+  }
+
+  let auto: Post = {
+    thumb: ``,
+    title: ``,
+    desc: ``,
+    content: ``,
+    markdown: ``,
+    accounts: [],
+  }
+  const accounts = allAccounts.value.filter(a => ![`weixin`, `ipfs`].includes(a.type))
   try {
     auto = {
-      thumb: document.querySelector<HTMLImageElement>(`#output img`)?.src,
+      thumb: document.querySelector<HTMLImageElement>(`#output img`)?.src ?? ``,
       title: [1, 2, 3, 4, 5, 6]
         .map(h => document.querySelector(`#output h${h}`)!)
         .filter(h => h)[0]
-        .textContent,
-      desc: document.querySelector(`#output p`)!.textContent,
+        .textContent ?? ``,
+      desc: document.querySelector(`#output p`)!.textContent ?? ``,
       content: output.value,
+      markdown: editor.value?.getValue() ?? ``,
+      accounts,
     }
   }
   catch (error) {
     console.log(`error`, error)
   }
-  form.value = {
-    ...auto,
-    auto,
+  finally {
+    form.value = {
+      ...auto,
+    }
   }
 }
 
 declare global {
   interface Window {
     syncPost: (data: { thumb: string, title: string, desc: string, content: string }) => void
+    $syncer: any
   }
 }
 
-function post() {
-  dialogVisible.value = false;
-  // 使用 window.$syncer 可以检测是否安装插件
-  (window.syncPost)({
-    thumb: form.value.thumb || form.value.auto.thumb,
-    title: form.value.title || form.value.auto.title,
-    desc: form.value.desc || form.value.auto.desc,
-    content: form.value.content || form.value.auto.content,
+async function getAccounts(): Promise<void> {
+  return new Promise((resolve) => {
+    window.$syncer?.getAccounts((resp: PostAccount[]) => {
+      allAccounts.value = resp.map(a => ({ ...a, checked: true }))
+      resolve()
+    })
   })
+}
+
+function post() {
+  form.value.accounts = form.value.accounts.filter(a => a.checked)
+  postTaskDialogVisible.value = true
+  dialogVisible.value = false
 }
 
 function onUpdate(val: boolean) {
@@ -59,6 +87,33 @@ function onUpdate(val: boolean) {
     dialogVisible.value = false
   }
 }
+
+function checkExtension() {
+  if (window.$syncer !== undefined) {
+    extensionInstalled.value = true
+    return
+  }
+
+  // 如果插件还没加载，5秒内每 500ms 检查一次
+  let count = 0
+  const timer = setInterval(async () => {
+    if (window.$syncer !== undefined) {
+      extensionInstalled.value = true
+      await getAccounts()
+      clearInterval(timer)
+      return
+    }
+
+    count++
+    if (count > 10) { // 5秒后还是没有检测到，就停止检查
+      clearInterval(timer)
+    }
+  }, 500)
+}
+
+onBeforeMount(() => {
+  checkExtension()
+})
 </script>
 
 <template>
@@ -76,7 +131,22 @@ function onUpdate(val: boolean) {
         <Info class="h-4 w-4" />
         <AlertTitle>提示</AlertTitle>
         <AlertDescription>
-          此功能由第三方浏览器插件支持，本平台不保证安全性。
+          此功能由第三方浏览器插件支持，本平台不保证安全性及同步准确度。
+        </AlertDescription>
+      </Alert>
+
+      <Alert v-if="!extensionInstalled">
+        <Info class="h-4 w-4" />
+        <AlertTitle>未检测到插件</AlertTitle>
+        <AlertDescription>
+          请安装
+          <Primitive
+            as="a" class="text-blue-500" href="https://www.wechatsync.com/?utm_source=syncicon#install"
+            target="_blank"
+          >
+            文章同步助手
+          </Primitive>
+          插件
         </AlertDescription>
       </Alert>
 
@@ -99,14 +169,44 @@ function onUpdate(val: boolean) {
         <Textarea id="desc" v-model="form.desc" placeholder="自动提取第一个段落" />
       </div>
 
+      <div class="w-full flex items-start gap-4">
+        <Label class="w-10 text-end">
+          账号
+        </Label>
+        <div class="flex flex-1 flex-col gap-2">
+          <div v-for="account in form.accounts" :key="account.uid + account.displayName" class="flex items-center gap-2">
+            <label class="flex flex-row items-center gap-4">
+              <CheckboxRoot
+                v-model:checked="account.checked"
+                class="bg-background hover:bg-muted h-[25px] w-[25px] flex appearance-none items-center justify-center border border-gray-200 rounded-[4px] outline-none"
+              >
+                <CheckboxIndicator>
+                  <Check v-if="account.checked" class="h-4 w-4" />
+                </CheckboxIndicator>
+              </CheckboxRoot>
+              <span class="flex items-center gap-2 text-sm">
+                <img
+                  :src="account.icon"
+                  alt=""
+                  class="inline-block h-[20px] w-[20px]"
+                >
+                {{ account.title }} - {{ account.displayName ?? account.home }}
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <DialogFooter>
         <Button variant="outline" @click="dialogVisible = false">
           取 消
         </Button>
-        <Button @click="post">
+        <Button :disabled="!allowPost" @click="post">
           确 定
         </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
+
+  <PostTaskDialog v-model:open="postTaskDialogVisible" :post="form" />
 </template>

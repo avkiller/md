@@ -98,6 +98,7 @@ declare module 'vue' {
     PopoverTrigger: typeof import('./src/components/ui/popover/PopoverTrigger.vue')['default']
     PostInfo: typeof import('./src/components/CodemirrorEditor/EditorHeader/PostInfo.vue')['default']
     PostSlider: typeof import('./src/components/CodemirrorEditor/PostSlider.vue')['default']
+    PostTaskDialog: typeof import('./src/components/CodemirrorEditor/EditorHeader/PostTaskDialog.vue')['default']
     RightSlider: typeof import('./src/components/CodemirrorEditor/RightSlider.vue')['default']
     RunLoading: typeof import('./src/components/RunLoading.vue')['default']
     Select: typeof import('./src/components/ui/select/Select.vue')['default']

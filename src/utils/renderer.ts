@@ -298,7 +298,7 @@ export function initRenderer(opts: IOpts) {
 
       // 去除相等的提示
       // if (href === text) {
-      //   return text
+      //   return  parsedText
       // }
       if (opts.citeStatus) {
         const ref = addFootnote(title || text, href)

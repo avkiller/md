@@ -2,7 +2,7 @@ import type { Block, ExtendedProperties, Inline, Theme } from '@/types'
 
 import type { PropertiesHyphen } from 'csstype'
 import { prefix } from '@/config'
-import juice from 'juice'
+// import juice from 'juice'
 // import * as prettierPluginBabel from 'prettier/plugins/babel'
 // import * as prettierPluginEstree from 'prettier/plugins/estree'
 // import * as prettierPluginMarkdown from 'prettier/plugins/markdown'
@@ -190,8 +190,8 @@ export function exportHTML(primaryColor: string) {
   const element = document.querySelector(`#output`)!
   setStyles(element)
   const htmlStr = element.innerHTML
-    .replaceAll(`var(--md-primary-color)`, primaryColor)
-    .replaceAll(/--md-primary-color:.+?;/g, ``)
+    .replace(/var\(--md-primary-color\)/g, primaryColor)
+    .replace(/--md-primary-color:.+?;/g, ``)
 
   const downLink = document.createElement(`a`)
 
@@ -354,8 +354,9 @@ export function solveWeChatImage() {
   })
 }
 
-export function mergeCss(html: string): string {
-  return juice(html, {
+export async function mergeCss(html: string): Promise<string> {
+  const juice = await import(`juice`);
+  return juice.default(html, {
     inlinePseudoElements: true,
     preserveImportant: true,
   })
@@ -382,11 +383,11 @@ export function modifyHtmlStructure(htmlString: string): string {
   return tempDiv.innerHTML
 }
 
-export function processClipboardContent(primaryColor: string) {
+export async function processClipboardContent(primaryColor: string) {
   const clipboardDiv = document.getElementById(`output`)!
 
   // 先合并 CSS 和修改 HTML 结构
-  clipboardDiv.innerHTML = modifyHtmlStructure(mergeCss(clipboardDiv.innerHTML))
+  clipboardDiv.innerHTML = modifyHtmlStructure(await mergeCss(clipboardDiv.innerHTML))
 
   // 处理样式和颜色变量
   clipboardDiv.innerHTML = clipboardDiv.innerHTML

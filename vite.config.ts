@@ -7,11 +7,11 @@ import UnoCSS from 'unocss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig } from 'vite'
-import { Plugin as importToCDN } from 'vite-plugin-cdn-import'
+// import { Plugin as importToCDN } from 'vite-plugin-cdn-import'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import externalGlobals from "rollup-plugin-external-globals";
-// import cdn from 'vite-plugin-cdn-import'
+import cdn from 'vite-plugin-cdn-import'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -36,9 +36,14 @@ export default defineConfig({
           vendor: [
             `pinia`,
             `vue`,
+            `yup`,
+            `vee-validate`,
+            // `vite-plugin-node-polyfills`,
             `@vueuse/core`,
             `tailwind-merge`,
-            `marked`,
+            // `marked`,
+            // `parse5`,
+            // `entities`,
             //`front-matte`,
             // `htmlparser2`,
             // `cheerio`,
@@ -53,7 +58,7 @@ export default defineConfig({
             `dayjs`,
             `langium`,
             `crypto-js`,
-            `parse5`,
+            // `parse5`,
             `vscode-languageserver-types`,
             `vscode-uri`,
             `vscode-languageserver-textdocument`,
@@ -105,7 +110,12 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    importToCDN({
+    cdn({
+      // generateScriptTag: (name, url) => ({ 
+      //   attrs:{
+      //     defer: true
+      //   }
+      //  }),
       modules: [
         // 'vue',
         // 'axios',
@@ -120,12 +130,21 @@ export default defineConfig({
         //   var: `juice`,
         //   path: `https://fastly.jsdelivr.net/npm/juice@11.0.0/+esm`,
         // },
-
+        // {
+        //   name: `vue`,
+        //   var: `vue`,
+        //   path: `https://s4.zstatic.net/npm/vue@3/dist/vue.global.prod.js`,
+        // },
+        // {
+        //   name: `vee-validate`,
+        //   var: `veeValidate`,
+        //   path: `https://s4.zstatic.net/npm/vee-validate`,
+        // },
         {
           name: `highlight.js`,
           var: `hljs`,
-          path: `https://s4.zstatic.net/ajax/libs/highlight.js/11.10.0/highlight.min.js`,
-          css: `https://s4.zstatic.net/ajax/libs/highlight.js/11.10.0/styles/default.min.css`,
+          path: `https://s4.zstatic.net/ajax/libs/highlight.js/11.11.1/highlight.min.js`,
+          css: `https://s4.zstatic.net/ajax/libs/highlight.js/11.11.1/styles/default.min.css`,
         },
 
         {

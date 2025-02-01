@@ -3,13 +3,15 @@ import type { ComponentPublicInstance } from 'vue'
 import { altKey, ctrlKey, shiftKey } from '@/config'
 import { useStore } from '@/stores'
 import {
+  checkImage,
   formatDoc,
+  toBase64,
 } from '@/utils'
-// import fileApi from '@/utils/file'
+import fileApi from '@/utils/file'
 import CodeMirror from 'codemirror'
 
 const store = useStore()
-// const displayStore = useDisplayStore()
+const displayStore = useDisplayStore()
 const { isDark, output, editor, readingTime } = storeToRefs(store)
 
 const isMobile = ref(false)
@@ -29,9 +31,11 @@ const {
   // resetStyleConfirm,
 } = store
 
-// const { toggleShowInsertFormDialog, toggleShowUploadImgDialog } = displayStore
+const { 
+  // toggleShowInsertFormDialog, 
+  toggleShowUploadImgDialog } = displayStore
 
-// const isImgLoading = ref(false)
+const isImgLoading = ref(false)
 const timeout = ref<NodeJS.Timeout>()
 
 const preview = ref<HTMLDivElement | null>(null)
@@ -127,61 +131,61 @@ function endCopy() {
   }, 800)
 }
 
-// function beforeUpload(file: File) {
-//   // validate image
-//   const checkResult = checkImage(file)
-//   if (!checkResult.ok) {
-//     toast.error(checkResult.msg!)
-//     return false
-//   }
+function beforeUpload(file: File) {
+  // validate image
+  const checkResult = checkImage(file)
+  if (!checkResult.ok) {
+    toast.error(checkResult.msg!)
+    return false
+  }
 
-//   // check image host
-//   const imgHost = localStorage.getItem(`imgHost`) || `default`
-//   localStorage.setItem(`imgHost`, imgHost)
+  // check image host
+  const imgHost = localStorage.getItem(`imgHost`) || `default`
+  localStorage.setItem(`imgHost`, imgHost)
 
-//   const config = localStorage.getItem(`${imgHost}Config`)
-//   const isValidHost = imgHost === `default` || config
-//   if (!isValidHost) {
-//     toast.error(`请先配置 ${imgHost} 图床参数`)
-//     return false
-//   }
-//   return true
-// }
+  const config = localStorage.getItem(`${imgHost}Config`)
+  const isValidHost = imgHost === `default` || config
+  if (!isValidHost) {
+    toast.error(`请先配置 ${imgHost} 图床参数`)
+    return false
+  }
+  return true
+}
 
-// 图片上传结束
-// function uploaded(imageUrl: string) {
-//   if (!imageUrl) {
-//     toast.error(`上传图片未知异常`)
-//     return
-//   }
-//   toggleShowUploadImgDialog(false)
-//   // 上传成功，获取光标
-//   const cursor = editor.value!.getCursor()
-//   const markdownImage = `![](${imageUrl})`
-//   // 将 Markdown 形式的 URL 插入编辑框光标所在位置
-//   toRaw(store.editor!).replaceSelection(`\n${markdownImage}\n`, cursor as any)
-//   toast.success(`图片上传成功`)
-// }
-// function uploadImage(file: File, cb?: { (url: any): void, (arg0: unknown): void } | undefined) {
-//   isImgLoading.value = true
+//图片上传结束
+function uploaded(imageUrl: string) {
+  if (!imageUrl) {
+    toast.error(`上传图片未知异常`)
+    return
+  }
+  toggleShowUploadImgDialog(false)
+  // 上传成功，获取光标
+  const cursor = editor.value!.getCursor()
+  const markdownImage = `![](${imageUrl})`
+  // 将 Markdown 形式的 URL 插入编辑框光标所在位置
+  toRaw(store.editor!).replaceSelection(`\n${markdownImage}\n`, cursor as any)
+  toast.success(`图片上传成功`)
+}
+function uploadImage(file: File, cb?: { (url: any): void, (arg0: unknown): void } | undefined) {
+  isImgLoading.value = true
 
-//   toBase64(file)
-//     .then(base64Content => fileApi.fileUpload(base64Content, file))
-//     .then((url) => {
-//       if (cb) {
-//         cb(url)
-//       }
-//       else {
-//         uploaded(url)
-//       }
-//     })
-//     .catch((err) => {
-//       toast.error(err.message)
-//     })
-//     .finally(() => {
-//       isImgLoading.value = false
-//     })
-// }
+  toBase64(file)
+    .then(base64Content => fileApi.fileUpload(base64Content, file))
+    .then((url) => {
+      if (cb) {
+        cb(url)
+      }
+      else {
+        uploaded(url)
+      }
+    })
+    .catch((err) => {
+      toast.error(err.message)
+    })
+    .finally(() => {
+      isImgLoading.value = false
+    })
+}
 
 const changeTimer = ref<NodeJS.Timeout>()
 
@@ -266,24 +270,23 @@ function initEditor() {
     }, 300)
   })
 
-  // 粘贴上传图片并插入
-  // editor.value.on(`paste`, (_cm, e) => {
-  //   if (!(e.clipboardData && e.clipboardData.items) || isImgLoading.value) {
-  //     return
-  //   }
-  //   for (let i = 0, len = e.clipboardData.items.length; i < len; ++i) {
-  //     const item = e.clipboardData.items[i]
-  //     if (item.kind === `file`) {
-  //       // 校验图床参数
-  //       const pasteFile = item.getAsFile()!
-  //       const isValid = beforeUpload(pasteFile)
-  //       if (!isValid) {
-  //         continue
-  //       }
-  //       uploadImage(pasteFile)
-  //     }
-  //   }
-  // })
+  editor.value.on(`paste`, (_cm, e) => {
+    if (!(e.clipboardData && e.clipboardData.items) || isImgLoading.value) {
+      return
+    }
+    for (let i = 0, len = e.clipboardData.items.length; i < len; ++i) {
+      const item = e.clipboardData.items[i]
+      if (item.kind === `file`) {
+        // 校验图床参数
+        const pasteFile = item.getAsFile()!
+        const isValid = beforeUpload(pasteFile)
+        if (!isValid) {
+          continue
+        }
+        uploadImage(pasteFile)
+      }
+    }
+  })
 }
 
 const container = ref(null)
@@ -461,9 +464,7 @@ onMounted(() => {
         字数 {{ readingTime?.words }}， 阅读大约需 {{ Math.ceil(readingTime?.minutes ?? 0) }} 分钟
       </footer>
 
-    <!--    <UploadImgDialog -->
-    <!--      @upload-image="uploadImage" -->
-    <!--    /> -->
+      <UploadImgDialog @upload-image="uploadImage" />
 
     <InsertFormDialog />
 
