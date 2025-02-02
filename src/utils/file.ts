@@ -41,7 +41,7 @@ function getConfig(useDefault: boolean, platform: string) {
   return {
     username: repoUrl[0],
     repo: repoUrl[1],
-    branch: customConfig.branch || `master`,
+    branch: customConfig.branch || `main`,
     accessToken: customConfig.accessToken,
   }
 }
@@ -75,9 +75,12 @@ function getDateFilename(filename: string) {
 
 async function ghFileUpload(content: string, filename: string) {
   const useDefault = localStorage.getItem(`imgHost`) === `default`
+  // const host = localStorage.getItem('imgHost') ?? '';
+  // const useDefault = ['default', 'github'].includes(host);
+
   const { username, repo, branch, accessToken } = getConfig(
     useDefault,
-    `github`,
+    `github`
   )
   const dir = getDir()
   const url = `https://api.github.com/repos/${username}/${repo}/contents/${dir}/`
@@ -108,9 +111,11 @@ async function ghFileUpload(content: string, filename: string) {
   const githubResourceUrl = `raw.githubusercontent.com/${username}/${repo}/${branch}/`
   const cdnResourceUrl = `fastly.jsdelivr.net/gh/${username}/${repo}@${branch}/`
   res.content = res.data?.content || res.content
-  return useDefault
-    ? res.content.download_url.replace(githubResourceUrl, cdnResourceUrl)
-    : res.content.download_url
+  return res.content.download_url.replace(githubResourceUrl, cdnResourceUrl)
+
+  // return useDefault
+  //   ? res.content.download_url.replace(githubResourceUrl, cdnResourceUrl)
+  //   : res.content.download_url
 }
 
 // -----------------------------------------------------------------------
@@ -416,7 +421,7 @@ async function mpFileUpload(file: File) {
 function fileUpload(content: string, file: File) {
   const imgHost = localStorage.getItem(`imgHost`)
   if (!imgHost) {
-    localStorage.setItem(`imgHost`, `default`)
+    localStorage.setItem(`imgHost`, `github`)
   }
   switch (imgHost) {
     // case `aliOSS`:

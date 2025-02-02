@@ -358,7 +358,7 @@ function onDrop(e: DragEvent) {
                 <Input
                   v-bind="field"
                   v-model="field.value"
-                  placeholder="如：release，可不填，默认 master"
+                  placeholder="如：release，可不填，默认 main"
                 />
               </FormItem>
             </Field>
