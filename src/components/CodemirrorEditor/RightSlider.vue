@@ -40,11 +40,12 @@ const formatOptions = ref<Format[]>([`rgb`, `hex`, `hsl`, `hsv`])
 
 <template>
   <div
-    class="overflow-hidden bg-gray/20 transition-width duration-300 dark:bg-gray/40"
+    class="overflow-hidden border-l-2 border-gray/20 bg-white transition-width duration-300 dark:bg-[#191919]"
     :class="{
-      'w-0': !store.isOpenRightSlider,
+      'w-0 border-l-0': !store.isOpenRightSlider,
       'w-100': store.isOpenRightSlider,
     }"
+    style="z-index: 1;"
   >
     <div
       class="space-y-4 h-full overflow-auto p-4 transition-transform" :class="{
@@ -124,7 +125,7 @@ const formatOptions = ref<Format[]>([`rgb`, `hex`, `hsl`, `hsv`])
         <div>
           <Select v-model="store.codeBlockTheme" @update:model-value="store.codeBlockThemeChanged">
             <SelectTrigger>
-              <SelectValue placeholder="Select a fruit" />
+              <SelectValue placeholder="Select a code block theme" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem v-for="{ label, value } in codeBlockThemeOptions" :key="label" :value="value">
