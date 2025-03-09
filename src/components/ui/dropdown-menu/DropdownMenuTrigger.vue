@@ -3,7 +3,7 @@ import { DropdownMenuTrigger, type DropdownMenuTriggerProps, useForwardProps } f
 
 const props = defineProps<DropdownMenuTriggerProps>()
 
-const forwardedProps = useForwardProps(props)
+const forwardedProps = useForwardProps(props) as DropdownMenuTriggerProps
 </script>
 
 <template>

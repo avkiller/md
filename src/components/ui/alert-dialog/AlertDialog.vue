@@ -4,7 +4,7 @@ import { type AlertDialogEmits, type AlertDialogProps, AlertDialogRoot, useForwa
 const props = defineProps<AlertDialogProps>()
 const emits = defineEmits<AlertDialogEmits>()
 
-const forwarded = useForwardPropsEmits(props, emits)
+const forwarded = useForwardPropsEmits(props, emits) as AlertDialogProps
 </script>
 
 <template>

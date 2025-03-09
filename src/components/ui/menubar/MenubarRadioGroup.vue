@@ -10,7 +10,7 @@ const props = defineProps<MenubarRadioGroupProps>()
 
 const emits = defineEmits<MenubarRadioGroupEmits>()
 
-const forwarded = useForwardPropsEmits(props, emits)
+const forwarded = useForwardPropsEmits(props, emits) as MenubarRadioGroupProps
 </script>
 
 <template>

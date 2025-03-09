@@ -9,7 +9,7 @@ import {
 const props = defineProps<ContextMenuSubProps>()
 const emits = defineEmits<ContextMenuSubEmits>()
 
-const forwarded = useForwardPropsEmits(props, emits)
+const forwarded = useForwardPropsEmits(props, emits) as ContextMenuSubProps
 </script>
 
 <template>

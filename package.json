@@ -1,7 +1,7 @@
 {
   "name": "md",
   "type": "module",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "private": false,
   "scripts": {
     "start": "npm run dev",
@@ -95,5 +95,13 @@
   },
   "lint-staged": {
     "*": "npm run lint"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "core-js",
+      "esbuild",
+      "simple-git-hooks",
+      "vue-demi"
+    ]
   }
 }

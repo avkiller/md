@@ -5,7 +5,7 @@ import { ContextMenuRoot, useForwardPropsEmits } from 'radix-vue'
 const props = defineProps<ContextMenuRootProps>()
 const emits = defineEmits<ContextMenuRootEmits>()
 
-const forwarded = useForwardPropsEmits(props, emits)
+const forwarded = useForwardPropsEmits(props, emits) as ContextMenuRootProps
 </script>
 
 <template>
