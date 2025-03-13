@@ -382,6 +382,32 @@ async function mpFileUpload(file: File) {
 }
 
 // -----------------------------------------------------------------------
+// Cloudflare R2 File Upload
+// -----------------------------------------------------------------------
+
+// async function r2Upload(file: File) {
+//   const { accountId, accessKey, secretKey, bucket, path, domain } = JSON.parse(
+//     localStorage.getItem(`r2Config`)!,
+//   )
+//   const dir = path ? `${path}/` : ``
+//   const filename = dir + getDateFilename(file.name)
+//   const client = new S3Client({ region: `auto`, endpoint: `https://${accountId}.r2.cloudflarestorage.com`, credentials: { accessKeyId: accessKey, secretAccessKey: secretKey } })
+//   const signedUrl = await getSignedUrl(
+//     client,
+//     new PutObjectCommand({ Bucket: bucket, Key: filename, ContentType: file.type }),
+//     { expiresIn: 300 },
+//   )
+//   await fetch(signedUrl, {
+//     method: `PUT`,
+//     headers: {
+//       'Content-Type': file.type,
+//     },
+//     data: file,
+//   }).catch((err) => { console.log(err) })
+//   return `${domain}/${filename}`
+// }
+
+// -----------------------------------------------------------------------
 // formCustom File Upload
 // -----------------------------------------------------------------------
 
