@@ -1,13 +1,31 @@
 import type { ReadTimeResults } from 'reading-time'
 import DEFAULT_CONTENT from '@/assets/example/markdown.md?raw'
 import DEFAULT_CSS_CONTENT from '@/assets/example/theme-css.txt?raw'
-import { altKey, codeBlockThemeOptions, colorOptions, fontFamilyOptions, fontSizeOptions, legendOptions, shiftKey, themeMap, themeOptions } from '@/config'
-import { addPrefix, css2json, customCssWithTemplate, customizeTheme, downloadMD, exportHTML, formatDoc } from '@/utils'
+import {
+  altKey,
+  codeBlockThemeOptions,
+  colorOptions,
+  fontFamilyOptions,
+  fontSizeOptions,
+  legendOptions,
+  shiftKey,
+  themeMap,
+  themeOptions,
+} from '@/config'
+import {
+  addPrefix,
+  css2json,
+  customCssWithTemplate,
+  customizeTheme,
+  downloadMD,
+  exportHTML,
+  formatDoc,
+} from '@/utils'
 
 import { initRenderer } from '@/utils/renderer'
 import CodeMirror from 'codemirror'
-import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import { marked } from 'marked'
 
 export const useStore = defineStore(`store`, () => {
   // 是否开启深色模式
@@ -37,7 +55,10 @@ export const useStore = defineStore(`store`, () => {
   const output = ref(``)
 
   // 文本字体
-  const theme = useStorage<keyof typeof themeMap>(addPrefix(`theme`), themeOptions[0].value)
+  const theme = useStorage<keyof typeof themeMap>(
+    addPrefix(`theme`),
+    themeOptions[0].value,
+  )
   // 文本字体
   const fontFamily = useStorage(`fonts`, fontFamilyOptions[0].value)
   // 文本大小
@@ -45,33 +66,45 @@ export const useStore = defineStore(`store`, () => {
   // 主色
   const primaryColor = useStorage(`color`, colorOptions[0].value)
   // 代码块主题
-  const codeBlockTheme = useStorage(`codeBlockTheme`, codeBlockThemeOptions[23].value)
+  const codeBlockTheme = useStorage(
+    `codeBlockTheme`,
+    codeBlockThemeOptions[23].value,
+  )
   // 图注格式
   const legend = useStorage(`legend`, legendOptions[3].value)
 
-  const fontSizeNumber = computed(() => Number(fontSize.value.replace(`px`, ``)))
+  const fontSizeNumber = computed(() =>
+    Number(fontSize.value.replace(`px`, ``)),
+  )
 
   // 内容编辑器编辑器
   const editor = ref<CodeMirror.EditorFromTextArea | null>(null)
   // 编辑区域内容
   // 预备弃用
   const editorContent = useStorage(`__editor_content`, DEFAULT_CONTENT)
-  const default_content = useStorage(`__default_content`, DEFAULT_CONTENT)
-  const isOpenRightSlider = useStorage(addPrefix(`is_open_right_slider`), false)
+
+  const isOpenRightSlider = useStorage(
+    addPrefix(`is_open_right_slider`),
+    false,
+  )
+
   const isOpenPostSlider = useStorage(addPrefix(`is_open_post_slider`), false)
   // 内容列表
-  const posts = useStorage(addPrefix(`posts`), [{
-    title: `内容1`,
-    content: DEFAULT_CONTENT,
-  }])
+  const posts = useStorage(addPrefix(`posts`), [
+    {
+      title: `内容1`,
+      content: DEFAULT_CONTENT,
+    },
+  ])
   // 当前内容
   const currentPostIndex = useStorage(addPrefix(`current_post_index`), 0)
 
   const addPost = (title: string) => {
-    currentPostIndex.value = posts.value.push({
-      title,
-      content: `# ${title}`,
-    }) - 1
+    currentPostIndex.value
+      = posts.value.push({
+        title,
+        content: `# ${title}`,
+      }) - 1
   }
 
   const renamePost = (index: number, title: string) => {
@@ -91,7 +124,7 @@ export const useStore = defineStore(`store`, () => {
   // add by fireworld
   // 重新加载默认markdown
   const reloadDefaultContent = () => {
-    toRaw(editor.value!).setValue(default_content.value)
+    toRaw(editor.value!).setValue(DEFAULT_CONTENT)
   }
   // 清空数据库
   const clearLocalStorage = () => {
@@ -112,7 +145,7 @@ export const useStore = defineStore(`store`, () => {
 
   // 格式化文档
   const formatContent = () => {
-    formatDoc((editor.value!).getValue()).then((doc) => {
+    formatDoc(editor.value!.getValue()).then((doc) => {
       posts.value[currentPostIndex.value].content = doc
       toRaw(editor.value!).setValue(doc)
     })
@@ -138,7 +171,7 @@ export const useStore = defineStore(`store`, () => {
   // 自义定 CSS 编辑器
   const cssEditor = ref<CodeMirror.EditorFromTextArea | null>(null)
   const setCssEditorValue = (content: string) => {
-    (cssEditor.value!).setValue(content)
+    cssEditor.value!.setValue(content)
   }
   // 自定义 CSS 内容
   const cssContent = useStorage(`__css_content`, DEFAULT_CSS_CONTENT)
@@ -157,9 +190,10 @@ export const useStore = defineStore(`store`, () => {
     // 清空过往历史记录
     cssContent.value = ``
   })
-  const getCurrentTab = () => cssContentConfig.value.tabs.find((tab) => {
-    return tab.name === cssContentConfig.value.active
-  })!
+  const getCurrentTab = () =>
+    cssContentConfig.value.tabs.find((tab) => {
+      return tab.name === cssContentConfig.value.active
+    })!
   const tabChanged = (name: string) => {
     cssContentConfig.value.active = name
     const content = cssContentConfig.value.tabs.find((tab) => {
@@ -190,7 +224,14 @@ export const useStore = defineStore(`store`, () => {
   }
 
   const renderer = initRenderer({
-    theme: customCssWithTemplate(css2json(getCurrentTab().content), primaryColor.value, customizeTheme(themeMap[theme.value], { fontSize: fontSizeNumber.value, color: primaryColor.value })),
+    theme: customCssWithTemplate(
+      css2json(getCurrentTab().content),
+      primaryColor.value,
+      customizeTheme(themeMap[theme.value], {
+        fontSize: fontSizeNumber.value,
+        color: primaryColor.value,
+      }),
+    ),
     fonts: fontFamily.value,
     size: fontSize.value,
     isUseIndent: isUseIndent.value,
@@ -198,15 +239,49 @@ export const useStore = defineStore(`store`, () => {
 
   const readingTime = ref<ReadTimeResults | null>(null)
 
+  // 文章标题
+  const titleList = ref<{
+    url: string
+    title: string
+    level: number
+  }[]>([])
+
   // 更新编辑器
   const editorRefresh = async() => {
     codeThemeChange()
-    renderer.reset({ citeStatus: isCiteStatus.value, legend: legend.value, isUseIndent: isUseIndent.value, countStatus: isCountStatus.value })
+    renderer.reset({
+      citeStatus: isCiteStatus.value,
+      legend: legend.value,
+      isUseIndent: isUseIndent.value,
+      countStatus: isCountStatus.value,
+    })
 
-    const { markdownContent, readingTime: readingTimeResult } = await renderer.parseFrontMatterAndContent(editor.value!.getValue())
-    // console.log(`Reading time result:`, readingTimeResult)
+    const {
+      markdownContent,
+      readingTime: readingTimeResult,
+    } = await renderer.parseFrontMatterAndContent(editor.value!.getValue())
     readingTime.value = readingTimeResult
     let outputTemp = marked.parse(markdownContent) as string
+
+    // 提取标题
+    const div = document.createElement('div')
+    div.innerHTML = outputTemp
+    const list = div.querySelectorAll<HTMLElement>(`[data-heading]`)
+
+    titleList.value = []
+    let i = 0
+    for (const item of list) {
+      item.setAttribute(`id`, `${i}`)
+      titleList.value.push({
+        url: `#${i}`,
+        title: `${item.innerText}`,
+        level: Number(item.tagName.slice(1))
+      })
+      i++
+    }
+
+    outputTemp = div.innerHTML
+
     outputTemp = DOMPurify.sanitize(outputTemp)
 
     // 阅读时间及字数统计
@@ -250,7 +325,14 @@ export const useStore = defineStore(`store`, () => {
   // 更新 CSS
   const updateCss = () => {
     const json = css2json(cssEditor.value!.getValue())
-    const newTheme = customCssWithTemplate(json, primaryColor.value, customizeTheme(themeMap[theme.value], { fontSize: fontSizeNumber.value, color: primaryColor.value }))
+    const newTheme = customCssWithTemplate(
+      json,
+      primaryColor.value,
+      customizeTheme(themeMap[theme.value], {
+        fontSize: fontSizeNumber.value,
+        color: primaryColor.value,
+      }),
+    )
     renderer.setOptions({
       theme: newTheme,
     })
@@ -259,7 +341,9 @@ export const useStore = defineStore(`store`, () => {
   }
   // 初始化 CSS 编辑器
   onMounted(() => {
-    const cssEditorDom = document.querySelector<HTMLTextAreaElement>(`#cssEditor`)!
+    const cssEditorDom = document.querySelector<HTMLTextAreaElement>(
+      `#cssEditor`,
+    )!
     cssEditorDom.value = getCurrentTab().content
     const theme = isDark.value ? `darcula` : `xq-light`
     cssEditor.value = markRaw(
@@ -272,7 +356,9 @@ export const useStore = defineStore(`store`, () => {
         matchBrackets: true,
         autofocus: true,
         extraKeys: {
-          [`${shiftKey}-${altKey}-F`]: function autoFormat(editor: CodeMirror.Editor) {
+          [`${shiftKey}-${altKey}-F`]: function autoFormat(
+            editor: CodeMirror.Editor,
+          ) {
             formatDoc(editor.getValue(), `css`).then((doc) => {
               getCurrentTab().content = doc
               editor.setValue(doc)
@@ -332,11 +418,13 @@ export const useStore = defineStore(`store`, () => {
     updateCss()
     editorRefresh()
 
-    toast.success(`样式重置成功~`)
+    toast.success(`样式已重置`)
   }
 
   // 为函数添加刷新编辑器的功能
-  const withAfterRefresh = (fn: (...rest: any[]) => void) => (...rest: any[]) => {
+  const withAfterRefresh = (fn: (...rest: any[]) => void) => (
+    ...rest: any[]
+  ) => {
     fn(...rest)
     editorRefresh()
   }
@@ -344,12 +432,20 @@ export const useStore = defineStore(`store`, () => {
   const getTheme = (size: string, color: string) => {
     const newTheme = themeMap[theme.value]
     const fontSize = Number(size.replace(`px`, ``))
-    return customCssWithTemplate(css2json(getCurrentTab().content), color, customizeTheme(newTheme, { fontSize, color }))
+    return customCssWithTemplate(
+      css2json(getCurrentTab().content),
+      color,
+      customizeTheme(newTheme, { fontSize, color }),
+    )
   }
 
   const themeChanged = withAfterRefresh((newTheme: keyof typeof themeMap) => {
     renderer.setOptions({
-      theme: customCssWithTemplate(css2json(getCurrentTab().content), primaryColor.value, customizeTheme(themeMap[newTheme], { fontSize: fontSizeNumber.value })),
+      theme: customCssWithTemplate(
+        css2json(getCurrentTab().content),
+        primaryColor.value,
+        customizeTheme(themeMap[newTheme], { fontSize: fontSizeNumber.value }),
+      ),
     })
     theme.value = newTheme
   })
@@ -419,7 +515,29 @@ export const useStore = defineStore(`store`, () => {
   // 导入默认文档
   const importDefaultContent = () => {
     editor.value!.setValue(DEFAULT_CONTENT)
-    toast.success(`文档已重置为默认文档`)
+    toast.success(`文档已重置`)
+  }
+
+  const copyToClipboard = async () => {
+    try {
+      const selectedText = editor.value!.getSelection()
+      if (selectedText) {
+        await navigator.clipboard.writeText(selectedText)
+      }
+    }
+    catch (error) {
+      console.log(`复制失败`, error)
+    }
+  }
+
+  const pasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText()
+      editor.value!.replaceSelection(text)
+    }
+    catch (error) {
+      console.log(`粘贴失败`, error)
+    }
   }
 
   // 导入 Markdown 文档
@@ -438,7 +556,7 @@ export const useStore = defineStore(`store`, () => {
       const reader = new FileReader()
       reader.readAsText(file)
       reader.onload = (event) => {
-        (editor.value!).setValue((event.target!).result as string)
+        editor.value!.setValue(event.target!.result as string)
         toast.success(`文档导入成功`)
       }
     }
@@ -499,6 +617,9 @@ export const useStore = defineStore(`store`, () => {
     importMarkdownContent,
     importDefaultContent,
 
+    copyToClipboard,
+    pasteFromClipboard,
+
     isOpenConfirmDialog,
     resetStyleConfirm,
     resetStyle,
@@ -516,6 +637,7 @@ export const useStore = defineStore(`store`, () => {
     delPost,
     isOpenPostSlider,
     isOpenRightSlider,
+    titleList,
     // add by fireworld
     resetContent,
     reloadDefaultContent,

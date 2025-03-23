@@ -2,6 +2,7 @@ import type { Block, ExtendedProperties, Inline, Theme } from '@/types'
 
 import type { PropertiesHyphen } from 'csstype'
 import { prefix } from '@/config'
+import { autoSpace } from '@/utils/autoSpace'
 // import juice from 'juice'
 // import * as prettierPluginBabel from 'prettier/plugins/babel'
 // import * as prettierPluginEstree from 'prettier/plugins/estree'
@@ -158,9 +159,10 @@ export async function formatDoc(content: string, type: `markdown` | `css` = `mar
     markdown: [prettierPluginMarkdown.default, prettierPluginBabel.default, prettierPluginEstree.default],
     css: [prettierPluginCss.default],
   }
+  const addSpaceContent = autoSpace(content)
 
   const parser = type in plugins ? type : `markdown`
-  return await format(content, {
+  return await format(addSpaceContent, {
     parser,
     plugins: plugins[parser],
   })
@@ -399,6 +401,10 @@ export async function processClipboardContent(primaryColor: string) {
     .replace(
       /<span class="nodeLabel"([^>]*)><p[^>]*>(.*?)<\/p><\/span>/g,
       `<span class="nodeLabel"$1>$2</span>`,
+    )
+    .replace(
+      /<span class="edgeLabel"([^>]*)><p[^>]*>(.*?)<\/p><\/span>/g,
+      `<span class="edgeLabel"$1>$2</span>`,
     )
 
   // 处理图片大小

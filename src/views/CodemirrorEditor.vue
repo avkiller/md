@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance } from 'vue'
-import { altKey, ctrlKey, shiftKey } from '@/config'
-import { useStore } from '@/stores'
+import { altKey, ctrlKey, ctrlSign, shiftKey, altSign, shiftSign} from '@/config'
+import { useDisplayStore, useStore } from '@/stores'
 import {
   checkImage,
   formatDoc,
@@ -9,6 +9,7 @@ import {
 } from '@/utils'
 import fileApi from '@/utils/file'
 import CodeMirror from 'codemirror'
+import { List } from 'lucide-vue-next'
 
 const store = useStore()
 const displayStore = useDisplayStore()
@@ -28,12 +29,16 @@ const {
   // exportEditorContent2MD,
   formatContent,
   // importMarkdownContent,
+  // importDefaultContent,
+  copyToClipboard,
+  pasteFromClipboard,
   // resetStyleConfirm,
 } = store
 
-const { 
-  // toggleShowInsertFormDialog, 
-  toggleShowUploadImgDialog } = displayStore
+const {
+  // toggleShowInsertFormDialog,
+  toggleShowUploadImgDialog,
+} = displayStore
 
 const isImgLoading = ref(false)
 const timeout = ref<NodeJS.Timeout>()
@@ -91,24 +96,24 @@ onMounted(() => {
   }, 300)
 })
 
-// 尝试定义一个copy函数
-function handleCopy() {
-  // console.log("call copy")
-  const selection = editor.value?.getSelection() as string
-  // console.log(selection)
-  try {
-    if (window.isSecureContext) {
-      navigator.clipboard.writeText(selection)
-    }
-    else {
-      // console.log("exec")
-      document.execCommand(`copy`)
-    }
-  }
-  catch (err) {
-    console.error(`failed copy`)
-  }
-}
+// // 尝试定义一个copy函数
+// function handleCopy() {
+//   // console.log("call copy")
+//   const selection = editor.value?.getSelection() as string
+//   // console.log(selection)
+//   try {
+//     if (window.isSecureContext) {
+//       navigator.clipboard.writeText(selection)
+//     }
+//     else {
+//       // console.log("exec")
+//       document.execCommand(`copy`)
+//     }
+//   }
+//   catch (err) {
+//     console.error(`failed copy`)
+//   }
+// }
 
 // 更新编辑器
 function onEditorRefresh() {
@@ -403,6 +408,8 @@ onMounted(() => {
   // mdLocalToRemote()
   checkIsMobile()
 })
+
+const isOpenHeadingSlider = ref(false)
 </script>
 
 <template>
@@ -433,34 +440,66 @@ onMounted(() => {
               />
             </ContextMenuTrigger>
             <ContextMenuContent v-if="isMobile === false" class="w-64">
-              <ContextMenuItem @click="handleCopy">
+              <ContextMenuItem inset @click="copyToClipboard()">
                 复制
+                <ContextMenuShortcut> {{ ctrlSign }} + C</ContextMenuShortcut>
               </ContextMenuItem>
+              <ContextMenuItem inset @click="pasteFromClipboard">
+                粘贴
+              <ContextMenuShortcut> {{ ctrlSign }} + V</ContextMenuShortcut>
+              </ContextMenuItem>
+              <ContextMenuItem inset @click="formatContent()">
+                格式化
+              <ContextMenuShortcut>{{ altSign }} + {{ shiftSign }} + F</ContextMenuShortcut>
+            </ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
         </div>
-        <div
-          id="preview"
-          ref="preview"
-          class="preview-wrapper flex-1 p-5"
-        >
-          <div id="output-wrapper" :class="{ output_night: !backLight }">
-            <div class="preview border-x-1 shadow-xl">
-              <section id="output" v-html="output" />
-              <div v-if="isCoping" class="loading-mask">
-                <div class="loading-mask-box">
-                  <div class="loading__img" />
-                  <span>正在生成</span>
+        <div class="relative flex-1">
+          <div
+            id="preview"
+            ref="preview"
+            class="preview-wrapper p-5"
+          >
+            <div id="output-wrapper" :class="{ output_night: !backLight }">
+              <div class="preview border-x-1 shadow-xl">
+                <section id="output" v-html="output" />
+                <div v-if="isCoping" class="loading-mask">
+                  <div class="loading-mask-box">
+                    <div class="loading__img" />
+                    <span>正在生成</span>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <BackTop target="preview" :right="40" :bottom="40" />
           </div>
-          <BackTop target="preview" :right="40" :bottom="40" />
+          <div
+            class="bg-background absolute left-0 top-0 border rounded-2 rounded-lt-none p-2 text-sm shadow"
+            @mouseenter="() => isOpenHeadingSlider = true"
+            @mouseleave="() => isOpenHeadingSlider = false"
+          >
+            <List class="size-6" />
+            <ul
+              class="overflow-auto transition-all"
+              :class="{
+                'max-h-0 w-0': !isOpenHeadingSlider,
+                'max-h-100 w-60 mt-2': isOpenHeadingSlider,
+              }"
+            >
+              <li v-for="(item, index) in store.titleList" :key="index" class="line-clamp-1 py-1 leading-6 hover:bg-gray-300 dark:hover:bg-gray-600" :style="{ paddingLeft: `${item.level - 0.5}em` }">
+                <a :href="item.url">
+                  {{ item.title }}
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
         <CssEditor class="order-2 flex-1" />
         <RightSlider class="order-2" />
       </div>
-      <footer class="h-[30px] flex select-none items-center justify-end text-[12px]">
+      <footer class="h-[30px] flex select-none items-center justify-end px-4 text-[12px]">
         字数 {{ readingTime?.words }}， 阅读大约需 {{ Math.ceil(readingTime?.minutes ?? 0) }} 分钟
       </footer>
 
