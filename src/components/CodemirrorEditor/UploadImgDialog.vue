@@ -238,7 +238,7 @@ onBeforeMount(() => {
 
 function changeImgHost() {
   localStorage.setItem(`imgHost`, imgHost.value)
-  toast.success(`已成功切换图床`)
+  toast.success(`图床已切换`)
 }
 
 function beforeImageUpload(file: File) {
@@ -264,7 +264,7 @@ function beforeImageUpload(file: File) {
 
 const dragover = ref(false)
 
-const { open, onChange } = useFileDialog({
+const { open, reset, onChange } = useFileDialog({
   accept: `image/*`,
 })
 
@@ -276,6 +276,7 @@ onChange((files) => {
   const file = files[0]
 
   beforeImageUpload(file) && emit(`uploadImage`, file)
+  reset()
 })
 
 function onDrop(e: DragEvent) {

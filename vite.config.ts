@@ -150,12 +150,12 @@ export default defineConfig({
         {
           name: `axios`,
           var: `axios`,
-          path: `https://s4.zstatic.net/ajax/libs/axios/1.7.7/axios.min.js`,
+          path: `https://s4.zstatic.net/ajax/libs/axios/1.8.4/axios.min.js`,
         },
         {
           name: `cytoscape`,
           var: `cytoscape`,
-          path: `https://s4.zstatic.net/ajax/libs/cytoscape/3.29.2/cytoscape.min.js`,
+          path: `https://s4.zstatic.net/ajax/libs/cytoscape/3.31.1/cytoscape.min.js`,
         },
         {
           name: `katex`,

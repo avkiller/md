@@ -94,8 +94,27 @@ export const useStore = defineStore(`store`, () => {
     {
       title: `内容1`,
       content: DEFAULT_CONTENT,
+      history: [
+        {
+          datetime: new Date().toLocaleString(`zh-cn`),
+          content: DEFAULT_CONTENT,
+        },
+      ],
+      createDatetime: new Date(),
+      updateDatetime: new Date()
     },
   ])
+
+  // 有新的字段变化，更新兼容
+  onBeforeMount(() => {
+    posts.value = posts.value.map((post, index) => {
+      const now = Date.now()
+      post.createDatetime ??= new Date(now + index)
+      post.updateDatetime ??= new Date(now + index)
+      return post
+    })
+  })
+
   // 当前内容
   const currentPostIndex = useStorage(addPrefix(`current_post_index`), 0)
 
@@ -104,6 +123,14 @@ export const useStore = defineStore(`store`, () => {
       = posts.value.push({
         title,
         content: `# ${title}`,
+        history: [
+          {
+            datetime: new Date().toLocaleString(`zh-cn`),
+            content: `# ${title}`,
+          },
+        ],
+        createDatetime: new Date(),
+        updateDatetime: new Date()
       }) - 1
   }
 
@@ -274,8 +301,8 @@ export const useStore = defineStore(`store`, () => {
       item.setAttribute(`id`, `${i}`)
       titleList.value.push({
         url: `#${i}`,
-        title: `${item.innerText}`,
-        level: Number(item.tagName.slice(1))
+        title: `${item.textContent}`,
+        level: Number(item.tagName.slice(1)),
       })
       i++
     }
