@@ -16,10 +16,10 @@ const displayStore = useDisplayStore()
 const { isDark, output, editor, readingTime } = storeToRefs(store)
 
 // 检测是否为移动设备
-function checkIsMobile() {
-  const userAgent = navigator.userAgent
-  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
-}
+// function checkIsMobile() {
+//   const userAgent = navigator.userAgent
+//   isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
+// }
 
 const {
   editorRefresh,
@@ -47,7 +47,9 @@ const showEditor = ref(true)
 
 // 判断是否为移动端（初始 + resize 响应）
 function handleResize() {
-  isMobile.value = window.innerWidth <= 768
+  const userAgent = navigator.userAgent
+  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
+  // isMobile.value = window.innerWidth <= 768
 }
 
 onMounted(() => {
@@ -231,65 +233,48 @@ function initEditor() {
   if (!editorDom.value) {
     editorDom.value = store.posts[store.currentPostIndex].content
   }
-  editor.value = CodeMirror.fromTextArea(editorDom, {
-    mode: `text/x-markdown`,
-    theme: isDark.value ? `darcula` : `xq-light`,
-    lineNumbers: false,
-    lineWrapping: true,
-    styleActiveLine: true,
-    autoCloseBrackets: true,
-    extraKeys: {
-      [`${shiftKey}-${altKey}-F`]: function autoFormat(editor) {
-        formatDoc(editor.getValue()).then((doc) => {
-          editor.setValue(doc)
-        })
-      },
-      [`${ctrlKey}-B`]: function bold(editor) {
-        const selected = editor.getSelection()
-        editor.replaceSelection(`**${selected}**`)
-      },
-      [`${ctrlKey}-I`]: function italic(editor) {
-        const selected = editor.getSelection()
-        editor.replaceSelection(`*${selected}*`)
-      },
-      [`${ctrlKey}-D`]: function del(editor) {
-        const selected = editor.getSelection()
-        editor.replaceSelection(`~~${selected}~~`)
-      },
-      [`${ctrlKey}-K`]: function italic(editor) {
-        const selected = editor.getSelection()
-        editor.replaceSelection(`[${selected}]()`)
-      },
-      [`${ctrlKey}-E`]: function code(editor) {
-        const selected = editor.getSelection()
-        editor.replaceSelection(`\`${selected}\``)
-      },
 
-      [`${ctrlKey}-P`]: function code_pre(editor) {
-        const selected = editor.getSelection()
-        editor.replaceSelection(`\`\`\`\n${selected}\n\`\`\``)
+  nextTick(() => {
+    editor.value = CodeMirror.fromTextArea(editorDom, {
+      mode: `text/x-markdown`,
+      theme: isDark.value ? `darcula` : `xq-light`,
+      lineNumbers: false,
+      lineWrapping: true,
+      styleActiveLine: true,
+      autoCloseBrackets: true,
+      extraKeys: {
+        [`${shiftKey}-${altKey}-F`]: function autoFormat(editor) {
+          formatDoc(editor.getValue()).then((doc) => {
+            editor.setValue(doc)
+          })
+        },
+        [`${ctrlKey}-B`]: function bold(editor) {
+          const selected = editor.getSelection()
+          editor.replaceSelection(`**${selected}**`)
+        },
+        [`${ctrlKey}-I`]: function italic(editor) {
+          const selected = editor.getSelection()
+          editor.replaceSelection(`*${selected}*`)
+        },
+        [`${ctrlKey}-D`]: function del(editor) {
+          const selected = editor.getSelection()
+          editor.replaceSelection(`~~${selected}~~`)
+        },
+        [`${ctrlKey}-K`]: function italic(editor) {
+          const selected = editor.getSelection()
+          editor.replaceSelection(`[${selected}]()`)
+        },
+        [`${ctrlKey}-E`]: function code(editor) {
+          const selected = editor.getSelection()
+          editor.replaceSelection(`\`${selected}\``)
+        },
+        // 预备弃用
+        [`${ctrlKey}-L`]: function code(editor) {
+          const selected = editor.getSelection()
+          editor.replaceSelection(`\`${selected}\``)
+        },
       },
-      [`${ctrlKey}-C`]: function copy(editor) {
-        const selected = editor.getSelection()
-        // console.log(selected);
-        // console.log(window.isSecureContext);
-        if (selected) {
-          try {
-            if (window.isSecureContext) {
-              navigator.clipboard.writeText(selected)
-            }
-            else {
-              document.execCommand(`copy`)
-            }
-          }
-          catch (err) {
-            console.error(`failed copy`)
-          }
-        }
-      },
-    },
-
-  })
+    })
 
   editor.value.on(`change`, (e) => {
     clearTimeout(changeTimer.value)
@@ -299,8 +284,31 @@ function initEditor() {
         store.posts[store.currentPostIndex].updateDatetime = new Date()
       }
 
-      store.posts[store.currentPostIndex].content = e.getValue()
-    }, 300)
+        store.posts[store.currentPostIndex].content = e.getValue()
+      }, 300)
+    })
+
+    // 粘贴上传图片并插入
+    editor.value.on(`paste`, (_cm, e) => {
+      if (!(e.clipboardData && e.clipboardData.items) || isImgLoading.value) {
+        return
+      }
+      for (let i = 0, len = e.clipboardData.items.length; i < len; ++i) {
+        const item = e.clipboardData.items[i]
+        if (item.kind === `file`) {
+          // 校验图床参数
+          const pasteFile = item.getAsFile()!
+          const isValid = beforeUpload(pasteFile)
+          if (!isValid) {
+            continue
+          }
+          uploadImage(pasteFile)
+          e.preventDefault()
+        }
+      }
+    })
+    onEditorRefresh()
+    // mdLocalToRemote()
   })
 
   // 定时，30 秒记录一次
@@ -318,26 +326,6 @@ function initEditor() {
       }
     }
   }, 30 * 1000)
-
-  // 粘贴上传图片并插入
-  editor.value.on(`paste`, (_cm, e) => {
-    if (!(e.clipboardData && e.clipboardData.items) || isImgLoading.value) {
-      return
-    }
-    for (let i = 0, len = e.clipboardData.items.length; i < len; ++i) {
-      const item = e.clipboardData.items[i]
-      if (item.kind === `file`) {
-        // 校验图床参数
-        const pasteFile = item.getAsFile()!
-        const isValid = beforeUpload(pasteFile)
-        if (!isValid) {
-          continue
-        }
-        uploadImage(pasteFile)
-        e.preventDefault()
-      }
-    }
-  })
 }
 
 const container = ref(null)
@@ -451,9 +439,6 @@ const codeMirrorWrapper = ref<ComponentPublicInstance<HTMLDivElement> | null>(nu
 
 onMounted(() => {
   initEditor()
-  onEditorRefresh()
-  // mdLocalToRemote()
-  checkIsMobile()
 })
 
 const isOpenHeadingSlider = ref(false)
@@ -461,48 +446,43 @@ const isOpenHeadingSlider = ref(false)
 
 <template>
   <div ref="container" class="container flex flex-col">
-    <EditorHeader
-      @add-format="addFormat"
-      @format-content="formatContent"
-      @start-copy="startCopy"
-      @end-copy="endCopy"
-    />
+    <EditorHeader @add-format="addFormat" @format-content="formatContent" @start-copy="startCopy" @end-copy="endCopy" />
     <main class="container-main flex flex-1 flex-col">
       <div class="container-main-section border-radius-10 relative flex flex-1 overflow-hidden border-1">
         <PostSlider />
         <div
+          v-show="!isMobile || (isMobile && showEditor)"
           ref="codeMirrorWrapper"
-          class="codeMirror-wrapper flex-1"
+          class="codeMirror-wrapper relative flex-1"
           :class="{
             'order-1 border-l': !store.isEditOnLeft,
             'border-r': store.isEditOnLeft,
           }"
         >
+          <AIFixedBtn :is-mobile="isMobile" :show-editor="showEditor" />
           <ContextMenu>
             <ContextMenuTrigger>
-              <textarea
-                id="editor"
-                type="textarea"
-                placeholder="Your markdown text here."
-              />
+              <textarea id="editor" type="textarea" placeholder="Your markdown text here." />
             </ContextMenuTrigger>
             <ContextMenuContent v-if="isMobile === false" class="w-64">
+              <ContextMenuItem inset @click="dowloadAsCardImage()">
+                导出 .png
+              </ContextMenuItem>
+              <ContextMenuSeparator />
               <ContextMenuItem inset @click="copyToClipboard()">
                 复制
                 <ContextMenuShortcut> {{ ctrlSign }} + C</ContextMenuShortcut>
               </ContextMenuItem>
               <ContextMenuItem inset @click="pasteFromClipboard">
                 粘贴
-              <ContextMenuShortcut> {{ ctrlSign }} + V</ContextMenuShortcut>
+                <ContextMenuShortcut> {{ ctrlSign }} + V</ContextMenuShortcut>
               </ContextMenuItem>
               <ContextMenuItem inset @click="formatContent()">
                 格式化
-              <ContextMenuShortcut>{{ altSign }} + {{ shiftSign }} + F</ContextMenuShortcut>
+                <ContextMenuShortcut>{{ altSign }} + {{ shiftSign }} + F</ContextMenuShortcut>
               </ContextMenuItem>
-              <ContextMenuItem inset @click="dowloadAsCardImage()">
-                导出 .png
-              </ContextMenuItem>
-              <ContextMenuSeparator />
+             
+             
             </ContextMenuContent>
           </ContextMenu>
         </div>
