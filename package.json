@@ -1,7 +1,7 @@
 {
   "name": "md",
   "type": "module",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": false,
   "scripts": {
     "start": "npm run dev",
@@ -13,7 +13,7 @@
     "build:cli": "npm run build && npx shx rm -rf md-cli/dist && npx shx rm -rf dist/**/*.map && npx shx cp -r dist md-cli/ && cd md-cli && npm pack",
     "build:analyze": "cross-env ANALYZE=true vite build",
     "preview": "npm run build && vite preview",
-    "preview:pages": "npm run build:h5-netlify && wrangler pages dev ./dist",
+    "preview:pages": "cross-env CF_PAGES=1 npm run build:h5-netlify && wrangler pages dev ./dist",
     "release:cli": "node ./scripts/release.js",
     "lint": "eslint . --fix",
     "type-check": "vue-tsc --build --force",
@@ -39,6 +39,7 @@
     "form-data": "4.0.1",
     "front-matter": "^4.0.2",
     "highlight.js": "^11.11.1",
+    "html-to-image": "^1.11.13",
     "juice": "^11.0.0",
     "lucide-vue-next": "^0.473.0",
     "marked": "^15.0.6",

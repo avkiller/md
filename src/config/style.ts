@@ -103,7 +103,19 @@ export const colorOptions: IConfigOption[] = [
     desc: `浪漫甜美`,
   },
 ]
-const codeBlockUrlPrefix = `https://s4.zstatic.net/ajax/libs/highlight.js/11.10.0/styles/`
+export const widthOptions: IConfigOption[] = [
+  {
+    label: `移动端`,
+    value: `w-[375px]`,
+    desc: `固定`,
+  },
+  {
+    label: `电脑端`,
+    value: `w-full`,
+    desc: `适应`,
+  },
+]
+const codeBlockUrlPrefix = `https://s4.zstatic.net/ajax/libs/highlight.js/11.11.1/styles/`
 const codeBlockThemeList = [
   `1c-light.min.css`,
   `a11y-dark.min.css`,

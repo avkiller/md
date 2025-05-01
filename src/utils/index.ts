@@ -76,8 +76,9 @@ export function customCssWithTemplate(jsonString: Partial<Record<Block | Inline,
     `image`,
     `ul`,
     `ol`,
+    `block_katex`,
   ]
-  const inlineKeys: Inline[] = [`strong`, `codespan`, `link`, `wx_link`, `listitem`]
+  const inlineKeys: Inline[] = [`listitem`, `codespan`, `link`, `wx_link`, `strong`, `table`, `thead`, `td`, `footnote`, `figcaption`, `em`, `inline_katex`]
 
   mergeProperties(newTheme.block, jsonString, blockKeys)
   mergeProperties(newTheme.inline, jsonString, inlineKeys)
@@ -168,18 +169,40 @@ export async function formatDoc(content: string, type: `markdown` | `css` = `mar
   })
 }
 
+export function sanitizeTitle(title: string) {
+  const MAX_FILENAME_LENGTH = 100
+
+  // Windows 禁止字符，包含所有平台非法字符合集
+  const INVALID_CHARS = /[\\/:*?"<>|]/g
+
+  if (!INVALID_CHARS.test(title) && title.length <= MAX_FILENAME_LENGTH) {
+    return title.trim() || `untitled`
+  }
+
+  const replaced = title.replace(INVALID_CHARS, `_`).trim()
+  const safe = replaced.length > MAX_FILENAME_LENGTH
+    ? replaced.slice(0, MAX_FILENAME_LENGTH)
+    : replaced
+
+  return safe || `untitled`
+}
+
 /**
  * 导出原始 Markdown 文档
  * @param {string} doc - 文档内容
+ * @param {string} title - 文档标题
  */
-export function downloadMD(doc: string) {
+export function downloadMD(doc: string, title: string = `untitled`) {
+  const safeTitle = sanitizeTitle(title)
   const downLink = document.createElement(`a`)
 
-  downLink.download = `content.md`
+  downLink.download = `${safeTitle}.md`
   downLink.style.display = `none`
-  const blob = new Blob([doc])
 
-  downLink.href = URL.createObjectURL(blob)
+  const blob = new Blob([doc], { type: `text/markdown;charset=utf-8` })
+  const objectUrl = URL.createObjectURL(blob)
+  downLink.href = objectUrl
+
   document.body.appendChild(downLink)
   downLink.click()
   document.body.removeChild(downLink)
@@ -188,7 +211,7 @@ export function downloadMD(doc: string) {
 /**
  * 导出 HTML 生成内容
  */
-export function exportHTML(primaryColor: string) {
+export function exportHTML(primaryColor: string, title: string = `untitled`) {
   const element = document.querySelector(`#output`)!
   setStyles(element)
   const htmlStr = element.innerHTML
@@ -197,7 +220,7 @@ export function exportHTML(primaryColor: string) {
 
   const downLink = document.createElement(`a`)
 
-  downLink.download = `content.html`
+  downLink.download = `${title}.html`
   downLink.style.display = `none`
   const blob = new Blob([
     `<html><head><meta charset="utf-8" /></head><body><div style="width: 750px; margin: auto;">${htmlStr}</div></body></html>`,

@@ -9,6 +9,9 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AboutDialog: typeof import('./src/components/CodemirrorEditor/EditorHeader/AboutDialog.vue')['default']
+    AIAssistantPanel: typeof import('./src/components/ai/AIAssistantPanel.vue')['default']
+    AIConfig: typeof import('./src/components/ai/AIConfig.vue')['default']
+    AIFixedBtn: typeof import('./src/components/ai/AIFixedBtn.vue')['default']
     Alert: typeof import('./src/components/ui/alert/Alert.vue')['default']
     AlertDescription: typeof import('./src/components/ui/alert/AlertDescription.vue')['default']
     AlertDialog: typeof import('./src/components/ui/alert-dialog/AlertDialog.vue')['default']

@@ -16,6 +16,7 @@ const {
   resetContent,
   reloadDefaultContent,
   clearLocalStorage,
+  dowloadAsCardImage,
 } = store
 </script>
 
@@ -48,6 +49,10 @@ const {
       <MenubarItem @click="exportEditorContent2HTML()">
         <FileCode class="mr-2 size-4" />
         导出 .html
+      </MenubarItem>
+      <MenubarItem @click="dowloadAsCardImage()">
+        <Download class="mr-2 size-4" />
+        导出 .png
       </MenubarItem>
       <MenubarSeparator />
       <MenubarCheckboxItem v-model:checked="isDark">
