@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useStore } from '@/stores'
-import { Download, FileCode, Upload, RefreshCw, Eraser, } from 'lucide-vue-next'
+import { Download, FileCode, Upload, RefreshCw, Eraser, FileCog, } from 'lucide-vue-next'
 
 const store = useStore()
 
@@ -71,4 +71,7 @@ const editorStateDialogVisible = ref(false)
       </MenubarCheckboxItem>
     </MenubarContent>
   </MenubarMenu>
+
+  <!-- 各弹窗挂载 -->
+  <EditorStateDialog :visible="editorStateDialogVisible" @close="editorStateDialogVisible = false" />
 </template>
