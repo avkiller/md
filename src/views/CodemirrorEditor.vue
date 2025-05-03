@@ -42,26 +42,12 @@ const {
 const isImgLoading = ref(false)
 const timeout = ref<NodeJS.Timeout>()
 
-const isMobile = ref(false)
 const showEditor = ref(true)
 
-// 判断是否为移动端（初始 + resize 响应）
-function handleResize() {
-  const userAgent = navigator.userAgent
-  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
-  // isMobile.value = window.innerWidth <= 768
-}
-
 onMounted(() => {
-  handleResize()
-  window.addEventListener(`resize`, handleResize)
   setTimeout(() => {
     leftAndRightScroll()
   }, 300)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener(`resize`, handleResize)
 })
 
 // 切换编辑/预览视图（仅限移动端）
@@ -115,31 +101,6 @@ function leftAndRightScroll() {
   (preview.value!).addEventListener(`scroll`, previewScrollCB, false)
   editor.value!.on(`scroll`, editorScrollCB)
 }
-
-onMounted(() => {
-  setTimeout(() => {
-    leftAndRightScroll()
-  }, 300)
-})
-
-// // 尝试定义一个copy函数
-// function handleCopy() {
-//   // console.log("call copy")
-//   const selection = editor.value?.getSelection() as string
-//   // console.log(selection)
-//   try {
-//     if (window.isSecureContext) {
-//       navigator.clipboard.writeText(selection)
-//     }
-//     else {
-//       // console.log("exec")
-//       document.execCommand(`copy`)
-//     }
-//   }
-//   catch (err) {
-//     console.error(`failed copy`)
-//   }
-// }
 
 // 更新编辑器
 function onEditorRefresh() {
@@ -276,13 +237,13 @@ function initEditor() {
       },
     })
 
-  editor.value.on(`change`, (e) => {
-    clearTimeout(changeTimer.value)
-    changeTimer.value = setTimeout(() => {
-      onEditorRefresh()
-      if (e.getValue() !== store.posts[store.currentPostIndex].content) {
-        store.posts[store.currentPostIndex].updateDatetime = new Date()
-      }
+    editor.value.on(`change`, (e) => {
+      clearTimeout(changeTimer.value)
+      changeTimer.value = setTimeout(() => {
+        onEditorRefresh()
+        if (e.getValue() !== store.posts[store.currentPostIndex].content) {
+          store.posts[store.currentPostIndex].updateDatetime = new Date()
+        }
 
         store.posts[store.currentPostIndex].content = e.getValue()
       }, 300)
@@ -451,7 +412,7 @@ const isOpenHeadingSlider = ref(false)
       <div class="container-main-section border-radius-10 relative flex flex-1 overflow-hidden border-1">
         <PostSlider />
         <div
-          v-show="!isMobile || (isMobile && showEditor)"
+          v-show="!store.isMobile || (store.isMobile && showEditor)"
           ref="codeMirrorWrapper"
           class="codeMirror-wrapper relative flex-1"
           :class="{
@@ -459,12 +420,12 @@ const isOpenHeadingSlider = ref(false)
             'border-r': store.isEditOnLeft,
           }"
         >
-          <AIFixedBtn :is-mobile="isMobile" :show-editor="showEditor" />
+          <AIFixedBtn :is-mobile="store.isMobile" :show-editor="showEditor" />
           <ContextMenu>
             <ContextMenuTrigger>
               <textarea id="editor" type="textarea" placeholder="Your markdown text here." />
             </ContextMenuTrigger>
-            <ContextMenuContent v-if="isMobile === false" class="w-64">
+            <ContextMenuContent class="w-64">
               <ContextMenuItem inset @click="dowloadAsCardImage()">
                 导出 .png
               </ContextMenuItem>
@@ -481,13 +442,11 @@ const isOpenHeadingSlider = ref(false)
                 格式化
                 <ContextMenuShortcut>{{ altSign }} + {{ shiftSign }} + F</ContextMenuShortcut>
               </ContextMenuItem>
-             
-             
             </ContextMenuContent>
           </ContextMenu>
         </div>
         <div
-          v-show="!isMobile || (isMobile && !showEditor)" class="relative flex-1 overflow-x-hidden transition-width"
+          v-show="!store.isMobile || (store.isMobile && !showEditor)" class="relative flex-1 overflow-x-hidden transition-width"
           :class="[store.isOpenRightSlider ? 'w-0' : 'w-100']"
         >
           <div id="preview" ref="preview" class="preview-wrapper w-full p-5">
@@ -505,7 +464,7 @@ const isOpenHeadingSlider = ref(false)
                 </div>
               </div>
             </div>
-            <BackTop target="preview" :right="isMobile ? 24 : 20" :bottom="isMobile ? 90 : 20" />
+            <BackTop target="preview" :right="store.isMobile ? 24 : 20" :bottom="store.isMobile ? 90 : 20" />
           </div>
           <div
             class="bg-background absolute left-0 top-0 border rounded-2 rounded-lt-none p-2 text-sm shadow"
@@ -538,7 +497,7 @@ const isOpenHeadingSlider = ref(false)
       </footer>
 
       <button
-        v-if="isMobile"
+        v-if="store.isMobile"
         class="bg-primary fixed bottom-16 right-6 z-50 flex items-center justify-center rounded-full p-3 text-white shadow-lg transition active:scale-95 hover:scale-105 dark:bg-gray-700 dark:text-white dark:ring-2 dark:ring-white/30"
         aria-label="切换编辑/预览" @click="toggleView"
       >
@@ -547,26 +506,26 @@ const isOpenHeadingSlider = ref(false)
 
       <UploadImgDialog @upload-image="uploadImage" />
 
-    <InsertFormDialog />
+      <InsertFormDialog />
 
-    <RunLoading />
+      <RunLoading />
 
-    <AlertDialog v-model:open="store.isOpenConfirmDialog">
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>提示</AlertDialogTitle>
-          <AlertDialogDescription>
-            此操作将丢失本地自定义样式，是否继续？
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>取消</AlertDialogCancel>
-          <AlertDialogAction @click="store.resetStyle()">
-            确认
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      <AlertDialog v-model:open="store.isOpenConfirmDialog">
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>提示</AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作将丢失本地自定义样式，是否继续？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction @click="store.resetStyle()">
+              确认
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   </div>
 </template>

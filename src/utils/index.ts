@@ -206,6 +206,9 @@ export function downloadMD(doc: string, title: string = `untitled`) {
   document.body.appendChild(downLink)
   downLink.click()
   document.body.removeChild(downLink)
+
+  // 释放 URL 对象，避免内存泄漏
+  URL.revokeObjectURL(objectUrl)
 }
 
 /**

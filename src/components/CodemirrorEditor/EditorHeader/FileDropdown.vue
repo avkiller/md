@@ -18,6 +18,8 @@ const {
   clearLocalStorage,
   dowloadAsCardImage,
 } = store
+
+const editorStateDialogVisible = ref(false)
 </script>
 
 <template>
@@ -53,6 +55,11 @@ const {
       <MenubarItem @click="dowloadAsCardImage()">
         <Download class="mr-2 size-4" />
         导出 .png
+      </MenubarItem>
+      <MenubarSeparator />
+      <MenubarItem @click="editorStateDialogVisible = true">
+        <FileCog class="mr-2 size-4" />
+        导入/导出项目配置
       </MenubarItem>
       <MenubarSeparator />
       <MenubarCheckboxItem v-model:checked="isDark">

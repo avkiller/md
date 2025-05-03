@@ -118,6 +118,24 @@ export const useStore = defineStore(`store`, () => {
   // currentPostId 先存空串
   const currentPostId = useStorage(addPrefix(`current_post_id`), ``)
 
+  // 是否为移动端
+  const isMobile = useStorage(`isMobile`, false)
+
+  function handleResize() {
+    const userAgent = navigator.userAgent
+    isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
+    // isMobile.value = window.innerWidth <= 768
+  }
+
+  onMounted(() => {
+    handleResize()
+    window.addEventListener(`resize`, handleResize)
+  })
+
+  onBeforeUnmount(() => {
+    window.removeEventListener(`resize`, handleResize)
+  })
+
   // 在补齐 id 后，若 currentPostId 无效 ➜ 自动指向第一篇
   onBeforeMount(() => {
     posts.value = posts.value.map((post, index) => {
@@ -592,6 +610,9 @@ export const useStore = defineStore(`store`, () => {
       backgroundColor: isDark.value ? `` : `#fff`,
       skipFonts: true,
       pixelRatio: Math.max(window.devicePixelRatio || 1, 2),
+      style: {
+        margin: `0`,
+      },
     }).then((url) => {
       const a = document.createElement(`a`)
       a.download = sanitizeTitle(posts.value[currentPostIndex.value].title)
@@ -738,6 +759,7 @@ export const useStore = defineStore(`store`, () => {
     isOpenPostSlider,
     isOpenRightSlider,
     titleList,
+    isMobile,
     // add by fireworld
     resetContent,
     reloadDefaultContent,
@@ -747,7 +769,7 @@ export const useStore = defineStore(`store`, () => {
 
 export const useDisplayStore = defineStore(`display`, () => {
   // 是否展示 CSS 编辑器
-  const isShowCssEditor = ref(false)
+  const isShowCssEditor = useStorage(`isShowCssEditor`, false)
   const toggleShowCssEditor = useToggle(isShowCssEditor)
 
   // 是否展示插入表格对话框
@@ -776,3 +798,39 @@ export const useDisplayStore = defineStore(`display`, () => {
     toggleAIDialog,
   }
 })
+
+// 获取所有状态的方法
+export function getAllStoreStates() {
+  const store = useStore()
+  const displayStore = useDisplayStore()
+
+  return {
+    // 主 store 的状态
+    isDark: store.isDark,
+    isEditOnLeft: store.isEditOnLeft,
+    isMacCodeBlock: store.isMacCodeBlock,
+    isCiteStatus: store.isCiteStatus,
+    isCountStatus: store.isCountStatus,
+    isUseIndent: store.isUseIndent,
+    isOpenRightSlider: store.isOpenRightSlider,
+    isOpenPostSlider: store.isOpenPostSlider,
+    theme: store.theme,
+    fontFamily: store.fontFamily,
+    fontSize: store.fontSize,
+    primaryColor: store.primaryColor,
+    codeBlockTheme: store.codeBlockTheme,
+    legend: store.legend,
+    currentPostId: store.currentPostId,
+    currentPostIndex: store.currentPostIndex,
+    posts: store.posts,
+    cssContentConfig: store.cssContentConfig,
+    titleList: store.titleList,
+    readingTime: store.readingTime,
+
+    // displayStore 的状态
+    isShowCssEditor: displayStore.isShowCssEditor,
+    isShowInsertFormDialog: displayStore.isShowInsertFormDialog,
+    isShowUploadImgDialog: displayStore.isShowUploadImgDialog,
+    aiDialogVisible: displayStore.aiDialogVisible,
+  }
+}

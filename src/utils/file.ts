@@ -345,11 +345,16 @@ async function getMpToken(appID: string, appsecret: string, proxyOrigin: string)
   }
   return ``
 }
+// Cloudflare Pages 环境
+const isCfPage = import.meta.env.CF_PAGES === `1`
 async function mpFileUpload(file: File) {
-  const { appID, appsecret, proxyOrigin } = JSON.parse(
+  let { appID, appsecret, proxyOrigin } = JSON.parse(
     localStorage.getItem(`mpConfig`)!,
   )
-
+  // 未填写代理域名且是cfpages环境
+  if (!proxyOrigin && isCfPage) {
+    proxyOrigin = window.location.origin
+  }
   const access_token = await getMpToken(appID, appsecret, proxyOrigin)
   if (!access_token) {
     throw new Error(`获取 access_token 失败`)
@@ -364,8 +369,13 @@ async function mpFileUpload(file: File) {
   }
 
   let url = `https://api.weixin.qq.com/cgi-bin/material/add_material?access_token=${access_token}&type=image`
+  const fileSizeInMB = file.size / (1024 * 1024)
+  const fileType = file.type.toLowerCase()
+  if (fileSizeInMB < 1 && (fileType === `image/jpeg` || fileType === `image/png`)) {
+    url = `https://api.weixin.qq.com/cgi-bin/media/uploadimg?access_token=${access_token}`
+  }
   if (proxyOrigin) {
-    url = `${proxyOrigin}/cgi-bin/material/add_material?access_token=${access_token}&type=image`
+    url = url.replace(`https://api.weixin.qq.com`, proxyOrigin)
   }
 
   const res = await fetch<any, { url: string }>(url, requestOptions)

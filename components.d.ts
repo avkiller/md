@@ -68,6 +68,7 @@ declare module 'vue' {
     DropdownMenuTrigger: typeof import('./src/components/ui/dropdown-menu/DropdownMenuTrigger.vue')['default']
     EditDropdown: typeof import('./src/components/CodemirrorEditor/EditorHeader/EditDropdown.vue')['default']
     EditorHeader: typeof import('./src/components/CodemirrorEditor/EditorHeader/index.vue')['default']
+    EditorStateDialog: typeof import('./src/components/CodemirrorEditor/EditorStateDialog.vue')['default']
     FileDropdown: typeof import('./src/components/CodemirrorEditor/EditorHeader/FileDropdown.vue')['default']
     FormItem: typeof import('./src/components/FormItem.vue')['default']
     HelpDropdown: typeof import('./src/components/CodemirrorEditor/EditorHeader/HelpDropdown.vue')['default']
