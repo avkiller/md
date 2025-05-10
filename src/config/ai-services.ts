@@ -1,4 +1,4 @@
-export const DEFAULT_SERVICE_ENDPOINT = `https://proxy-ai.doocs.org/v1`
+import { DEFAULT_SERVICE_ENDPOINT } from '@/constants/AIConfig'
 
 export interface ServiceOption {
   value: string
@@ -13,7 +13,6 @@ export const serviceOptions: ServiceOption[] = [
     label: `默认服务（无需配置 sk）`,
     endpoint: DEFAULT_SERVICE_ENDPOINT,
     models: [
-      `Qwen/Qwen3-8B`,
       `Qwen/Qwen2.5-7B-Instruct`,
       `Qwen/Qwen2.5-Coder-7B-Instruct`,
       `Qwen/Qwen2-7B-Instruct`,
@@ -315,3 +314,5 @@ export const serviceOptions: ServiceOption[] = [
     models: [],
   },
 ]
+
+export const DEFAULT_SERVICE_MODEL = serviceOptions[0].models[0]

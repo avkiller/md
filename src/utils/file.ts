@@ -2,7 +2,7 @@ import { giteeConfig, githubConfig } from '@/config'
 import fetch from '@/utils/fetch'
 // import * as tokenTools from '@/utils/tokenTools'
 
-//import { base64encode, safe64, utf16to8 } from '@/utils/tokenTools'
+// import { base64encode, safe64, utf16to8 } from '@/utils/tokenTools'
 // import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 // import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 // import Buffer from 'buffer-from'
@@ -81,7 +81,7 @@ async function ghFileUpload(content: string, filename: string) {
 
   const { username, repo, branch, accessToken } = getConfig(
     useDefault,
-    `github`
+    `github`,
   )
   const dir = getDir()
   const url = `https://api.github.com/repos/${username}/${repo}/contents/${dir}/`
@@ -384,7 +384,7 @@ async function mpFileUpload(file: File) {
     throw new Error(`上传失败，未获取到URL`)
   }
 
-  let imageUrl = res.url
+  const imageUrl = res.url
   // if (proxyOrigin && window.location.href.startsWith(`http`)) {
   //   imageUrl = `https://wsrv.nl?url=${encodeURIComponent(imageUrl)}`
   // }

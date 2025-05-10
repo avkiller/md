@@ -63,6 +63,10 @@ export const useStore = defineStore(`store`, () => {
   const isCiteStatus = useStorage(`isCiteStatus`, false)
   const toggleCiteStatus = useToggle(isCiteStatus)
 
+  // 是否开启 AI 工具箱
+  const showAIToolbox = useStorage(`showAIToolbox`, true)
+  const toggleAIToolbox = useToggle(showAIToolbox)
+
   // 是否统计字数和阅读时间
   const isCountStatus = useStorage(`isCountStatus`, false)
   const toggleCountStatus = useToggle(isCountStatus)
@@ -193,7 +197,6 @@ export const useStore = defineStore(`store`, () => {
       post.title = title
   }
 
-     
   const delPost = (id: string) => {
     const idx = findIndexById(id)
     if (idx === -1)
@@ -201,8 +204,8 @@ export const useStore = defineStore(`store`, () => {
     posts.value.splice(idx, 1)
     currentPostId.value = posts.value[Math.min(idx, posts.value.length - 1)]?.id ?? ``
   }
- 
-   // 清空文档
+
+  // 清空文档
   const resetContent = () => {
     toRaw(editor.value!).setValue(``)
   }
@@ -339,7 +342,7 @@ export const useStore = defineStore(`store`, () => {
   }[]>([])
 
   // 更新编辑器
-  const editorRefresh = async() => {
+  const editorRefresh = async () => {
     codeThemeChange()
     renderer.reset({
       citeStatus: isCiteStatus.value,
@@ -597,6 +600,10 @@ export const useStore = defineStore(`store`, () => {
     toggleUseIndent()
   })
 
+  const aiToolboxChanged = withAfterRefresh(() => {
+    toggleAIToolbox()
+  })
+
   // 导出编辑器内容为 HTML，并且下载到本地
   const exportEditorContent2HTML = () => {
     exportHTML(primaryColor.value, posts.value[currentPostIndex.value].title)
@@ -605,7 +612,7 @@ export const useStore = defineStore(`store`, () => {
 
   // 下载卡片
   const dowloadAsCardImage = () => {
-    const el = document.querySelector(` #output-wrapper>.preview`)! as HTMLElement
+    const el = document.querySelector(`#output-wrapper>.preview`)! as HTMLElement
     toPng(el, {
       backgroundColor: isDark.value ? `` : `#fff`,
       skipFonts: true,
@@ -699,6 +706,8 @@ export const useStore = defineStore(`store`, () => {
     isMacCodeBlock,
     isCiteStatus,
     citeStatusChanged,
+    showAIToolbox,
+    aiToolboxChanged,
     isUseIndent,
     useIndentChanged,
 
@@ -810,6 +819,7 @@ export function getAllStoreStates() {
     isEditOnLeft: store.isEditOnLeft,
     isMacCodeBlock: store.isMacCodeBlock,
     isCiteStatus: store.isCiteStatus,
+    showAIToolbox: store.showAIToolbox,
     isCountStatus: store.isCountStatus,
     isUseIndent: store.isUseIndent,
     isOpenRightSlider: store.isOpenRightSlider,

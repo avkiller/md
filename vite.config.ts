@@ -7,11 +7,10 @@ import UnoCSS from 'unocss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig } from 'vite'
+import cdn from 'vite-plugin-cdn-import'
 // import { Plugin as importToCDN } from 'vite-plugin-cdn-import'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import vueDevTools from 'vite-plugin-vue-devtools'
-import externalGlobals from "rollup-plugin-external-globals";
-import cdn from 'vite-plugin-cdn-import'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -44,7 +43,7 @@ export default defineConfig({
             // `marked`,
             // `parse5`,
             // `entities`,
-            //`front-matte`,
+            // `front-matte`,
             // `htmlparser2`,
             // `cheerio`,
             // `juice`,
@@ -111,7 +110,7 @@ export default defineConfig({
   plugins: [
     vue(),
     cdn({
-      // generateScriptTag: (name, url) => ({ 
+      // generateScriptTag: (name, url) => ({
       //   attrs:{
       //     defer: true
       //   }

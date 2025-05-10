@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useStore } from '@/stores'
-import { Download, FileCode, Upload, RefreshCw, Eraser, FileCog, } from 'lucide-vue-next'
+import { Download, Eraser, FileCode, FileCog, RefreshCw, Upload } from 'lucide-vue-next'
 
 const store = useStore()
 
@@ -31,15 +31,15 @@ const editorStateDialogVisible = ref(false)
       <MenubarItem @click="clearLocalStorage()">
         <RefreshCw class="mr-2 size-4" />
         清空本地缓存
-      </MenubarItem> 
+      </MenubarItem>
       <MenubarItem @click="resetContent()">
         <Eraser class="mr-2 size-4" />
         清空编辑区
-      </MenubarItem> 
+      </MenubarItem>
       <MenubarItem @click="reloadDefaultContent()">
         <RefreshCw class="mr-2 size-4" />
         重新加载默认MD
-      </MenubarItem>  
+      </MenubarItem>
       <MenubarItem @click="importMarkdownContent()">
         <Upload class="mr-2 size-4" />
         导入 .md

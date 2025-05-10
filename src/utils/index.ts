@@ -383,7 +383,7 @@ export function solveWeChatImage() {
 }
 
 export async function mergeCss(html: string): Promise<string> {
-  const juice = await import(`juice`);
+  const juice = await import(`juice`)
   return juice.default(html, {
     inlinePseudoElements: true,
     preserveImportant: true,

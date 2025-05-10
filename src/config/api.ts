@@ -1,6 +1,6 @@
 export const githubConfig = {
   username: `avkiller`,
-  repoList: ["imgs"],
+  repoList: [`imgs`],
   branch: `main`,
   accessTokenList: [
     `github token api`,

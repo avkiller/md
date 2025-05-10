@@ -3,7 +3,7 @@ import type { PropertiesHyphen } from 'csstype'
 import type { Renderer, RendererObject, Tokens } from 'marked'
 import type { ReadTimeResults } from 'reading-time'
 import { cloneDeep, toMerged } from 'es-toolkit'
-//import frontMatter from 'front-matter'
+// import frontMatter from 'front-matter'
 
 import hljs from 'highlight.js'
 
@@ -121,31 +121,28 @@ interface ParseResult {
 }
 
 async function parseFrontMatterAndContent(markdownText: string): Promise<ParseResult> {
-
-  const { default: frontMatter } = await import('front-matter');
-  const { default: readingTime } = await import('reading-time');
+  const { default: frontMatter } = await import(`front-matter`)
+  const { default: readingTime } = await import(`reading-time`)
   try {
-    
     const parsed = frontMatter(markdownText)
     const yamlData = parsed.attributes
     const markdownContent = parsed.body
 
-  
-  const readingTimeResult = readingTime(markdownContent)
-  
-  return {
-    yamlData: yamlData as Record<string, any>,
-    markdownContent,
-    readingTime: readingTimeResult,
-  } as ParseResult;
+    const readingTimeResult = readingTime(markdownContent)
+
+    return {
+      yamlData: yamlData as Record<string, any>,
+      markdownContent,
+      readingTime: readingTimeResult,
+    } as ParseResult
   }
-  catch  (error) {
+  catch (error) {
     console.error(`Error parsing front-matter:`, error)
     return {
       yamlData: {},
       markdownContent: markdownText,
       readingTime: readingTime(markdownText),
-    } as ParseResult;
+    } as ParseResult
   }
 }
 

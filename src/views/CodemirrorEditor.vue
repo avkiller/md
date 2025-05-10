@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance } from 'vue'
-import { altKey, ctrlKey, ctrlSign, shiftKey, altSign, shiftSign} from '@/config'
+import { AIPolishButton, AIPolishPopover, useAIPolish } from '@/components/AIPolish'
+import { altKey, altSign, ctrlKey, ctrlSign, shiftKey, shiftSign } from '@/config'
 import { useDisplayStore, useStore } from '@/stores'
 import {
   checkImage,
@@ -55,11 +56,24 @@ function toggleView() {
   showEditor.value = !showEditor.value
 }
 
+const {
+  AIPolishBtnRef,
+  AIPolishPopoverRef,
+  selectedText,
+  position,
+  isDragging,
+  startDrag,
+  initPolishEvent,
+  recalcPos,
+} = useAIPolish()
+
 const preview = ref<HTMLDivElement | null>(null)
 
 // 使浏览区与编辑区滚动条建立同步联系
 function leftAndRightScroll() {
   const scrollCB = (text: string) => {
+    // AIPolishBtnRef.value?.close()
+
     let source: HTMLElement
     let target: HTMLElement
 
@@ -144,7 +158,7 @@ function beforeUpload(file: File) {
   return true
 }
 
-//图片上传结束
+// 图片上传结束
 function uploaded(imageUrl: string) {
   if (!imageUrl) {
     toast.error(`上传图片未知异常`)
@@ -268,6 +282,8 @@ function initEditor() {
         }
       }
     })
+
+    initPolishEvent(editor.value)
     onEditorRefresh()
     // mdLocalToRemote()
   })
@@ -408,6 +424,24 @@ const isOpenHeadingSlider = ref(false)
 <template>
   <div ref="container" class="container flex flex-col">
     <EditorHeader @add-format="addFormat" @format-content="formatContent" @start-copy="startCopy" @end-copy="endCopy" />
+    <AIPolishButton
+      v-if="store.showAIToolbox"
+      ref="AIPolishBtnRef"
+      :position="position"
+      @click="AIPolishPopoverRef?.show"
+    />
+
+    <AIPolishPopover
+      v-if="store.showAIToolbox"
+      ref="AIPolishPopoverRef"
+      :position="position"
+      :selected-text="selectedText"
+      :is-dragging="isDragging"
+      @close-btn="AIPolishBtnRef?.close"
+      @recalc-pos="recalcPos"
+      @start-drag="startDrag"
+    />
+
     <main class="container-main flex flex-1 flex-col">
       <div class="container-main-section border-radius-10 relative flex flex-1 overflow-hidden border-1">
         <PostSlider />

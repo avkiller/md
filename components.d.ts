@@ -12,6 +12,8 @@ declare module 'vue' {
     AIAssistantPanel: typeof import('./src/components/ai/AIAssistantPanel.vue')['default']
     AIConfig: typeof import('./src/components/ai/AIConfig.vue')['default']
     AIFixedBtn: typeof import('./src/components/ai/AIFixedBtn.vue')['default']
+    AIPolishButton: typeof import('./src/components/AIPolish/AIPolishButton.vue')['default']
+    AIPolishPopover: typeof import('./src/components/AIPolish/AIPolishPopover.vue')['default']
     Alert: typeof import('./src/components/ui/alert/Alert.vue')['default']
     AlertDescription: typeof import('./src/components/ui/alert/AlertDescription.vue')['default']
     AlertDialog: typeof import('./src/components/ui/alert-dialog/AlertDialog.vue')['default']
