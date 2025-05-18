@@ -33,6 +33,7 @@ const {
   pasteFromClipboard,
   // resetStyleConfirm,
   dowloadAsCardImage,
+  // clearContent,
 } = store
 
 const {
