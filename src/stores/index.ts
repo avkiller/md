@@ -23,6 +23,7 @@ import {
   formatDoc,
   sanitizeTitle,
 } from '@/utils'
+import { copyPlain } from '@/utils/clipboard'
 
 import { initRenderer } from '@/utils/renderer'
 import CodeMirror from 'codemirror'
@@ -652,15 +653,8 @@ export const useStore = defineStore(`store`, () => {
   }
 
   const copyToClipboard = async () => {
-    try {
-      const selectedText = editor.value!.getSelection()
-      if (selectedText) {
-        await navigator.clipboard.writeText(selectedText)
-      }
-    }
-    catch (error) {
-      console.log(`复制失败`, error)
-    }
+    const selectedText = editor.value!.getSelection()
+    copyPlain(selectedText)
   }
 
   const pasteFromClipboard = async () => {

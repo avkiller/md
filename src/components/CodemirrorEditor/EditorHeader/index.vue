@@ -9,6 +9,7 @@ import {
 
 import { useStore } from '@/stores'
 import { addPrefix, processClipboardContent } from '@/utils'
+import { copyPlain } from '@/utils/clipboard'
 import { ChevronDownIcon, Moon, PanelLeftClose, PanelLeftOpen, Settings, Sun } from 'lucide-vue-next'
 
 const emit = defineEmits([`addFormat`, `formatContent`, `startCopy`, `endCopy`])
@@ -61,7 +62,7 @@ function copy() {
   // 如果是 Markdown 源码，直接复制并返回
   if (copyMode.value === `md`) {
     const mdContent = editor.value?.getValue() || ``
-    copyToClipboard(mdContent)
+    copyPlain(mdContent)
     toast.success(`已复制 Markdown 源码到剪贴板。`)
     editorRefresh()
     return
@@ -69,6 +70,7 @@ function copy() {
 
   // 以下处理非 Markdown 的复制流程
   emit(`startCopy`)
+
   setTimeout(() => {
     // 如果是深色模式，复制之前需要先切换到白天模式
     const isBeforeDark = isDark.value
@@ -114,15 +116,6 @@ function copy() {
     })
   }, 350)
 }
-
-async function copyToClipboard(text: string) {
-  try {
-    await navigator.clipboard.writeText(text)
-  }
-  catch (err) {
-    console.error(`复制失败:`, err)
-  }
-}
 </script>
 
 <template>
@@ -167,24 +160,15 @@ async function copyToClipboard(text: string) {
     </div>
 
     <!-- 右侧操作区：移动端保留核心按钮 -->
-    <div class="space-x-1 flex flex-wrap">
+    <div class="space-x-2 flex flex-wrap">
       <!-- 展开/收起左侧内容栏 -->
-      <TooltipProvider :delay-duration="200">
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button variant="outline" @click="isOpenPostSlider = !isOpenPostSlider">
-              <PanelLeftOpen v-show="!isOpenPostSlider" class="size-4" />
-              <PanelLeftClose v-show="isOpenPostSlider" class="size-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="left">
-            {{ isOpenPostSlider ? "关闭" : "内容管理" }}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Button variant="outline" size="icon" @click="isOpenPostSlider = !isOpenPostSlider">
+        <PanelLeftOpen v-show="!isOpenPostSlider" class="size-4" />
+        <PanelLeftClose v-show="isOpenPostSlider" class="size-4" />
+      </Button>
 
       <!-- 暗色切换 -->
-      <Button variant="outline" @click="toggleDark()">
+      <Button variant="outline" size="icon" @click="toggleDark()">
         <Moon v-show="isDark" class="size-4" />
         <Sun v-show="!isDark" class="size-4" />
       </Button>
@@ -225,7 +209,7 @@ async function copyToClipboard(text: string) {
       <PostInfo class="hidden sm:inline-flex" />
 
       <!-- 设置按钮 -->
-      <Button variant="outline" @click="store.isOpenRightSlider = !store.isOpenRightSlider">
+      <Button variant="outline" size="icon" @click="store.isOpenRightSlider = !store.isOpenRightSlider">
         <Settings class="size-4" />
       </Button>
 

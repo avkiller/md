@@ -11,7 +11,9 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import useAIConfigStore from '@/stores/AIConfig'
 import { useQuickCommands } from '@/stores/useQuickCommands'
+import { copyPlain } from '@/utils/clipboard'
 import hljs from 'highlight.js'
+
 import {
   Check,
   Copy,
@@ -175,14 +177,9 @@ function handleKeydown(e: KeyboardEvent) {
 }
 
 async function copyToClipboard(text: string, index: number) {
-  try {
-    await navigator.clipboard.writeText(text)
-    copiedIndex.value = index
-    setTimeout(() => (copiedIndex.value = null), 1500)
-  }
-  catch (err) {
-    console.error(`复制失败:`, err)
-  }
+  copyPlain(text)
+  copiedIndex.value = index
+  setTimeout(() => (copiedIndex.value = null), 1500)
 }
 
 function editMessage(content: string) {
@@ -596,7 +593,7 @@ async function sendMessage() {
           <Button
             :disabled="!input.trim() && !loading"
             size="icon"
-            class="bg-primary text-primary-foreground hover:bg-primary/90 absolute bottom-3 right-3 rounded-full disabled:opacity-40"
+            class="hover:bg-primary/90 bg-primary text-primary-foreground absolute bottom-3 right-3 rounded-full disabled:opacity-40"
             :aria-label="loading ? '暂停' : '发送'"
             @click="loading ? pauseStreaming() : sendMessage()"
           >
