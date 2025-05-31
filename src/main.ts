@@ -1,6 +1,7 @@
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import App from './App.vue'
+import { setupComponents } from './utils/setup-components'
 
 import 'virtual:uno.css'
 import 'codemirror/lib/codemirror.css'
@@ -19,6 +20,12 @@ import 'codemirror/addon/edit/matchbrackets'
 import 'codemirror/addon/selection/active-line'
 import 'codemirror/addon/hint/show-hint'
 import 'codemirror/addon/hint/css-hint'
+import 'codemirror/addon/search/search' // 搜索功能
+import 'codemirror/addon/search/searchcursor'
+import 'codemirror/addon/dialog/dialog' // 搜索替换功能
+import 'codemirror/addon/dialog/dialog.css'
+
+setupComponents()
 
 const app = createApp(App)
 

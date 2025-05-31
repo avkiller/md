@@ -41,6 +41,21 @@ const formatItems = [
     emitArgs: [`addFormat`, `${ctrlKey}-E`],
   },
   {
+    label: `标题`,
+    kbd: [ctrlSign, `H`],
+    emitArgs: [`addFormat`, `${ctrlKey}-H`],
+  },
+  {
+    label: `无序列表`,
+    kbd: [ctrlSign, `U`],
+    emitArgs: [`addFormat`, `${ctrlKey}-U`],
+  },
+  {
+    label: `有序列表`,
+    kbd: [ctrlSign, `O`],
+    emitArgs: [`addFormat`, `${ctrlKey}-O`],
+  },
+  {
     label: `格式化`,
     kbd: [altSign, shiftSign, `F`],
     emitArgs: [`formatContent`],
@@ -174,7 +189,7 @@ function copy() {
       </Button>
 
       <!-- 复制按钮组 -->
-      <div class="space-x-1 bg-background text-background-foreground mx-2 flex items-center border rounded-md">
+      <div class="bg-background space-x-1 text-background-foreground mx-2 flex items-center border rounded-md">
         <Button variant="ghost" class="shadow-none" @click="copy">
           复制
         </Button>
