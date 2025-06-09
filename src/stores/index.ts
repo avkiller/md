@@ -1,36 +1,28 @@
 import type { ReadTimeResults } from 'reading-time'
-import DEFAULT_CONTENT from '@/assets/example/markdown.md?raw'
+import CodeMirror from 'codemirror'
+import { toPng } from 'html-to-image'
+import { marked } from 'marked'
+import { v4 as uuid } from 'uuid'
+import DEFAULT_CONTENT from '@/assets/example/markdown-self.md?raw'
 import DEFAULT_CSS_CONTENT from '@/assets/example/theme-css.txt?raw'
+
 import {
   altKey,
-  codeBlockThemeOptions,
-  colorOptions,
-  fontFamilyOptions,
-  fontSizeOptions,
-  legendOptions,
+  defaultStyleConfig,
   shiftKey,
   themeMap,
-  themeOptions,
   widthOptions,
 } from '@/config'
 import {
   addPrefix,
-  css2json,
-  customCssWithTemplate,
-  customizeTheme,
   downloadMD,
   exportHTML,
   formatDoc,
   sanitizeTitle,
 } from '@/utils'
+import { css2json, customCssWithTemplate, customizeTheme, modifyHtmlContent } from '@/utils/'
 import { copyPlain } from '@/utils/clipboard'
-
 import { initRenderer } from '@/utils/renderer'
-import CodeMirror from 'codemirror'
-import DOMPurify from 'dompurify'
-import { toPng } from 'html-to-image'
-import { marked } from 'marked'
-import { v4 as uuid } from 'uuid'
 
 /**********************************
  * Post 结构接口
@@ -45,6 +37,10 @@ interface Post {
   }[]
   createDatetime: Date
   updateDatetime: Date
+  // 父标签
+  parentId?: string | null
+  // 展开状态
+  collapsed?: boolean
 }
 
 export const useStore = defineStore(`store`, () => {
@@ -53,7 +49,7 @@ export const useStore = defineStore(`store`, () => {
   const toggleDark = useToggle(isDark)
 
   // 是否开启 Mac 代码块
-  const isMacCodeBlock = useStorage(`isMacCodeBlock`, true)
+  const isMacCodeBlock = useStorage(`isMacCodeBlock`, defaultStyleConfig.isMacCodeBlock)
   const toggleMacCodeBlock = useToggle(isMacCodeBlock)
 
   // 是否在左侧编辑
@@ -61,7 +57,7 @@ export const useStore = defineStore(`store`, () => {
   const toggleEditOnLeft = useToggle(isEditOnLeft)
 
   // 是否开启微信外链接底部引用
-  const isCiteStatus = useStorage(`isCiteStatus`, false)
+  const isCiteStatus = useStorage(`isCiteStatus`, defaultStyleConfig.isCiteStatus)
   const toggleCiteStatus = useToggle(isCiteStatus)
 
   // 是否开启 AI 工具箱
@@ -69,7 +65,7 @@ export const useStore = defineStore(`store`, () => {
   const toggleAIToolbox = useToggle(showAIToolbox)
 
   // 是否统计字数和阅读时间
-  const isCountStatus = useStorage(`isCountStatus`, false)
+  const isCountStatus = useStorage(`isCountStatus`, defaultStyleConfig.isCountStatus)
   const toggleCountStatus = useToggle(isCountStatus)
 
   // 是否开启段落首行缩进
@@ -79,17 +75,17 @@ export const useStore = defineStore(`store`, () => {
   const output = ref(``)
 
   // 文本字体
-  const theme = useStorage<keyof typeof themeMap>(addPrefix(`theme`), themeOptions[0].value)
+  const theme = useStorage<keyof typeof themeMap>(addPrefix(`theme`), defaultStyleConfig.theme)
   // 文本字体
-  const fontFamily = useStorage(`fonts`, fontFamilyOptions[0].value)
+  const fontFamily = useStorage(`fonts`, defaultStyleConfig.fontFamily)
   // 文本大小
-  const fontSize = useStorage(`size`, fontSizeOptions[2].value)
+  const fontSize = useStorage(`size`, defaultStyleConfig.fontSize)
   // 主色
-  const primaryColor = useStorage(`color`, colorOptions[0].value)
+  const primaryColor = useStorage(`color`, defaultStyleConfig.primaryColor)
   // 代码块主题
-  const codeBlockTheme = useStorage(`codeBlockTheme`, codeBlockThemeOptions[23].value)
+  const codeBlockTheme = useStorage(`codeBlockTheme`, defaultStyleConfig.codeBlockTheme)
   // 图注格式
-  const legend = useStorage(`legend`, legendOptions[3].value)
+  const legend = useStorage(`legend`, defaultStyleConfig.legend)
 
   // 预览宽度
   const previewWidth = useStorage(`previewWidth`, widthOptions[0].value)
@@ -177,7 +173,7 @@ export const useStore = defineStore(`store`, () => {
   /********************************
    * CRUD
    ********************************/
-  const addPost = (title: string) => {
+  const addPost = (title: string, parentId: string | null = null) => {
     const newPost: Post = {
       id: uuid(),
       title,
@@ -187,6 +183,7 @@ export const useStore = defineStore(`store`, () => {
       ],
       createDatetime: new Date(),
       updateDatetime: new Date(),
+      parentId,
     }
     posts.value.push(newPost)
     currentPostId.value = newPost.id
@@ -204,6 +201,28 @@ export const useStore = defineStore(`store`, () => {
       return
     posts.value.splice(idx, 1)
     currentPostId.value = posts.value[Math.min(idx, posts.value.length - 1)]?.id ?? ``
+  }
+
+  const updatePostParentId = (postId: string, parentId: string | null) => {
+    const post = getPostById(postId)
+    if (post) {
+      post.parentId = parentId
+      post.updateDatetime = new Date()
+    }
+  }
+
+  // 收起所有文章
+  const collapseAllPosts = () => {
+    posts.value.forEach((post) => {
+      post.collapsed = true
+    })
+  }
+
+  // 展开所有文章
+  const expandAllPosts = () => {
+    posts.value.forEach((post) => {
+      post.collapsed = false
+    })
   }
 
   // 清空文档
@@ -331,6 +350,7 @@ export const useStore = defineStore(`store`, () => {
     fonts: fontFamily.value,
     size: fontSize.value,
     isUseIndent: isUseIndent.value,
+    isMacCodeBlock: isMacCodeBlock.value,
   })
 
   const readingTime = ref<ReadTimeResults | null>(null)
@@ -350,6 +370,7 @@ export const useStore = defineStore(`store`, () => {
       legend: legend.value,
       isUseIndent: isUseIndent.value,
       countStatus: isCountStatus.value,
+      isMacCodeBlock: isMacCodeBlock.value,
     })
 
     const {
@@ -378,50 +399,7 @@ export const useStore = defineStore(`store`, () => {
 
     outputTemp = div.innerHTML
 
-    outputTemp = DOMPurify.sanitize(outputTemp, {
-      ADD_TAGS: [`mp-common-profile`],
-    })
-
-    // 阅读时间及字数统计
-    outputTemp = renderer.buildReadingTime(readingTimeResult) + outputTemp
-
-    // 去除第一行的 margin-top
-    outputTemp = outputTemp.replace(/(style=".*?)"/, `$1;margin-top: 0"`)
-    // 引用脚注
-    outputTemp += renderer.buildFootnotes()
-    // 附加的一些 style
-    outputTemp += renderer.buildAddition()
-
-    if (isMacCodeBlock.value) {
-      outputTemp += `
-        <style>
-          .hljs.code__pre > .mac-sign {
-            display: flex;
-          }
-        </style>
-      `
-    }
-
-    outputTemp += `
-      <style>
-        .code__pre {
-          padding: 0 !important;
-        }
-
-        .hljs.code__pre code {
-          display: -webkit-box;
-          padding: 0.5em 1em 1em;
-          overflow-x: auto;
-          text-indent: 0;
-        }
-
-        h2 strong {
-          color: inherit !important;
-        }
-      </style>
-    `
-
-    output.value = renderer.createContainer(outputTemp)
+    output.value = modifyHtmlContent(outputTemp, renderer)
   }
 
   // 更新 CSS
@@ -491,17 +469,16 @@ export const useStore = defineStore(`store`, () => {
 
   // 重置样式
   const resetStyle = () => {
-    isCiteStatus.value = false
-    isMacCodeBlock.value = true
-    isCountStatus.value = false
+    isCiteStatus.value = defaultStyleConfig.isCiteStatus
+    isMacCodeBlock.value = defaultStyleConfig.isMacCodeBlock
+    isCountStatus.value = defaultStyleConfig.isCountStatus
 
-    theme.value = themeOptions[0].value
-    fontFamily.value = fontFamilyOptions[0].value
-    fontFamily.value = fontFamilyOptions[0].value
-    fontSize.value = fontSizeOptions[2].value
-    primaryColor.value = colorOptions[0].value
-    codeBlockTheme.value = codeBlockThemeOptions[23].value
-    legend.value = legendOptions[3].value
+    theme.value = defaultStyleConfig.theme
+    fontFamily.value = defaultStyleConfig.fontFamily
+    fontSize.value = defaultStyleConfig.fontSize
+    primaryColor.value = defaultStyleConfig.primaryColor
+    codeBlockTheme.value = defaultStyleConfig.codeBlockTheme
+    legend.value = defaultStyleConfig.legend
 
     cssContentConfig.value = {
       active: `方案 1`,
@@ -618,7 +595,7 @@ export const useStore = defineStore(`store`, () => {
   }
 
   // 下载卡片
-  const dowloadAsCardImage = () => {
+  const downloadAsCardImage = () => {
     const el = document.querySelector(`#output-wrapper>.preview`)! as HTMLElement
     toPng(el, {
       backgroundColor: isDark.value ? `` : `#fff`,
@@ -644,13 +621,13 @@ export const useStore = defineStore(`store`, () => {
 
   // 导入默认文档
   const importDefaultContent = () => {
-    editor.value!.setValue(DEFAULT_CONTENT)
+    toRaw(editor.value!).setValue(DEFAULT_CONTENT)
     toast.success(`文档已重置`)
   }
 
   // 清空内容
   const clearContent = () => {
-    editor.value!.setValue(``)
+    toRaw(editor.value!).setValue(``)
     toast.success(`内容已清空`)
   }
 
@@ -746,7 +723,7 @@ export const useStore = defineStore(`store`, () => {
     formatContent,
     exportEditorContent2HTML,
     exportEditorContent2MD,
-    dowloadAsCardImage,
+    downloadAsCardImage,
 
     importMarkdownContent,
     importDefaultContent,
@@ -777,6 +754,9 @@ export const useStore = defineStore(`store`, () => {
 
     titleList,
     isMobile,
+    updatePostParentId,
+    collapseAllPosts,
+    expandAllPosts,
     // add by fireworld
     resetContent,
     reloadDefaultContent,
@@ -804,7 +784,6 @@ export const useDisplayStore = defineStore(`display`, () => {
   const aiDialogVisible = ref(false)
 
   function toggleAIDialog(value?: boolean) {
-    console.log(`toggleAIDialog`, value)
     aiDialogVisible.value = value ?? !aiDialogVisible.value
   }
 

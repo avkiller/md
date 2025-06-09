@@ -18,6 +18,7 @@ export default defineConfig({
   define: {
     process,
   },
+  // envPrefix: [`VITE_`, `CF_`], // 允许 VITE_ 和 CF_ 前缀的变量
   build: {
     // sourcemap: true,
     rollupOptions: {
@@ -28,6 +29,10 @@ export default defineConfig({
       //     juice: "juice"
       //   })
       // ],
+      // input: {
+      //  // 明确指定项目入口文件（如你的主文件是 src/app.ts）
+      //  app: 'src/main.ts',
+      // },
       output: {
         // 在 UMD 构建模式下为这些外部化的依赖提供一个全局变量
         manualChunks: {
@@ -37,56 +42,39 @@ export default defineConfig({
             `vue`,
             `yup`,
             `vee-validate`,
-            // `vite-plugin-node-polyfills`,
             `@vueuse/core`,
             `tailwind-merge`,
-            // `marked`,
-            // `parse5`,
-            // `entities`,
-            // `front-matte`,
-            // `htmlparser2`,
-            // `cheerio`,
-            // `juice`,
           ],
-          // parse5: [
-          //   `parse5`,
-          // ],
-          utils: [
-            // `lodash`,
-            // `lodash-es`,
-            `dayjs`,
-            `langium`,
-            `crypto-js`,
-            // `parse5`,
-            `vscode-languageserver-types`,
-            `vscode-uri`,
-            `vscode-languageserver-textdocument`,
-            `vscode-jsonrpc`,
-            `mensch`,
-            // `entities`,
-          ],
+
           res: [
             `lucide-vue-next`,
             `vue-pick-colors`,
-            // `juice`,
           ],
-          // cryptojs: ['crypto-js'],
-          // vscode: [
-          //   'vscode-languageserver-types',
-          //   'vscode-uri',
-          //   'vscode-languageserver-textdocument',
-          //   'vscode-jsonrpc'],
-          // mermaid: ['mermaid'],
-          // vue: [
-          //   //'mermaid',
-          //   'vue',
-          //   '@vueuse/core',
-          // ],
-          // front: [`front-matter`],
+          makedown_lib: [
+            `front-matter`,
+            `marked`,
+          ],
+          utils: [
+            `reading-time`,
+            `crypto-js`,
+          ],
+          cosdk: [
+            `cos-js-sdk-v5`,
+          ],
+          awssdk: [
+            `@aws-sdk/s3-request-presigner`,
+            `@aws-sdk/client-s3`,
+          ],
+          othercloudsdk: [
+            `qiniu-js`,
+            `tiny-oss`,
+          ],
+
           ui: [
             `codemirror`,
             `vue-sonner`,
             `radix-vue`,
+            `reka-ui`,
           ],
         },
       // 打印每个包的信息
@@ -198,7 +186,9 @@ export default defineConfig({
     // }),
     visualizer({
       emitFile: true,
+      // gzipSize: true,
       filename: `stats.html`,
+      // template: `treemap`,
       open: true,
     }),
     AutoImport({

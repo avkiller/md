@@ -3,7 +3,7 @@ import { ContextMenuTrigger, type ContextMenuTriggerProps, useForwardProps } fro
 
 const props = defineProps<ContextMenuTriggerProps>()
 
-const forwardedProps = useForwardProps(props) as ContextMenuTriggerProps
+const forwardedProps = useForwardProps(props)
 </script>
 
 <template>

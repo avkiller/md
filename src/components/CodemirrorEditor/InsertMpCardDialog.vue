@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useDisplayStore, useStore } from '@/stores'
 import { useLocalStorage } from '@vueuse/core'
 import { toRaw } from 'vue'
+import { useDisplayStore, useStore } from '@/stores'
 
 /** 编辑器实例和全局弹窗状态 */
 const store = useStore()
@@ -18,7 +18,7 @@ const mpId = useLocalStorage(`mpId`, ``)
 function buildMpHtml() {
   if (!mpName.value.trim() || !mpId.value.trim())
     return ``
-  const logo = mpLogo.value.trim() || `https://cdn.jsdmirror.com/gh/avkiller/imgs@main/logo/mp-logo.png`
+  const logo = mpLogo.value.trim() || `https://cdn-doocs.oss-cn-shenzhen.aliyuncs.com/gh/doocs/md/images/mp-logo.png`
   const attrs = [
     `data-pluginname="mpprofile"`,
     `data-nickname="${mpName.value.trim()}"`,

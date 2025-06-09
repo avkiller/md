@@ -3,10 +3,9 @@ const aboutDialogVisible = ref(false)
 </script>
 
 <template>
+  <!-- 帮助菜单 -->
   <MenubarMenu>
-    <MenubarTrigger>
-      帮助
-    </MenubarTrigger>
+    <MenubarTrigger>帮助</MenubarTrigger>
     <MenubarContent align="start">
       <MenubarCheckboxItem @click="aboutDialogVisible = true">
         <span>关于</span>

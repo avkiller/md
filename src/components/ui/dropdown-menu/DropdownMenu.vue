@@ -4,7 +4,7 @@ import { DropdownMenuRoot, type DropdownMenuRootEmits, type DropdownMenuRootProp
 const props = defineProps<DropdownMenuRootProps>()
 const emits = defineEmits<DropdownMenuRootEmits>()
 
-const forwarded = useForwardPropsEmits(props, emits) as DropdownMenuRootProps
+const forwarded = useForwardPropsEmits(props, emits)
 </script>
 
 <template>

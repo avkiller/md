@@ -1,17 +1,16 @@
-import { giteeConfig, githubConfig } from '@/config'
-import fetch from '@/utils/fetch'
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 // import * as tokenTools from '@/utils/tokenTools'
 
-// import { base64encode, safe64, utf16to8 } from '@/utils/tokenTools'
-// import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
-// import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 // import Buffer from 'buffer-from'
-// import COS from 'cos-js-sdk-v5'
-// import CryptoJS from 'crypto-js'
-// import * as Minio from 'minio'
-// import * as qiniu from 'qiniu-js'
-// import OSS from 'tiny-oss'
+import COS from 'cos-js-sdk-v5'
+import CryptoJS from 'crypto-js'
+import * as qiniu from 'qiniu-js'
+import OSS from 'tiny-oss'
 import { v4 as uuidv4 } from 'uuid'
+import { giteeConfig, githubConfig } from '@/config'
+import fetch from '@/utils/fetch'
+import { base64encode, safe64, utf16to8 } from '@/utils/tokenTools'
 
 function getConfig(useDefault: boolean, platform: string) {
   if (useDefault) {
@@ -77,9 +76,6 @@ function getDateFilename(filename: string) {
 
 async function ghFileUpload(content: string, filename: string) {
   const useDefault = localStorage.getItem(`imgHost`) === `default`
-  // const host = localStorage.getItem('imgHost') ?? '';
-  // const useDefault = ['default', 'github'].includes(host);
-
   const { username, repo, branch, accessToken } = getConfig(
     useDefault,
     `github`,
@@ -114,198 +110,190 @@ async function ghFileUpload(content: string, filename: string) {
   const cdnResourceUrl = `cdn.jsdmirror.com/gh/${username}/${repo}@${branch}/`
   res.content = res.data?.content || res.content
   return res.content.download_url.replace(githubResourceUrl, cdnResourceUrl)
-
-  // return useDefault
-  //   ? res.content.download_url.replace(githubResourceUrl, cdnResourceUrl)
-  //   : res.content.download_url
+  return useDefault
+    ? res.content.download_url.replace(githubResourceUrl, cdnResourceUrl)
+    : res.content.download_url
 }
 
 // -----------------------------------------------------------------------
 // Gitee File Upload
 // -----------------------------------------------------------------------
 
-// async function giteeUpload(content: any, filename: string) {
-//   const useDefault = localStorage.getItem(`imgHost`) === `default`
-//   const { username, repo, branch, accessToken } = getConfig(useDefault, `gitee`)
-//   const dir = getDir()
-//   const dateFilename = getDateFilename(filename)
-//   const url = `https://gitee.com/api/v5/repos/${username}/${repo}/contents/${dir}/${dateFilename}`
-//   const res = await fetch<{ content: {
-//     download_url: string
-//   } }, {
-//       content: {
-//         download_url: string
-//       }
-//       data: {
-//         content: {
-//           download_url: string
-//         }
-//       }
-//     }>({
-//     url,
-//     method: `POST`,
-//     data: {
-//       content,
-//       branch,
-//       access_token: accessToken,
-//       message: `Upload by ${window.location.href}`,
-//     },
-//   })
-//   res.content = res.data?.content || res.content
-//   return encodeURI(res.content.download_url)
-// }
+async function giteeUpload(content: any, filename: string) {
+  const useDefault = localStorage.getItem(`imgHost`) === `default`
+  const { username, repo, branch, accessToken } = getConfig(useDefault, `gitee`)
+  const dir = getDir()
+  const dateFilename = getDateFilename(filename)
+  const url = `https://gitee.com/api/v5/repos/${username}/${repo}/contents/${dir}/${dateFilename}`
+  const res = await fetch<{ content: {
+    download_url: string
+  } }, {
+      content: {
+        download_url: string
+      }
+      data: {
+        content: {
+          download_url: string
+        }
+      }
+    }>({
+    url,
+    method: `POST`,
+    data: {
+      content,
+      branch,
+      access_token: accessToken,
+      message: `Upload by ${window.location.href}`,
+    },
+  })
+  res.content = res.data?.content || res.content
+  return encodeURI(res.content.download_url)
+}
 
 // -----------------------------------------------------------------------
 // Qiniu File Upload
 // -----------------------------------------------------------------------
 
-// function getQiniuToken(accessKey: string, secretKey: string, putPolicy: {
-//   scope: string
-//   deadline: number
-// }) {
-//   const policy = JSON.stringify(putPolicy)
-//   const encoded = base64encode(utf16to8(policy))
-//   const hash = CryptoJS.HmacSHA1(encoded, secretKey)
-//   const encodedSigned = hash.toString(CryptoJS.enc.Base64)
-//   return `${accessKey}:${safe64(encodedSigned)}:${encoded}`
-// }
+function getQiniuToken(accessKey: string, secretKey: string, putPolicy: {
+  scope: string
+  deadline: number
+}) {
+  const policy = JSON.stringify(putPolicy)
+  const encoded = base64encode(utf16to8(policy))
+  const hash = CryptoJS.HmacSHA1(encoded, secretKey)
+  const encodedSigned = hash.toString(CryptoJS.enc.Base64)
+  return `${accessKey}:${safe64(encodedSigned)}:${encoded}`
+}
 
-// async function qiniuUpload(file: File) {
-//   const { accessKey, secretKey, bucket, region, path, domain } = JSON.parse(
-//     localStorage.getItem(`qiniuConfig`)!,
-//   )
-//   const token = getQiniuToken(accessKey, secretKey, {
-//     scope: bucket,
-//     deadline: Math.trunc(new Date().getTime() / 1000) + 3600,
-//   })
-//   const dir = path ? `${path}/` : ``
-//   const dateFilename = dir + getDateFilename(file.name)
-//   const observable = qiniu.upload(file, dateFilename, token, {}, { region })
-//   return new Promise<string>((resolve, reject) => {
-//     observable.subscribe({
-//       next: (result) => {
-//         console.log(result)
-//       },
-//       error: (err) => {
-//         reject(err.message)
-//       },
-//       complete: (result) => {
-//         resolve(`${domain}/${result.key}`)
-//       },
-//     })
-//   })
-// }
+async function qiniuUpload(file: File) {
+  const { accessKey, secretKey, bucket, region, path, domain } = JSON.parse(
+    localStorage.getItem(`qiniuConfig`)!,
+  )
+  const token = getQiniuToken(accessKey, secretKey, {
+    scope: bucket,
+    deadline: Math.trunc(new Date().getTime() / 1000) + 3600,
+  })
+  const dir = path ? `${path}/` : ``
+  const dateFilename = dir + getDateFilename(file.name)
+  const observable = qiniu.upload(file, dateFilename, token, {}, { region })
+  return new Promise<string>((resolve, reject) => {
+    observable.subscribe({
+      next: (result) => {
+        console.log(result)
+      },
+      error: (err) => {
+        reject(err.message)
+      },
+      complete: (result) => {
+        resolve(`${domain}/${result.key}`)
+      },
+    })
+  })
+}
 
 // -----------------------------------------------------------------------
 // AliOSS File Upload
 // -----------------------------------------------------------------------
 
-// async function aliOSSFileUpload(file: File) {
-//   const dateFilename = getDateFilename(file.name)
-//   const { region, bucket, accessKeyId, accessKeySecret, useSSL, cdnHost, path }
-//     = JSON.parse(localStorage.getItem(`aliOSSConfig`)!)
-//   const dir = path ? `${path}/${dateFilename}` : dateFilename
-//   const secure = useSSL === undefined || useSSL
-//   const protocol = secure ? `https` : `http`
-//   const client = new OSS({
-//     region,
-//     bucket,
-//     accessKeyId,
-//     accessKeySecret,
-//     secure,
-//   })
+async function aliOSSFileUpload(file: File) {
+  const dateFilename = getDateFilename(file.name)
+  const { region, bucket, accessKeyId, accessKeySecret, useSSL, cdnHost, path }
+    = JSON.parse(localStorage.getItem(`aliOSSConfig`)!)
+  const dir = path ? `${path}/${dateFilename}` : dateFilename
+  const secure = useSSL === undefined || useSSL
+  const protocol = secure ? `https` : `http`
+  const client = new OSS({
+    region,
+    bucket,
+    accessKeyId,
+    accessKeySecret,
+    secure,
+  })
 
-//   try {
-//     await client.put(dir, file)
-//     return cdnHost ? `${cdnHost}/${dir}` : `${protocol}://${bucket}.${region}.aliyuncs.com/${dir}`
-//   }
-//   catch (e) {
-//     return Promise.reject(e)
-//   }
-// }
+  try {
+    await client.put(dir, file)
+    return cdnHost ? `${cdnHost}/${dir}` : `${protocol}://${bucket}.${region}.aliyuncs.com/${dir}`
+  }
+  catch (e) {
+    return Promise.reject(e)
+  }
+}
 
 // -----------------------------------------------------------------------
 // TxCOS File Upload
 // -----------------------------------------------------------------------
 
-// async function txCOSFileUpload(file: File) {
-//   const dateFilename = getDateFilename(file.name)
-//   const { secretId, secretKey, bucket, region, path, cdnHost } = JSON.parse(
-//     localStorage.getItem(`txCOSConfig`)!,
-//   )
-//   const cos = new COS({
-//     SecretId: secretId,
-//     SecretKey: secretKey,
-//   })
-//   return new Promise<string>((resolve, reject) => {
-//     cos.putObject(
-//       {
-//         Bucket: bucket,
-//         Region: region,
-//         Key: `${path}/${dateFilename}`,
-//         Body: file,
-//       },
-//       (err, data) => {
-//         if (err) {
-//           reject(err)
-//         }
-//         else if (cdnHost) {
-//           resolve(
-//             path === ``
-//               ? `${cdnHost}/${dateFilename}`
-//               : `${cdnHost}/${path}/${dateFilename}`,
-//           )
-//         }
-//         else {
-//           resolve(`https://${data.Location}`)
-//         }
-//       },
-//     )
-//   })
-// }
+async function txCOSFileUpload(file: File) {
+  const dateFilename = getDateFilename(file.name)
+  const { secretId, secretKey, bucket, region, path, cdnHost } = JSON.parse(
+    localStorage.getItem(`txCOSConfig`)!,
+  )
+  const cos = new COS({
+    SecretId: secretId,
+    SecretKey: secretKey,
+  })
+  return new Promise<string>((resolve, reject) => {
+    cos.putObject(
+      {
+        Bucket: bucket,
+        Region: region,
+        Key: `${path}/${dateFilename}`,
+        Body: file,
+      },
+      (err, data) => {
+        if (err) {
+          reject(err)
+        }
+        else if (cdnHost) {
+          resolve(
+            path === ``
+              ? `${cdnHost}/${dateFilename}`
+              : `${cdnHost}/${path}/${dateFilename}`,
+          )
+        }
+        else {
+          resolve(`https://${data.Location}`)
+        }
+      },
+    )
+  })
+}
 
 // -----------------------------------------------------------------------
 // Minio File Upload
 // -----------------------------------------------------------------------
 
-// async function minioFileUpload(content: string, filename: string) {
-//   const dateFilename = getDateFilename(filename)
-//   const { endpoint, port, useSSL, bucket, accessKey, secretKey } = JSON.parse(
-//     localStorage.getItem(`minioConfig`)!,
-//   )
-//   const buffer = Buffer(content, `base64`)
-//   const conf: Minio.ClientOptions = {
-//     endPoint: endpoint,
-//     useSSL,
-//     accessKey,
-//     secretKey,
-//   }
-//   const p = Number(port || 0)
-//   const isCustomPort = p > 0 && p !== 80 && p !== 443
-//   if (isCustomPort) {
-//     conf.port = p
-//   }
-//   return new Promise<string>((resolve, reject) => {
-//     const minioClient = new Minio.Client(conf)
-//     try {
-//       minioClient.putObject(bucket, dateFilename, buffer, (e) => {
-//         if (e) {
-//           reject(e)
-//         }
-//         const host = `${useSSL ? `https://` : `http://`}${endpoint}${
-//           isCustomPort ? `:${port}` : ``
-//         }`
-//         const url = `${host}/${bucket}/${dateFilename}`
-//         // console.log("文件上传成功: ", url)
-//         resolve(url)
-//         // return `${endpoint}/${bucket}/${dateFilename}`;
-//       })
-//     }
-//     catch (e) {
-//       reject(e)
-//     }
-//   })
-// }
+async function minioFileUpload(file: File) {
+  const dateFilename = getDateFilename(file.name)
+  const { endpoint, port, useSSL, bucket, accessKey, secretKey } = JSON.parse(
+    localStorage.getItem(`minioConfig`)!,
+  )
+  const s3Client = new S3Client({
+    endpoint: `${useSSL ? `https` : `http`}://${endpoint}${port ? `:${port}` : ``}`,
+    credentials: {
+      accessKeyId: accessKey,
+      secretAccessKey: secretKey,
+    },
+    region: `auto`,
+    forcePathStyle: true,
+  })
+
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: dateFilename,
+    ContentType: file.type,
+  })
+  const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 })
+  await fetch(presignedUrl, {
+    method: `PUT`,
+    headers: {
+      'Content-Type': file.type,
+    },
+    data: file,
+  }).catch((err) => { console.log(err) })
+  return `${useSSL ? `https` : `http`}://${endpoint}${port ? `:${port}` : ``}/${bucket}/${dateFilename}`
+}
+
 // -----------------------------------------------------------------------
 // mp File Upload
 // -----------------------------------------------------------------------
@@ -385,10 +373,10 @@ async function mpFileUpload(file: File) {
     throw new Error(`上传失败，未获取到URL`)
   }
 
-  const imageUrl = res.url
-  // if (proxyOrigin && window.location.href.startsWith(`http`)) {
-  //   imageUrl = `https://wsrv.nl?url=${encodeURIComponent(imageUrl)}`
-  // }
+  let imageUrl = res.url
+  if (proxyOrigin && window.location.href.startsWith(`http`)) {
+    imageUrl = `https://wsrv.nl?url=${encodeURIComponent(imageUrl)}`
+  }
 
   return imageUrl
 }
@@ -397,27 +385,185 @@ async function mpFileUpload(file: File) {
 // Cloudflare R2 File Upload
 // -----------------------------------------------------------------------
 
-// async function r2Upload(file: File) {
-//   const { accountId, accessKey, secretKey, bucket, path, domain } = JSON.parse(
-//     localStorage.getItem(`r2Config`)!,
-//   )
-//   const dir = path ? `${path}/` : ``
-//   const filename = dir + getDateFilename(file.name)
-//   const client = new S3Client({ region: `auto`, endpoint: `https://${accountId}.r2.cloudflarestorage.com`, credentials: { accessKeyId: accessKey, secretAccessKey: secretKey } })
-//   const signedUrl = await getSignedUrl(
-//     client,
-//     new PutObjectCommand({ Bucket: bucket, Key: filename, ContentType: file.type }),
-//     { expiresIn: 300 },
-//   )
-//   await fetch(signedUrl, {
-//     method: `PUT`,
-//     headers: {
-//       'Content-Type': file.type,
-//     },
-//     data: file,
-//   }).catch((err) => { console.log(err) })
-//   return `${domain}/${filename}`
-// }
+async function r2Upload(file: File) {
+  const { accountId, accessKey, secretKey, bucket, path, domain } = JSON.parse(
+    localStorage.getItem(`r2Config`)!,
+  )
+  const dir = path ? `${path}/` : ``
+  const filename = dir + getDateFilename(file.name)
+  const client = new S3Client({ region: `auto`, endpoint: `https://${accountId}.r2.cloudflarestorage.com`, credentials: { accessKeyId: accessKey, secretAccessKey: secretKey } })
+  const signedUrl = await getSignedUrl(
+    client,
+    new PutObjectCommand({ Bucket: bucket, Key: filename, ContentType: file.type }),
+    { expiresIn: 300 },
+  )
+  await fetch(signedUrl, {
+    method: `PUT`,
+    headers: {
+      'Content-Type': file.type,
+    },
+    data: file,
+  }).catch((err) => { console.log(err) })
+  return `${domain}/${filename}`
+}
+
+// -----------------------------------------------------------------------
+// Upyun File Upload
+// -----------------------------------------------------------------------
+
+async function upyunUpload(file: File) {
+  const { bucket, operator, password, path, domain } = JSON.parse(
+    localStorage.getItem(`upyunConfig`)!,
+  )
+  const filename = `${path}/${getDateFilename(file.name)}`
+  const uri = `/${bucket}/${filename}`
+  const arrayBuffer = await file.arrayBuffer()
+  const date = new Date().toUTCString()
+  const method = `PUT`
+  const signStr = [method, uri, date].join(`&`)
+  const passwordMd5 = CryptoJS.MD5(password).toString()
+  const signature = CryptoJS.HmacSHA1(signStr, passwordMd5).toString(CryptoJS.enc.Base64)
+  const authorization = `UPYUN ${operator}:${signature}`
+  const url = `https://v0.api.upyun.com${uri}`
+  const res = await window.fetch(url, {
+    method: `PUT`,
+    headers: {
+      'Authorization': authorization,
+      'X-Date': date,
+      'Content-Type': file.type,
+    },
+    body: arrayBuffer,
+  })
+
+  if (!res.ok) {
+    throw new Error(`上传失败: ${await res.text()}`)
+  }
+
+  return `${domain}/${filename}`
+}
+
+// -----------------------------------------------------------------------
+// Telegram File Upload
+// -----------------------------------------------------------------------
+async function telegramUpload(file: File): Promise<string> {
+  const { token, chatId } = JSON.parse(localStorage.getItem(`telegramConfig`)!)
+
+  // 1. sendPhoto
+  const form = new FormData()
+  form.append(`chat_id`, chatId)
+  form.append(`photo`, file, file.name)
+
+  const sendRes = await fetch<any, {
+    ok: boolean
+    result: {
+      photo: { file_id: string }[]
+    }
+  }>({
+    url: `https://api.telegram.org/bot${token}/sendPhoto`,
+    method: `POST`,
+    data: form,
+  })
+
+  if (!sendRes.ok || !sendRes.result.photo.length) {
+    throw new Error(`Telegram sendPhoto 失败`)
+  }
+  // 取最大的分辨率那张图
+  const fileId = sendRes.result.photo[sendRes.result.photo.length - 1].file_id
+
+  // 2. getFile
+  const fileRes = await fetch<any, {
+    ok: boolean
+    result: { file_path: string }
+  }>({
+    url: `https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`,
+    method: `GET`,
+  })
+  if (!fileRes.ok) {
+    throw new Error(`Telegram getFile 失败`)
+  }
+
+  const filePath = fileRes.result.file_path
+  // 3. 拼出下载地址
+  return `https://api.telegram.org/file/bot${token}/${filePath}`
+}
+
+// -----------------------------------------------------------------------
+// Cloudinary File Upload
+// -----------------------------------------------------------------------
+
+/**
+ * localStorage 中 cloudinaryConfig 的示例：
+ * {
+ *   "cloudName": "demo",
+ *   "apiKey": "1234567890",
+ *   "apiSecret": "abcdefg1234567890",     // 可选：若未填写则走 unsigned preset
+ *   "uploadPreset": "unsigned_preset",     // 可选：有 apiSecret 时可省略
+ *   "folder": "blog/image",                // 可选：Cloudinary 目录，留空则根路径
+ *   "domain": "https://cdn.example.com"    // 可选：自定义访问域名 / CDN 域名
+ * }
+ */
+async function cloudinaryUpload(file: File): Promise<string> {
+  const {
+    cloudName,
+    apiKey,
+    apiSecret,
+    uploadPreset,
+    folder = ``,
+    domain,
+  } = JSON.parse(localStorage.getItem(`cloudinaryConfig`)!)
+
+  if (!cloudName || !apiKey)
+    throw new Error(`Cloudinary 配置缺少 cloudName / apiKey`)
+
+  const timestamp = Math.floor(Date.now() / 1000) // Cloudinary 要求秒级时间戳
+  const formData = new FormData()
+  formData.append(`file`, file)
+  formData.append(`api_key`, apiKey)
+  formData.append(`timestamp`, `${timestamp}`)
+
+  // ---------- 1) 需要签名的场景 ----------
+  if (apiSecret) {
+    // 参与签名的字段需按字典序排列并拼接成 a=b&c=d… 的格式
+    const params: string[] = []
+    if (folder)
+      params.push(`folder=${folder}`)
+    if (uploadPreset)
+      params.push(`upload_preset=${uploadPreset}`)
+    params.push(`timestamp=${timestamp}`)
+
+    const signatureBase = params.sort().join(`&`)
+    const signature = CryptoJS.SHA1(signatureBase + apiSecret).toString()
+    formData.append(`signature`, signature)
+  }
+  // ---------- 2) unsigned preset ----------
+  else if (uploadPreset) {
+    formData.append(`upload_preset`, uploadPreset)
+  }
+  else {
+    throw new Error(`未配置 apiSecret 时必须提供 uploadPreset`)
+  }
+
+  if (folder)
+    formData.append(`folder`, folder)
+
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`
+  const res = await fetch<any, { secure_url?: string, url?: string }>(uploadUrl, {
+    method: `POST`,
+    data: formData,
+  })
+
+  const originUrl = res.secure_url || res.url
+  if (!originUrl)
+    throw new Error(`Cloudinary 返回缺少 url 字段`)
+
+  // 如果配置了自定义域名，则把 host 换掉
+  if (domain) {
+    const { pathname, search } = new URL(originUrl)
+    return `${domain}${pathname}${search}`
+  }
+
+  return originUrl
+}
 
 // -----------------------------------------------------------------------
 // formCustom File Upload
@@ -436,11 +582,11 @@ async function mpFileUpload(file: File) {
 //       util: {
 //         axios: fetch, // axios 实例
 //         CryptoJS, // 加密库
-//         // OSS, // tiny-oss
-//         // COS, // cos-js-sdk-v5
+//         OSS, // tiny-oss
+//         COS, // cos-js-sdk-v5
 //         Buffer, // buffer-from
 //         uuidv4, // uuid
-//         // qiniu, // qiniu-js
+//         qiniu, // qiniu-js
 //         tokenTools, // 一些编码转换函数
 //         getDir, // 获取 年/月/日 形式的目录
 //         getDateFilename, // 根据文件名获取它以 时间戳+uuid 的形式
@@ -462,22 +608,28 @@ function fileUpload(content: string, file: File) {
     localStorage.setItem(`imgHost`, `github`)
   }
   switch (imgHost) {
-    // case `aliOSS`:
-    //   return aliOSSFileUpload(file)
-    // case `minio`:
-    //   return minioFileUpload(content, file.name)
-    // case `txCOS`:
-    //   return txCOSFileUpload(file)
-    // case `qiniu`:
-    //   return qiniuUpload(file)
-    // case `gitee`:
-    //   return giteeUpload(content, file.name)
-    // case `github`:
-    //   return ghFileUpload(content, file.name)
+    case `aliOSS`:
+      return aliOSSFileUpload(file)
+    case `minio`:
+      return minioFileUpload(file)
+    case `txCOS`:
+      return txCOSFileUpload(file)
+    case `qiniu`:
+      return qiniuUpload(file)
+    case `gitee`:
+      return giteeUpload(content, file.name)
+    case `github`:
+      return ghFileUpload(content, file.name)
     case `mp`:
       return mpFileUpload(file)
-    // case `r2`:
-    //  return r2Upload(file)
+    case `r2`:
+      return r2Upload(file)
+    case `upyun`:
+      return upyunUpload(file)
+    case `telegram`:
+      return telegramUpload(file)
+    case `cloudinary`:
+      return cloudinaryUpload(file)
     // case `formCustom`:
     //   return formCustomUpload(content, file)
     default:

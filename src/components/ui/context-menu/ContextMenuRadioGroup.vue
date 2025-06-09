@@ -9,7 +9,7 @@ import {
 const props = defineProps<ContextMenuRadioGroupProps>()
 const emits = defineEmits<ContextMenuRadioGroupEmits>()
 
-const forwarded = useForwardPropsEmits(props, emits) as ContextMenuRadioGroupProps
+const forwarded = useForwardPropsEmits(props, emits)
 </script>
 
 <template>

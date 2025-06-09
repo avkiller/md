@@ -4,7 +4,7 @@ import { HoverCardRoot, type HoverCardRootEmits, type HoverCardRootProps, useFor
 const props = defineProps<HoverCardRootProps>()
 const emits = defineEmits<HoverCardRootEmits>()
 
-const forwarded = useForwardPropsEmits(props, emits) as HoverCardRootProps
+const forwarded = useForwardPropsEmits(props, emits)
 </script>
 
 <template>

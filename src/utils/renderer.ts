@@ -1,15 +1,15 @@
-import type { ExtendedProperties, IOpts, ThemeStyles } from '@/types'
 import type { PropertiesHyphen } from 'csstype'
 import type { RendererObject, Tokens } from 'marked'
 import type { ReadTimeResults } from 'reading-time'
 import { cloneDeep, toMerged } from 'es-toolkit'
-// import frontMatter from 'front-matter'
-
+import frontMatter from 'front-matter'
 import hljs from 'highlight.js'
 
 import { marked } from 'marked'
 // import mermaid from 'mermaid'
-// import readingTime from 'reading-time'
+import readingTime from 'reading-time'
+import type { ExtendedProperties, IOpts, ThemeStyles } from '@/types'
+
 import { getStyleString } from '.'
 import markedAlert from './MDAlert'
 import markedFootnotes from './MDFootnotes'
@@ -107,7 +107,7 @@ function transform(legend: string, text: string | null, title: string | null): s
 }
 
 const macCodeSvg = `
-  <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
+  <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
     <ellipse cx="50" cy="65" rx="50" ry="52" stroke="rgb(220,60,54)" stroke-width="2" fill="rgb(237,108,96)" />
     <ellipse cx="225" cy="65" rx="50" ry="52" stroke="rgb(218,151,33)" stroke-width="2" fill="rgb(247,193,81)" />
     <ellipse cx="400" cy="65" rx="50" ry="52" stroke="rgb(27,161,37)" stroke-width="2" fill="rgb(100,200,86)" />
@@ -120,9 +120,7 @@ interface ParseResult {
   readingTime: ReadTimeResults
 }
 
-async function parseFrontMatterAndContent(markdownText: string): Promise<ParseResult> {
-  const { default: frontMatter } = await import(`front-matter`)
-  const { default: readingTime } = await import(`reading-time`)
+function parseFrontMatterAndContent(markdownText: string): ParseResult {
   try {
     const parsed = frontMatter(markdownText)
     const yamlData = parsed.attributes
@@ -134,7 +132,7 @@ async function parseFrontMatterAndContent(markdownText: string): Promise<ParseRe
       yamlData: yamlData as Record<string, any>,
       markdownContent,
       readingTime: readingTimeResult,
-    } as ParseResult
+    }
   }
   catch (error) {
     console.error(`Error parsing front-matter:`, error)
@@ -142,7 +140,7 @@ async function parseFrontMatterAndContent(markdownText: string): Promise<ParseRe
       yamlData: {},
       markdownContent: markdownText,
       readingTime: readingTime(markdownText),
-    } as ParseResult
+    }
   }
 }
 
@@ -153,6 +151,10 @@ export function initRenderer(opts: IOpts) {
   let codeIndex: number = 0
   const listOrderedStack: boolean[] = []
   const listCounters: number[] = []
+
+  function getOpts(): IOpts {
+    return opts
+  }
 
   function styles(tag: string, addition: string = ``): string {
     return getStyles(styleMapping, tag, addition)
@@ -223,7 +225,6 @@ export function initRenderer(opts: IOpts) {
 
     paragraph({ tokens }: Tokens.Paragraph): string {
       const text = this.parser.parseInline(tokens)
-      // console.log(text)
       const isFigureImage = text.includes(`<figure`) && text.includes(`<img`)
       const isEmpty = text.trim() === ``
       if (isFigureImage || isEmpty) {
@@ -241,18 +242,15 @@ export function initRenderer(opts: IOpts) {
     code({ text, lang = `` }: Tokens.Code): string {
       if (lang.startsWith(`mermaid`)) {
         clearTimeout(codeIndex)
+        // codeIndex = setTimeout(() => {
+        //   mermaid.run()
+        // }, 0) as any as number
         import(`mermaid`).then((mermaid) => {
           codeIndex = setTimeout(() => {
-            // mermaid.default.initialize({ startOnLoad: true });
             mermaid.default.run()
           }, 0) as any as number
         })
         return `<pre class="mermaid">${text}</pre>`
-
-        // codeIndex = setTimeout(() => {
-        //   mermaid.run()
-        // }, 0) as any as number
-        // return `<pre class="mermaid">${text}</pre>`
       }
       const langText = lang.split(` `)[0]
       const language = hljs.getLanguage(langText) ? langText : `plaintext`
@@ -332,10 +330,8 @@ export function initRenderer(opts: IOpts) {
       if (href.startsWith(`https://mp.weixin.qq.com`)) {
         return `<a href="${href}" title="${title || text}" ${styles(`wx_link`)}>${parsedText}</a>`
       }
-
-      // 去除相等的提示
       // if (href === text) {
-      //   return  parsedText
+      //   return parsedText
       // }
       if (opts.citeStatus) {
         const ref = addFootnote(title || text, href)
@@ -403,5 +399,6 @@ export function initRenderer(opts: IOpts) {
     createContainer(content: string) {
       return styledContent(`container`, content, `section`)
     },
+    getOpts,
   }
 }

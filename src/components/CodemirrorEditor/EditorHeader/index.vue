@@ -1,16 +1,16 @@
 <script setup lang="ts">
+import { ChevronDownIcon, Moon, PanelLeftClose, PanelLeftOpen, Settings, Sun } from 'lucide-vue-next'
 import { Toaster } from '@/components/ui/sonner'
+
 import {
   altSign,
   ctrlKey,
   ctrlSign,
   shiftSign,
 } from '@/config'
-
 import { useStore } from '@/stores'
 import { addPrefix, processClipboardContent } from '@/utils'
 import { copyPlain } from '@/utils/clipboard'
-import { ChevronDownIcon, Moon, PanelLeftClose, PanelLeftOpen, Settings, Sun } from 'lucide-vue-next'
 
 const emit = defineEmits([`addFormat`, `formatContent`, `startCopy`, `endCopy`])
 
@@ -125,7 +125,11 @@ function copy() {
           ? `已复制 HTML 源码，请进行下一步操作。`
           : `已复制渲染后的内容到剪贴板，可直接到公众号后台粘贴。`,
       )
-
+      window.dispatchEvent(new CustomEvent(`copyToMp`, {
+        detail: {
+          content: output.value,
+        },
+      }))
       editorRefresh()
       emit(`endCopy`)
     })

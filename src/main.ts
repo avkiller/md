@@ -1,7 +1,7 @@
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import App from './App.vue'
-import { setupComponents } from './utils/setup-components'
+// import { setupComponents } from './utils/setup-components'
 
 import 'virtual:uno.css'
 import 'codemirror/lib/codemirror.css'
@@ -25,7 +25,12 @@ import 'codemirror/addon/search/searchcursor'
 import 'codemirror/addon/dialog/dialog' // 搜索替换功能
 import 'codemirror/addon/dialog/dialog.css'
 
-setupComponents()
+// setupComponents()
+
+import(`@/utils/setup-components`).then(({ setupComponents }) => {
+  setupComponents() // 显式调用
+//   console.log('setup-components 加载完成并执行')
+})
 
 const app = createApp(App)
 

@@ -9,7 +9,7 @@ interface MenubarSubRootProps {
 const props = defineProps<MenubarSubRootProps>()
 const emits = defineEmits<MenubarSubEmits>()
 
-const forwarded = useForwardPropsEmits(props, emits) as MenubarSubRootProps
+const forwarded = useForwardPropsEmits(props, emits)
 </script>
 
 <template>

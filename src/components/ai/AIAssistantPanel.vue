@@ -1,19 +1,5 @@
 <script setup lang="ts">
-/* ---------- 依赖 ---------- */
-import type { QuickCommandRuntime } from '@/stores/useQuickCommands'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
-import useAIConfigStore from '@/stores/AIConfig'
-import { useQuickCommands } from '@/stores/useQuickCommands'
-import { copyPlain } from '@/utils/clipboard'
 import hljs from 'highlight.js'
-
 import {
   Check,
   Copy,
@@ -23,13 +9,27 @@ import {
   RefreshCcw,
   Send,
   Settings,
-  Trash,
+  Trash2,
 } from 'lucide-vue-next'
-
 /* ---------- Markdown & highlight.js ---------- */
 import { Marked } from 'marked'
 import { markedHighlight } from 'marked-highlight'
 import { nextTick, onMounted, ref, watch } from 'vue'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+
+import useAIConfigStore from '@/stores/AIConfig'
+
+/* ---------- 依赖 ---------- */
+import type { QuickCommandRuntime } from '@/stores/useQuickCommands'
+import { useQuickCommands } from '@/stores/useQuickCommands'
+import { copyPlain } from '@/utils/clipboard'
 /* ---------- 组件属性 ---------- */
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits([`update:open`])
@@ -425,7 +425,7 @@ async function sendMessage() {
             size="icon"
             @click="resetMessages"
           >
-            <Trash class="h-4 w-4" />
+            <Trash2 class="h-4 w-4" />
           </Button>
         </div>
         <p class="text-muted-foreground text-sm">
@@ -562,7 +562,7 @@ async function sendMessage() {
       <!-- ============ 输入框 ============ -->
       <div v-if="!configVisible" class="relative mt-2">
         <div
-          class="bg-background border-border item-start flex flex-col items-baseline gap-2 border rounded-xl px-3 py-2 pr-12 shadow-inner"
+          class="bg-background item-start border-border flex flex-col items-baseline gap-2 border rounded-xl px-3 py-2 pr-12 shadow-inner"
         >
           <Textarea
             v-model="input"

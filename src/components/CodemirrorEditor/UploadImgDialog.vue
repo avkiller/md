@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { useDisplayStore } from '@/stores'
-import { checkImage } from '@/utils'
 import { toTypedSchema } from '@vee-validate/yup'
 import { UploadCloud } from 'lucide-vue-next'
 import { Field, Form } from 'vee-validate'
 import * as yup from 'yup'
+import { useDisplayStore } from '@/stores'
+import { checkImage } from '@/utils'
 
 const emit = defineEmits([`uploadImage`])
 
@@ -28,114 +28,132 @@ function githubSubmit(formValues: any) {
 }
 
 // 阿里云
-// const aliOSSSchema = toTypedSchema(yup.object({
-//   accessKeyId: yup.string().required(`AccessKey ID 不能为空`),
-//   accessKeySecret: yup.string().required(`AccessKey Secret 不能为空`),
-//   bucket: yup.string().required(`Bucket 不能为空`),
-//   region: yup.string().required(`Region 不能为空`),
-//   useSSL: yup.boolean().required(),
-//   cdnHost: yup.string().optional(),
-//   path: yup.string().optional(),
-// }))
+const aliOSSSchema = toTypedSchema(yup.object({
+  accessKeyId: yup.string().required(`AccessKey ID 不能为空`),
+  accessKeySecret: yup.string().required(`AccessKey Secret 不能为空`),
+  bucket: yup.string().required(`Bucket 不能为空`),
+  region: yup.string().required(`Region 不能为空`),
+  useSSL: yup.boolean().required(),
+  cdnHost: yup.string().optional(),
+  path: yup.string().optional(),
+}))
 
-// const aliOSSConfig = ref(localStorage.getItem(`aliOSSConfig`)
-//   ? JSON.parse(localStorage.getItem(`aliOSSConfig`)!)
-//   : {
-//       accessKeyId: ``,
-//       accessKeySecret: ``,
-//       bucket: ``,
-//       region: ``,
-//       useSSL: true,
-//       cdnHost: ``,
-//       path: ``,
-//     })
+const aliOSSConfig = ref(localStorage.getItem(`aliOSSConfig`)
+  ? JSON.parse(localStorage.getItem(`aliOSSConfig`)!)
+  : {
+      accessKeyId: ``,
+      accessKeySecret: ``,
+      bucket: ``,
+      region: ``,
+      useSSL: true,
+      cdnHost: ``,
+      path: ``,
+    })
 
-// function aliOSSSubmit(formValues: any) {
-//   localStorage.setItem(`aliOSSConfig`, JSON.stringify(formValues))
-//   aliOSSConfig.value = formValues
-//   toast.success(`保存成功`)
-// }
+function aliOSSSubmit(formValues: any) {
+  localStorage.setItem(`aliOSSConfig`, JSON.stringify(formValues))
+  aliOSSConfig.value = formValues
+  toast.success(`保存成功`)
+}
 
 // 腾讯云
-// const txCOSSchema = toTypedSchema(yup.object({
-//   secretId: yup.string().required(`Secret ID 不能为空`),
-//   secretKey: yup.string().required(`Secret Key 不能为空`),
-//   bucket: yup.string().required(`Bucket 不能为空`),
-//   region: yup.string().required(`Region 不能为空`),
-//   cdnHost: yup.string().optional(),
-//   path: yup.string().optional(),
-// }))
+const txCOSSchema = toTypedSchema(yup.object({
+  secretId: yup.string().required(`Secret ID 不能为空`),
+  secretKey: yup.string().required(`Secret Key 不能为空`),
+  bucket: yup.string().required(`Bucket 不能为空`),
+  region: yup.string().required(`Region 不能为空`),
+  cdnHost: yup.string().optional(),
+  path: yup.string().optional(),
+}))
 
-// const txCOSConfig = ref(localStorage.getItem(`txCOSConfig`)
-//   ? JSON.parse(localStorage.getItem(`txCOSConfig`)!)
-//   : {
-//       secretId: ``,
-//       secretKey: ``,
-//       bucket: ``,
-//       region: ``,
-//       cdnHost: ``,
-//       path: ``,
-//     })
+const txCOSConfig = ref(localStorage.getItem(`txCOSConfig`)
+  ? JSON.parse(localStorage.getItem(`txCOSConfig`)!)
+  : {
+      secretId: ``,
+      secretKey: ``,
+      bucket: ``,
+      region: ``,
+      cdnHost: ``,
+      path: ``,
+    })
 
-// function txCOSSubmit(formValues: any) {
-//   localStorage.setItem(`txCOSConfig`, JSON.stringify(formValues))
-//   txCOSConfig.value = formValues
-//   toast.success(`保存成功`)
-// }
+function txCOSSubmit(formValues: any) {
+  localStorage.setItem(`txCOSConfig`, JSON.stringify(formValues))
+  txCOSConfig.value = formValues
+  toast.success(`保存成功`)
+}
 
 // 七牛云
-// const qiniuSchema = toTypedSchema(yup.object({
-//   accessKey: yup.string().required(`AccessKey 不能为空`),
-//   secretKey: yup.string().required(`SecretKey 不能为空`),
-//   bucket: yup.string().required(`Bucket 不能为空`),
-//   domain: yup.string().required(`Bucket 对应域名不能为空`),
-//   region: yup.string().optional(),
-//   path: yup.string().optional(),
-// }))
+const qiniuSchema = toTypedSchema(yup.object({
+  accessKey: yup.string().required(`AccessKey 不能为空`),
+  secretKey: yup.string().required(`SecretKey 不能为空`),
+  bucket: yup.string().required(`Bucket 不能为空`),
+  domain: yup.string().required(`Bucket 对应域名不能为空`),
+  region: yup.string().optional(),
+  path: yup.string().optional(),
+}))
 
-// const qiniuConfig = ref(localStorage.getItem(`qiniuConfig`)
-//   ? JSON.parse(localStorage.getItem(`qiniuConfig`)!)
-//   : {
-//       accessKey: ``,
-//       secretKey: ``,
-//       bucket: ``,
-//       domain: ``,
-//       region: ``,
-//       path: ``,
-//     })
+const qiniuConfig = ref(localStorage.getItem(`qiniuConfig`)
+  ? JSON.parse(localStorage.getItem(`qiniuConfig`)!)
+  : {
+      accessKey: ``,
+      secretKey: ``,
+      bucket: ``,
+      domain: ``,
+      region: ``,
+      path: ``,
+    })
 
-// function qiniuSubmit(formValues: any) {
-//   localStorage.setItem(`qiniuConfig`, JSON.stringify(formValues))
-//   qiniuConfig.value = formValues
-//   toast.success(`保存成功`)
-// }
+function qiniuSubmit(formValues: any) {
+  localStorage.setItem(`qiniuConfig`, JSON.stringify(formValues))
+  qiniuConfig.value = formValues
+  toast.success(`保存成功`)
+}
 
 // MinIO
-// const minioOSSSchema = toTypedSchema(yup.object({
-//   endpoint: yup.string().required(`Endpoint 不能为空`),
-//   port: yup.string().optional(),
-//   useSSL: yup.boolean().required(),
-//   bucket: yup.string().required(`Bucket 不能为空`),
-//   accessKey: yup.string().required(`AccessKey 不能为空`),
-//   secretKey: yup.string().required(`SecretKey 不能为空`),
-// }))
+const minioOSSSchema = toTypedSchema(yup.object({
+  endpoint: yup.string().required(`Endpoint 不能为空`),
+  port: yup.string().optional(),
+  useSSL: yup.boolean().required(),
+  bucket: yup.string().required(`Bucket 不能为空`),
+  accessKey: yup.string().required(`AccessKey 不能为空`),
+  secretKey: yup.string().required(`SecretKey 不能为空`),
+}))
 
-// const minioOSSConfig = ref(localStorage.getItem(`minioConfig`)
-//   ? JSON.parse(localStorage.getItem(`minioConfig`)!)
-//   : {
-//       endpoint: ``,
-//       port: ``,
-//       useSSL: true,
-//       bucket: ``,
-//       accessKey: ``,
-//       secretKey: ``,
-//     })
+const minioOSSConfig = ref(localStorage.getItem(`minioConfig`)
+  ? JSON.parse(localStorage.getItem(`minioConfig`)!)
+  : {
+      endpoint: ``,
+      port: ``,
+      useSSL: true,
+      bucket: ``,
+      accessKey: ``,
+      secretKey: ``,
+    })
 
-// function minioOSSSubmit(formValues: any) {
-//   localStorage.setItem(`minioConfig`, JSON.stringify(formValues))
-//   minioOSSConfig.value = formValues
-//   toast.success(`保存成功`)
-// }
+function minioOSSSubmit(formValues: any) {
+  localStorage.setItem(`minioConfig`, JSON.stringify(formValues))
+  minioOSSConfig.value = formValues
+  toast.success(`保存成功`)
+}
+
+// Telegram 图床
+const telegramSchema = toTypedSchema(
+  yup.object({
+    token: yup.string().required(`Bot Token 不能为空`),
+    chatId: yup.string().required(`Chat ID 不能为空`),
+  }),
+)
+const telegramConfig = ref(
+  localStorage.getItem(`telegramConfig`)
+    ? JSON.parse(localStorage.getItem(`telegramConfig`)!)
+    : { token: ``, chatId: `` },
+)
+function telegramSubmit(values: any) {
+  localStorage.setItem(`telegramConfig`, JSON.stringify(values))
+  telegramConfig.value = values
+  toast.success(`保存成功`)
+}
 
 // 公众号
 // 当前是否为网页（http/https 协议）
@@ -183,31 +201,93 @@ function mpSubmit(formValues: any) {
 }
 
 // Cloudflare R2
-// const r2Schema = toTypedSchema(yup.object({
-//   accountId: yup.string().required(`Account ID 不能为空`),
-//   accessKey: yup.string().required(`AccessKey 不能为空`),
-//   secretKey: yup.string().required(`SecretKey 不能为空`),
-//   bucket: yup.string().required(`Bucket 不能为空`),
-//   domain: yup.string().required(`Bucket 对应域名不能为空`),
-//   path: yup.string().optional(),
-// }))
+const r2Schema = toTypedSchema(yup.object({
+  accountId: yup.string().required(`Account ID 不能为空`),
+  accessKey: yup.string().required(`AccessKey 不能为空`),
+  secretKey: yup.string().required(`SecretKey 不能为空`),
+  bucket: yup.string().required(`Bucket 不能为空`),
+  domain: yup.string().required(`Bucket 对应域名不能为空`),
+  path: yup.string().optional(),
+}))
 
-// const r2Config = ref(localStorage.getItem(`r2Config`)
-//   ? JSON.parse(localStorage.getItem(`r2Config`)!)
-//   : {
-//       accountId: ``,
-//       accessKey: ``,
-//       secretKey: ``,
-//       bucket: ``,
-//       domain: ``,
-//       path: ``,
-//     })
+const r2Config = ref(localStorage.getItem(`r2Config`)
+  ? JSON.parse(localStorage.getItem(`r2Config`)!)
+  : {
+      accountId: ``,
+      accessKey: ``,
+      secretKey: ``,
+      bucket: ``,
+      domain: ``,
+      path: ``,
+    })
 
-// function r2Submit(formValues: any) {
-//   localStorage.setItem(`r2Config`, JSON.stringify(formValues))
-//   r2Config.value = formValues
-//   toast.success(`保存成功`)
-// }
+function r2Submit(formValues: any) {
+  localStorage.setItem(`r2Config`, JSON.stringify(formValues))
+  r2Config.value = formValues
+  toast.success(`保存成功`)
+}
+
+// 又拍云
+const upyunSchema = computed(() => toTypedSchema(
+  yup.object({
+    bucket: yup.string().required(`Bucket 不能为空`),
+    operator: yup.string().required(`操作员 不能为空`),
+    password: yup.string().required(`密码 不能为空`),
+    domain: yup.string().required(`CDN 域名不能为空`),
+    path: yup.string().optional(),
+  }),
+))
+
+const upyunConfig = ref(localStorage.getItem(`upyunConfig`)
+  ? JSON.parse(localStorage.getItem(`upyunConfig`)!)
+  : {
+      bucket: ``,
+      operator: ``,
+      password: ``,
+      domain: ``,
+      path: ``,
+    })
+
+function upyunSubmit(formValues: any) {
+  localStorage.setItem(`upyunConfig`, JSON.stringify(formValues))
+  upyunConfig.value = formValues
+  toast.success(`保存成功`)
+}
+
+// Cloudinary
+const cloudinarySchema = toTypedSchema(
+  yup.object({
+    cloudName: yup.string().required(`Cloud Name 不能为空`),
+    apiKey: yup.string().required(`API Key 不能为空`),
+    apiSecret: yup.string().optional(),
+    uploadPreset: yup.string().when(`apiSecret`, {
+      is: (v: string | undefined) => !v || v.length === 0,
+      then: s => s.required(`未填写 apiSecret 时必须提供上传预设名`),
+      otherwise: s => s.optional(),
+    }),
+    folder: yup.string().optional(),
+    domain: yup.string().optional(),
+  }),
+)
+
+const cloudinaryConfig = ref(
+  localStorage.getItem(`cloudinaryConfig`)
+    ? JSON.parse(localStorage.getItem(`cloudinaryConfig`)!)
+    : {
+        cloudName: ``,
+        apiKey: ``,
+        apiSecret: ``,
+        uploadPreset: ``,
+        folder: ``,
+        domain: ``,
+      },
+)
+
+function cloudinarySubmit(formValues: any) {
+  localStorage.setItem(`cloudinaryConfig`, JSON.stringify(formValues))
+  cloudinaryConfig.value = formValues
+  toast.success(`保存成功`)
+}
 
 const options = [
   {
@@ -218,34 +298,44 @@ const options = [
     value: `github`,
     label: `GitHub`,
   },
-  // {
-  //   value: `aliOSS`,
-  //   label: `阿里云`,
-  // },
-  // {
-  //   value: `txCOS`,
-  //   label: `腾讯云`,
-  // },
-  // {
-  //   value: `qiniu`,
-  //   label: `七牛云`,
-  // },
-  // {
-  //   value: `minio`,
-  //   label: `MinIO`,
-  // },
+  {
+    value: `aliOSS`,
+    label: `阿里云`,
+  },
+  {
+    value: `txCOS`,
+    label: `腾讯云`,
+  },
+  {
+    value: `qiniu`,
+    label: `七牛云`,
+  },
+  {
+    value: `minio`,
+    label: `MinIO`,
+  },
   {
     value: `mp`,
     label: `公众号图床`,
   },
-  // {
-  //   value: `r2`,
-  //   label: `Cloudflare R2`,
-  // },
-  // {
-  //   value: `formCustom`,
-  //   label: `自定义代码`,
-  // },
+  {
+    value: `r2`,
+    label: `Cloudflare R2`,
+  },
+  {
+    value: `upyun`,
+    label: `又拍云`,
+  },
+  { value: `telegram`, label: `Telegram` },
+  {
+    value: `cloudinary`,
+    label: `Cloudinary`,
+  },
+
+  {
+    value: `formCustom`,
+    label: `自定义代码`,
+  },
 ]
 
 const imgHost = ref(`default`)
@@ -381,7 +471,7 @@ function onDrop(e: DragEvent) {
                 <Input
                   v-bind="field"
                   v-model="field.value"
-                  placeholder="如：release，可不填，默认 main"
+                  placeholder="如：release，可不填，默认 master"
                 />
               </FormItem>
             </Field>
@@ -417,7 +507,7 @@ function onDrop(e: DragEvent) {
           </Form>
         </TabsContent>
 
-        <!-- <TabsContent value="aliOSS">
+        <TabsContent value="aliOSS">
           <Form :validation-schema="aliOSSSchema" :initial-values="aliOSSConfig" @submit="aliOSSSubmit">
             <Field v-slot="{ field, errorMessage }" name="accessKeyId">
               <FormItem label="AccessKey ID" required :error="errorMessage">
@@ -509,9 +599,9 @@ function onDrop(e: DragEvent) {
               </Button>
             </FormItem>
           </Form>
-        </TabsContent> -->
+        </TabsContent>
 
-        <!-- <TabsContent value="txCOS">
+        <TabsContent value="txCOS">
           <Form :validation-schema="txCOSSchema" :initial-values="txCOSConfig" @submit="txCOSSubmit">
             <Field v-slot="{ field, errorMessage }" name="secretId">
               <FormItem label="SecretId" required :error="errorMessage">
@@ -592,9 +682,9 @@ function onDrop(e: DragEvent) {
               </Button>
             </FormItem>
           </Form>
-        </TabsContent> -->
+        </TabsContent>
 
-        <!-- <TabsContent value="qiniu">
+        <TabsContent value="qiniu">
           <Form :validation-schema="qiniuSchema" :initial-values="qiniuConfig" @submit="qiniuSubmit">
             <Field v-slot="{ field, errorMessage }" name="accessKey">
               <FormItem label="AccessKey" required :error="errorMessage">
@@ -751,7 +841,7 @@ function onDrop(e: DragEvent) {
               </Button>
             </FormItem>
           </Form>
-        </TabsContent> -->
+        </TabsContent>
 
         <TabsContent value="mp">
           <Form :validation-schema="mpSchema" :initial-values="mpConfig" @submit="mpSubmit">
@@ -805,7 +895,7 @@ function onDrop(e: DragEvent) {
                   variant="link"
                   class="p-0"
                   as="a"
-                  href="https://mpmd.pages.dev/tutorial/"
+                  href="https://md-pages.doocs.org/tutorial/"
                   target="_blank"
                 >
                   如何在浏览器插件中使用公众号图床？
@@ -821,7 +911,7 @@ function onDrop(e: DragEvent) {
           </Form>
         </TabsContent>
 
-        <!-- <TabsContent value="r2">
+        <TabsContent value="r2">
           <Form :validation-schema="r2Schema" :initial-values="r2Config" @submit="r2Submit">
             <Field v-slot="{ field, errorMessage }" name="accountId">
               <FormItem label="AccountId" required :error="errorMessage">
@@ -868,7 +958,7 @@ function onDrop(e: DragEvent) {
                   href="https://developers.cloudflare.com/r2/api/s3/api/"
                   target="_blank"
                 >
-                  如何使用 S3 API 操作 Cloudflare R2
+                  如何使用 S3 API 操作 Cloudflare R2？
                 </Button>
                 <Button
                   variant="link"
@@ -877,7 +967,7 @@ function onDrop(e: DragEvent) {
                   href="https://developers.cloudflare.com/r2/buckets/cors/"
                   target="_blank"
                 >
-                  如何设置跨域(CORS)
+                  如何设置跨域(CORS)？
                 </Button>
               </div>
             </FormItem>
@@ -888,7 +978,169 @@ function onDrop(e: DragEvent) {
               </Button>
             </FormItem>
           </Form>
-        </TabsContent> -->
+        </TabsContent>
+
+        <TabsContent value="upyun">
+          <Form :validation-schema="upyunSchema" :initial-values="upyunConfig" @submit="upyunSubmit">
+            <Field v-slot="{ field, errorMessage }" name="bucket">
+              <FormItem label="Bucket" required :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" placeholder="如: md" class="min-w-[350px]" />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="operator">
+              <FormItem label="操作员" required :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" placeholder="如: operator" />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="password">
+              <FormItem label="操作员密码" required :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" type="password" placeholder="如: c1c4dbcb0b6b785ac6633422a06dff3dac055fe74fe40xj1b5c5fcf1bf128010" />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="domain">
+              <FormItem label="域名" required :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" placeholder="如：http://xxx.test.upcdn.net" />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="path">
+              <FormItem label="存储路径" :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" placeholder="如：img，可不填，默认为根目录" />
+              </FormItem>
+            </Field>
+
+            <FormItem>
+              <Button
+                variant="link"
+                class="p-0"
+                as="a"
+                href="https://help.upyun.com/"
+                target="_blank"
+              >
+                如何使用 又拍云？
+              </Button>
+            </FormItem>
+
+            <FormItem>
+              <Button type="submit">
+                保存配置
+              </Button>
+            </FormItem>
+          </Form>
+        </TabsContent>
+
+        <TabsContent value="telegram">
+          <Form :validation-schema="telegramSchema" :initial-values="telegramConfig" @submit="telegramSubmit">
+            <Field v-slot="{ field, errorMessage }" name="token">
+              <FormItem label="Bot Token" required :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" placeholder="如：123456789:ABCdefGHIjkl-MNOPqrSTUvwxYZ" />
+              </FormItem>
+            </Field>
+            <Field v-slot="{ field, errorMessage }" name="chatId">
+              <FormItem label="Chat ID" required :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" placeholder="如：-1001234567890" />
+              </FormItem>
+            </Field>
+            <FormItem>
+              <Button
+                variant="link"
+                class="p-0"
+                as="a"
+                href="https://github.com/doocs/md/blob/main/docs/telegram-usage.md"
+                target="_blank"
+              >
+                如何使用 Telegram？
+              </Button>
+            </FormItem>
+            <FormItem>
+              <Button type="submit">
+                保存配置
+              </Button>
+            </FormItem>
+          </Form>
+        </TabsContent>
+
+        <TabsContent value="cloudinary">
+          <Form
+            :validation-schema="cloudinarySchema"
+            :initial-values="cloudinaryConfig"
+            @submit="cloudinarySubmit"
+          >
+            <Field v-slot="{ field, errorMessage }" name="cloudName">
+              <FormItem label="Cloud Name" required :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" placeholder="如：demo" />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="apiKey">
+              <FormItem label="API Key" required :error="errorMessage">
+                <Input v-bind="field" v-model="field.value" placeholder="如：1234567890" />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="apiSecret">
+              <FormItem label="API Secret" :error="errorMessage">
+                <Input
+                  v-bind="field"
+                  v-model="field.value"
+                  type="password"
+                  placeholder="用于签名上传，可不填"
+                />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="uploadPreset">
+              <FormItem label="Upload Preset" :error="errorMessage">
+                <Input
+                  v-bind="field"
+                  v-model="field.value"
+                  placeholder="unsigned 时必填，signed 时可不填"
+                />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="folder">
+              <FormItem label="Folder" :error="errorMessage">
+                <Input
+                  v-bind="field"
+                  v-model="field.value"
+                  placeholder="如：blog/image，可不填"
+                />
+              </FormItem>
+            </Field>
+
+            <Field v-slot="{ field, errorMessage }" name="domain">
+              <FormItem label="自定义域名 / CDN" :error="errorMessage">
+                <Input
+                  v-bind="field"
+                  v-model="field.value"
+                  placeholder="如：https://cdn.example.com，可不填"
+                />
+              </FormItem>
+            </Field>
+
+            <FormItem>
+              <Button
+                variant="link"
+                class="p-0"
+                as="a"
+                href="https://cloudinary.com/documentation/upload_images"
+                target="_blank"
+              >
+                Cloudinary 使用文档
+              </Button>
+            </FormItem>
+
+            <FormItem>
+              <Button type="submit">
+                保存配置
+              </Button>
+            </FormItem>
+          </Form>
+        </TabsContent>
 
         <TabsContent value="formCustom">
           <CustomUploadForm />
