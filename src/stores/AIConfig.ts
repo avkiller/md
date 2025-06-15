@@ -1,6 +1,3 @@
-import { useStorage } from '@vueuse/core'
-import { defineStore } from 'pinia'
-import { customRef, ref, watch } from 'vue'
 import { serviceOptions } from '@/config/ai-services'
 import {
   DEFAULT_SERVICE_KEY,
@@ -8,6 +5,9 @@ import {
   DEFAULT_SERVICE_TEMPERATURE,
   DEFAULT_SERVICE_TYPE,
 } from '@/constants/AIConfig'
+import { useStorage } from '@vueuse/core'
+import { defineStore } from 'pinia'
+import { customRef, ref, watch } from 'vue'
 
 export default defineStore(`AIConfig`, () => {
   /* ————— 与 service 无关的全局配置 ————— */

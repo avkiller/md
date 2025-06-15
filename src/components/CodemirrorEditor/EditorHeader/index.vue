@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ChevronDownIcon, Moon, PanelLeftClose, PanelLeftOpen, Settings, Sun } from 'lucide-vue-next'
 import { Toaster } from '@/components/ui/sonner'
 
 import {
@@ -11,6 +10,7 @@ import {
 import { useStore } from '@/stores'
 import { addPrefix, processClipboardContent } from '@/utils'
 import { copyPlain } from '@/utils/clipboard'
+import { ChevronDownIcon, Moon, PanelLeftClose, PanelLeftOpen, Settings, Sun } from 'lucide-vue-next'
 
 const emit = defineEmits([`addFormat`, `formatContent`, `startCopy`, `endCopy`])
 

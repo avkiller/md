@@ -1,5 +1,19 @@
 <script setup lang="ts">
+/* ---------- 依赖 ---------- */
+import type { QuickCommandRuntime } from '@/stores/useQuickCommands'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import useAIConfigStore from '@/stores/AIConfig'
+import { useQuickCommands } from '@/stores/useQuickCommands'
+import { copyPlain } from '@/utils/clipboard'
 import hljs from 'highlight.js'
+
 import {
   Check,
   Copy,
@@ -11,25 +25,11 @@ import {
   Settings,
   Trash2,
 } from 'lucide-vue-next'
+
 /* ---------- Markdown & highlight.js ---------- */
 import { Marked } from 'marked'
 import { markedHighlight } from 'marked-highlight'
 import { nextTick, onMounted, ref, watch } from 'vue'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
-
-import useAIConfigStore from '@/stores/AIConfig'
-
-/* ---------- 依赖 ---------- */
-import type { QuickCommandRuntime } from '@/stores/useQuickCommands'
-import { useQuickCommands } from '@/stores/useQuickCommands'
-import { copyPlain } from '@/utils/clipboard'
 /* ---------- 组件属性 ---------- */
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits([`update:open`])

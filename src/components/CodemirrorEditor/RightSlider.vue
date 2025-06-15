@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Moon, Sun } from 'lucide-vue-next'
-import PickColors, { type Format } from 'vue-pick-colors'
 import {
   codeBlockThemeOptions,
   colorOptions,
@@ -11,6 +9,8 @@ import {
   widthOptions,
 } from '@/config'
 import { useDisplayStore, useStore } from '@/stores'
+import { Moon, Sun } from 'lucide-vue-next'
+import PickColors, { type Format } from 'vue-pick-colors'
 
 const store = useStore()
 const displayStore = useDisplayStore()

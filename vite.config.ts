@@ -44,6 +44,7 @@ export default defineConfig({
             `vee-validate`,
             `@vueuse/core`,
             `tailwind-merge`,
+            `isomorphic-dompurify`,
           ],
 
           res: [
@@ -53,10 +54,12 @@ export default defineConfig({
           makedown_lib: [
             `front-matter`,
             `marked`,
+            // `mdast-util-from-markdown`,
           ],
           utils: [
             `reading-time`,
             `crypto-js`,
+            `html-to-image`,
           ],
           cosdk: [
             `cos-js-sdk-v5`,

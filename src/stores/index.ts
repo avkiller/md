@@ -1,8 +1,4 @@
 import type { ReadTimeResults } from 'reading-time'
-import CodeMirror from 'codemirror'
-import { toPng } from 'html-to-image'
-import { marked } from 'marked'
-import { v4 as uuid } from 'uuid'
 import DEFAULT_CONTENT from '@/assets/example/markdown-self.md?raw'
 import DEFAULT_CSS_CONTENT from '@/assets/example/theme-css.txt?raw'
 
@@ -20,9 +16,12 @@ import {
   formatDoc,
   sanitizeTitle,
 } from '@/utils'
-import { css2json, customCssWithTemplate, customizeTheme, modifyHtmlContent } from '@/utils/'
+import { css2json, customCssWithTemplate, customizeTheme, postProcessHtml, renderMarkdown } from '@/utils/'
 import { copyPlain } from '@/utils/clipboard'
 import { initRenderer } from '@/utils/renderer'
+import CodeMirror from 'codemirror'
+import { toPng } from 'html-to-image'
+import { v4 as uuid } from 'uuid'
 
 /**********************************
  * Post 结构接口
@@ -373,16 +372,14 @@ export const useStore = defineStore(`store`, () => {
       isMacCodeBlock: isMacCodeBlock.value,
     })
 
-    const {
-      markdownContent,
-      readingTime: readingTimeResult,
-    } = await renderer.parseFrontMatterAndContent(editor.value!.getValue())
+    const raw = editor.value!.getValue()
+    const { html: baseHtml, readingTime: readingTimeResult } = renderMarkdown(raw, renderer)
     readingTime.value = readingTimeResult
-    let outputTemp = marked.parse(markdownContent) as string
+    output.value = postProcessHtml(baseHtml, readingTimeResult, renderer)
 
     // 提取标题
     const div = document.createElement(`div`)
-    div.innerHTML = outputTemp
+    div.innerHTML = output.value
     const list = div.querySelectorAll<HTMLElement>(`[data-heading]`)
 
     titleList.value = []
@@ -397,9 +394,8 @@ export const useStore = defineStore(`store`, () => {
       i++
     }
 
-    outputTemp = div.innerHTML
+    output.value = div.innerHTML
 
-    output.value = modifyHtmlContent(outputTemp, renderer)
   }
 
   // 更新 CSS

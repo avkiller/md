@@ -1,8 +1,17 @@
 import type { Editor } from 'codemirror'
 import type { ComponentPublicInstance } from 'vue'
 import { nextTick, reactive, ref, watch } from 'vue'
-import AIPolishButton from './AIPolishButton.vue'
-import AIPolishPopover from './AIPolishPopover.vue'
+// import AIPolishButton from './AIPolishButton.vue'
+// import AIPolishPopover from './AIPolishPopover.vue'
+import { defineAsyncComponent } from 'vue';
+
+// 动态加载 AIPolishButton 组件（按需加载）
+const AIPolishButton = defineAsyncComponent(() => 
+  import('./AIPolishButton.vue')
+);
+const AIPolishPopover = defineAsyncComponent(() => 
+  import('./AIPolishPopover.vue')
+);
 
 /* ---------- 组件引用类型 ---------- */
 interface BtnRef {

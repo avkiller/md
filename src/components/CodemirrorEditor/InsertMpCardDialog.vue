@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { useDisplayStore, useStore } from '@/stores'
 import { useLocalStorage } from '@vueuse/core'
 import { toRaw } from 'vue'
-import { useDisplayStore, useStore } from '@/stores'
 
 /** 编辑器实例和全局弹窗状态 */
 const store = useStore()
