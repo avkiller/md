@@ -25,7 +25,6 @@ yarn-error.log*
 dist
 
 node_modules
-node_modules.bak
 
 # Log files
 npm-debug.log*
@@ -48,11 +47,12 @@ public/upload/**
 .history
 
 # Package manager lock file
-# package-lock.json
+package-lock.json
 yarn.lock
-pnpm-lock.yaml
+# pnpm-lock.yaml
 auto-imports.d.ts
 components.d.ts
+
 .wxt
 .output
 web-ext.config.ts
