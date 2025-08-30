@@ -33,7 +33,7 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
-          folder: dist
+          folder: apps/web/dist
       #- name: Deploy to Cloudflare Workers with Wrangler
       #  uses: cloudflare/wrangler-action@v3.11.0
       #  with:
