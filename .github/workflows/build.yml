@@ -27,7 +27,7 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: pnpm build:h5-netlify
+        run: pnpm web build:h5-netlify
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
