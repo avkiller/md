@@ -12,7 +12,7 @@ import {
   toBase64,
 } from '@md/shared/utils'
 
-import juice from 'juice'
+// import juice from 'juice'
 import { Marked } from 'marked'
 
 export {
@@ -250,8 +250,9 @@ async function getHljsStyles(): Promise<string> {
   }
 }
 
-function mergeCss(html: string): string {
-  return juice(html, {
+async function mergeCss(html: string): Promise<string> {
+  const juice = await import('juice');
+  return juice.default(html, {
     inlinePseudoElements: true,
     preserveImportant: true,
   })
@@ -288,7 +289,7 @@ export async function processClipboardContent(primaryColor: string) {
   }
 
   // 先合并 CSS 和修改 HTML 结构
-  clipboardDiv.innerHTML = modifyHtmlStructure(mergeCss(clipboardDiv.innerHTML))
+  clipboardDiv.innerHTML = modifyHtmlStructure(await mergeCss(clipboardDiv.innerHTML))
 
   // 处理样式和颜色变量
   clipboardDiv.innerHTML = clipboardDiv.innerHTML

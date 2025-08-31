@@ -45,8 +45,10 @@ export default defineConfig({
             `@vueuse/core`,
             `tailwind-merge`,
             `isomorphic-dompurify`,
+            `unified`,
+            `remark-parse`,
+            `remark-stringify`,
           ],
-
           res: [
             `lucide-vue-next`,
             `vue-pick-colors`,
