@@ -3,9 +3,9 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { giteeConfig, githubConfig } from '@md/shared/configs'
 
 import fetch from '@md/shared/utils/fetch'
-import * as tokenTools from '@md/shared/utils/tokenTools'
+// import * as tokenTools from '@md/shared/utils/tokenTools'
 import { base64encode, safe64, utf16to8 } from '@md/shared/utils/tokenTools'
-import Buffer from 'buffer-from'
+// import Buffer from 'buffer-from'
 import COS from 'cos-js-sdk-v5'
 import CryptoJS from 'crypto-js'
 import * as qiniu from 'qiniu-js'
@@ -569,38 +569,38 @@ async function cloudinaryUpload(file: File): Promise<string> {
 // formCustom File Upload
 // -----------------------------------------------------------------------
 
-async function formCustomUpload(content: string, file: File) {
-  const str = `
-    async (CUSTOM_ARG) => {
-      ${localStorage.getItem(`formCustomConfig`)}
-    }
-  `
-  return new Promise<string>((resolve, reject) => {
-    const exportObj = {
-      content, // 待上传图片的 base64
-      file, // 待上传图片的 file 对象
-      util: {
-        axios: fetch, // axios 实例
-        CryptoJS, // 加密库
-        OSS, // tiny-oss
-        COS, // cos-js-sdk-v5
-        Buffer, // buffer-from
-        uuidv4, // uuid
-        qiniu, // qiniu-js
-        tokenTools, // 一些编码转换函数
-        getDir, // 获取 年/月/日 形式的目录
-        getDateFilename, // 根据文件名获取它以 时间戳+uuid 的形式
-      },
-      okCb: resolve, // 重要: 上传成功后给此回调传 url 即可
-      errCb: reject, // 上传失败调用的函数
-    }
-    // eslint-disable-next-line no-eval
-    eval(str)(exportObj).catch((err: any) => {
-      console.error(err)
-      reject(err)
-    })
-  })
-}
+// async function formCustomUpload(content: string, file: File) {
+//   const str = `
+//     async (CUSTOM_ARG) => {
+//       ${localStorage.getItem(`formCustomConfig`)}
+//     }
+//   `
+//   return new Promise<string>((resolve, reject) => {
+//     const exportObj = {
+//       content, // 待上传图片的 base64
+//       file, // 待上传图片的 file 对象
+//       util: {
+//         axios: fetch, // axios 实例
+//         CryptoJS, // 加密库
+//         OSS, // tiny-oss
+//         COS, // cos-js-sdk-v5
+//         Buffer, // buffer-from
+//         uuidv4, // uuid
+//         qiniu, // qiniu-js
+//         tokenTools, // 一些编码转换函数
+//         getDir, // 获取 年/月/日 形式的目录
+//         getDateFilename, // 根据文件名获取它以 时间戳+uuid 的形式
+//       },
+//       okCb: resolve, // 重要: 上传成功后给此回调传 url 即可
+//       errCb: reject, // 上传失败调用的函数
+//     }
+//     // eslint-disable-next-line no-eval
+//     eval(str)(exportObj).catch((err: any) => {
+//       console.error(err)
+//       reject(err)
+//     })
+//   })
+// }
 
 export function fileUpload(content: string, file: File) {
   const imgHost = localStorage.getItem(`imgHost`)
@@ -630,8 +630,8 @@ export function fileUpload(content: string, file: File) {
       return telegramUpload(file)
     case `cloudinary`:
       return cloudinaryUpload(file)
-    case `formCustom`:
-      return formCustomUpload(content, file)
+    // case `formCustom`:
+    //   return formCustomUpload(content, file)
     default:
       // return file.size / 1024 < 1024
       //     ? giteeUpload(content, file.name)

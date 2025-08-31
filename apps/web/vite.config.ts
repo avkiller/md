@@ -81,6 +81,10 @@ export default defineConfig({
             `radix-vue`,
             `reka-ui`,
           ],
+          'components': [
+            path.resolve(__dirname, 'src/components/CodemirrorEditor/UploadImgDialog.vue'),
+  
+          ],
         },
       // 打印每个包的信息
       //   manualChunks: (id: string) => {
