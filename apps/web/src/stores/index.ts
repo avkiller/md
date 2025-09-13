@@ -56,6 +56,9 @@ export const useStore = defineStore(`store`, () => {
   // 是否开启 Mac 代码块
   const isMacCodeBlock = useStorage(`isMacCodeBlock`, defaultStyleConfig.isMacCodeBlock)
   const toggleMacCodeBlock = useToggle(isMacCodeBlock)
+  // 是否开启代码块行号显示
+  const isShowLineNumber = useStorage(`isShowLineNumber`, defaultStyleConfig.isShowLineNumber)
+  const toggleShowLineNumber = useToggle(isShowLineNumber)
 
   // 是否在左侧编辑
   const isEditOnLeft = useStorage(`isEditOnLeft`, true)
@@ -363,6 +366,7 @@ export const useStore = defineStore(`store`, () => {
     isUseIndent: isUseIndent.value,
     isUseJustify: isUseJustify.value,
     isMacCodeBlock: isMacCodeBlock.value,
+    isShowLineNumber: isShowLineNumber.value,
   })
 
   const readingTime = reactive({
@@ -388,6 +392,7 @@ export const useStore = defineStore(`store`, () => {
       isUseJustify: isUseJustify.value,
       countStatus: isCountStatus.value,
       isMacCodeBlock: isMacCodeBlock.value,
+      isShowLineNumber: isShowLineNumber.value,
     })
 
     const raw = editor.value!.getValue()
@@ -485,6 +490,7 @@ export const useStore = defineStore(`store`, () => {
   const resetStyle = () => {
     isCiteStatus.value = defaultStyleConfig.isCiteStatus
     isMacCodeBlock.value = defaultStyleConfig.isMacCodeBlock
+    isShowLineNumber.value = defaultStyleConfig.isShowLineNumber
     isCountStatus.value = defaultStyleConfig.isCountStatus
 
     theme.value = defaultStyleConfig.theme
@@ -586,6 +592,9 @@ export const useStore = defineStore(`store`, () => {
     toggleMacCodeBlock()
   })
 
+  const showLineNumberChanged = withAfterRefresh(() => {
+    toggleShowLineNumber()
+  })
   const citeStatusChanged = withAfterRefresh(() => {
     toggleCiteStatus()
   })
@@ -706,6 +715,7 @@ export const useStore = defineStore(`store`, () => {
     toggleEditOnLeft,
 
     isMacCodeBlock,
+    isShowLineNumber,
     isCiteStatus,
     citeStatusChanged,
     showAIToolbox,
@@ -740,6 +750,7 @@ export const useStore = defineStore(`store`, () => {
     codeBlockThemeChanged,
     legendChanged,
     macCodeBlockChanged,
+    showLineNumberChanged,
 
     formatContent,
     exportEditorContent2HTML,
@@ -838,6 +849,7 @@ export function getAllStoreStates() {
     isDark: store.isDark,
     isEditOnLeft: store.isEditOnLeft,
     isMacCodeBlock: store.isMacCodeBlock,
+    isShowLineNumber: store.isShowLineNumber,
     isCiteStatus: store.isCiteStatus,
     showAIToolbox: store.showAIToolbox,
     isCountStatus: store.isCountStatus,

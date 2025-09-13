@@ -6,7 +6,7 @@ module.exports = {
   safelist: [`dark`],
   prefix: ``,
   experimental: {
-    optimizeUniversalDefaults: false,
+    optimizeUniversalDefaults: true,
   },
 
   content: [

@@ -8,7 +8,7 @@ import hljs from 'highlight.js'
 import { marked } from 'marked'
 // import mermaid from 'mermaid'
 import readingTime from 'reading-time'
-import { markedAlert, markedFootnotes, markedPlantUML, markedSlider, markedToc, MDKatex } from '../extensions'
+import { markedAlert, markedFootnotes, markedPlantUML, markedRuby, markedSlider, markedToc, MDKatex } from '../extensions'
 import { getStyleString } from '../utils'
 
 marked.setOptions({
@@ -187,7 +187,7 @@ export function initRenderer(opts: IOpts): RendererAPI {
     if (oldStyle !== newStyle) {
       marked.use(markedAlert({ styles: styleMapping }))
       marked.use(
-        MDKatex({ nonStandard: true }, styles(`inline_katex`, `;vertical-align: middle; line-height: 1;`), styles(`block_katex`, `;text-align: center;`),
+        MDKatex({ nonStandard: true }, styles(`inline_katex`, `;line-height: 1;`), styles(`block_katex`, `;text-align: center;`),
         ),
       )
     }
@@ -256,19 +256,38 @@ export function initRenderer(opts: IOpts): RendererAPI {
       }
       const langText = lang.split(` `)[0]
       const language = hljs.getLanguage(langText) ? langText : `plaintext`
-      let highlighted = hljs.highlight(text, { language }).value
+      let highlighted = ``
+      if (opts.isShowLineNumber) {
+        const rawLines = text.replace(/\r\n/g, `\n`).split(`\n`)
+        const highlightedLines = rawLines.map((lineRaw) => {
+          let lineHtml = hljs.highlight(lineRaw, { language }).value
 
-      highlighted = highlighted.replace(/(<span[^>]*>[^<]*<\/span>)(\s+)(<span[^>]*>)/g, (_, span1, spaces, span2) => {
-        return span1.replace(/<\/span>$/, `${spaces}</span>`) + span2
+          lineHtml = lineHtml.replace(/(<span[^>]*>[^<]*<\/span>)(\s+)(<span[^>]*>[^<]*<\/span>)/g, (_, span1, spaces, span2) => span1 + span2.replace(/^(<span[^>]*>)/, `$1${spaces}`))
+          lineHtml = lineHtml.replace(/(\s+)(<span[^>]*>)/g, (_, spaces, span) => span.replace(/^(<span[^>]*>)/, `$1${spaces}`))
+          lineHtml = lineHtml.replace(/\t/g, `    `)
+          lineHtml = lineHtml.replace(/(>[^<]+)|(^[^<]+)/g, str => str.replace(/\s/g, `&nbsp;`))
+          return lineHtml === `` ? `&nbsp;` : lineHtml
       })
 
-      // tab to 4 spaces
+        const lineNumbersHtml = highlightedLines.map((_, idx) => `<section style="padding:0 10px 0 0;line-height:1.75">${idx + 1}</section>`).join(``)
+        const codeInnerHtml = highlightedLines.join(`<br/>`)
+        const codeLinesHtml = `<div style="white-space:pre;min-width:max-content;line-height:1.75">${codeInnerHtml}</div>`
+        const lineNumberColumnStyles = `text-align:right;padding:8px 0;border-right:1px solid rgba(0,0,0,0.04);user-select:none;background:var(--code-bg,transparent);`
+        highlighted = `
+          <section style="display:flex;align-items:flex-start;overflow-x:hidden;overflow-y:auto;width:100%;max-width:100%;padding:0;box-sizing:border-box">
+            <section class="line-numbers" style="${lineNumberColumnStyles}">${lineNumbersHtml}</section>
+            <section class="code-scroll" style="flex:1 1 auto;overflow-x:auto;overflow-y:visible;padding:8px;min-width:0;box-sizing:border-box">${codeLinesHtml}</section>
+          </section>
+        `
+      }
+      else {
+        highlighted = hljs.highlight(text, { language }).value
+        highlighted = highlighted.replace(/(<span[^>]*>[^<]*<\/span>)(\s+)(<span[^>]*>[^<]*<\/span>)/g, (_, span1, spaces, span2) => span1 + span2.replace(/^(<span[^>]*>)/, `$1${spaces}`))
+        highlighted = highlighted.replace(/(\s+)(<span[^>]*>)/g, (_, spaces, span) => span.replace(/^(<span[^>]*>)/, `$1${spaces}`))
       highlighted = highlighted.replace(/\t/g, `    `)
-      highlighted = highlighted
-        .replace(/\r\n/g, `<br/>`)
-        .replace(/\n/g, `<br/>`)
-        .replace(/(>[^<]+)|(^[^<]+)/g, str => str.replace(/\s/g, `&nbsp;`))
-      const span = `<span class="mac-sign" style="padding: 10px 14px 0;" hidden>${macCodeSvg}</span>`
+        highlighted = highlighted.replace(/\r\n/g, `<br/>`).replace(/\n/g, `<br/>`).replace(/(>[^<]+)|(^[^<]+)/g, str => str.replace(/\s/g, `&nbsp;`))
+      }
+      const span = `<span class="mac-sign" style="padding: 10px 14px 0;">${macCodeSvg}</span>`
       const code = `<code class="language-${lang}" ${styles(`code`)}>${highlighted}</code>`
       return `<pre class="hljs code__pre" ${styles(`code_pre`)}>${span}${code}</pre>`
     },
@@ -395,13 +414,14 @@ export function initRenderer(opts: IOpts): RendererAPI {
   marked.use(markedSlider({ styles: styleMapping }))
   marked.use(markedAlert({ styles: styleMapping }))
   marked.use(
-    MDKatex({ nonStandard: true }, styles(`inline_katex`, `;vertical-align: middle; line-height: 1;`), styles(`block_katex`, `;text-align: center;`),
+    MDKatex({ nonStandard: true }, styles(`inline_katex`, `;line-height: 1;`), styles(`block_katex`, `;text-align: center;`),
     ),
   )
   marked.use(markedFootnotes())
   marked.use(markedPlantUML({
     inlineSvg: true, // 启用SVG内嵌，适用于微信公众号
   }))
+  marked.use(markedRuby())
 
   return {
     buildAddition,

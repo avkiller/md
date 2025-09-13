@@ -184,7 +184,7 @@ function handleDragEnd() {
 <template>
   <!-- 侧栏外框 -->
   <div
-    class="h-full w-full overflow-hidden border-2 border-dashed bg-gray/20 transition-colors duration-300 dark:bg-[#191c20]"
+    class="h-full w-full overflow-hidden border-2 border-[#0000] border-dashed bg-gray/20 transition-colors duration-300"
     :class="{
       'border-gray-700 bg-gray-400/50 dark:border-gray-200 dark:bg-gray-500/50': dragover,
     }"
@@ -193,16 +193,12 @@ function handleDragEnd() {
     @dragend="handleDragEnd"
   >
     <nav
-      class="space-y-1 h-full flex flex-col border-r-2 border-gray/20 py-2 transition-transform"
-      :class="{
-        'translate-x-100': store.isOpenPostSlider,
-        '-translate-x-full': !store.isOpenPostSlider,
-      }"
+      class="h-full flex flex-col transition-transform overflow-hidden"
       @dragover="handleDragOver"
       @drop.prevent="handleDrop(null)"
     >
       <!-- 顶部：新增 + 排序按钮 -->
-      <div class="space-x-4 mb-2 flex justify-center">
+      <div class="space-x-4 mb-2 flex justify-center shrink-0 py-2">
         <!-- 新增 -->
         <Dialog v-model:open="isOpenAddDialog">
           <DialogTrigger>
@@ -303,7 +299,7 @@ function handleDragEnd() {
       </div>
 
       <!-- 列表 -->
-      <div class="space-y-1 px-1">
+      <div class="flex-1 overflow-y-auto space-y-1 px-1">
         <!-- 包裹根文章和子文章，保持间距 -->
         <PostItem
           :parent-id="null"

@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import {
   ChevronDownIcon,
-  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
-  Sun,
 } from 'lucide-vue-next'
 import { altSign, ctrlKey, ctrlSign, shiftSign } from '@/configs/shortcut-key'
 import { useStore } from '@/stores'
@@ -16,7 +14,6 @@ const emit = defineEmits([`startCopy`, `endCopy`])
 const store = useStore()
 
 const {
-  isDark,
   isCiteStatus,
   isCountStatus,
   output,
@@ -26,7 +23,6 @@ const {
 } = storeToRefs(store)
 
 const {
-  toggleDark,
   editorRefresh,
   citeStatusChanged,
   countStatusChanged,
@@ -122,11 +118,16 @@ async function copy() {
             'text/html': new Blob([temp], { type: `text/html` }),
             'text/plain': new Blob([plainText], { type: `text/plain` }),
           })
+          // FIX: https://stackoverflow.com/questions/62327358/javascript-clipboard-api-safari-ios-notallowederror-message
+          // NotAllowedError: the request is not allowed by the user agent or the platform in the current context,
+          // possibly because the user denied permission.
+          setTimeout(async () => {
           await navigator.clipboard.write([clipboardItem])
+          }, 0)
         }
         catch (error) {
-          console.warn(`Clipboard API 失败，回退到传统方式:`, error)
-          toast.error(`复制失败，请联系开发者。`)
+          toast.error(`复制失败，请联系开发者。${error}`)
+          return
         }
       }
 
@@ -161,11 +162,11 @@ async function copy() {
 
 <template>
   <header
-    class="header-container h-15 flex flex-wrap items-center justify-between px-5 dark:bg-[#191c20]"
+    class="header-container h-15 flex flex-wrap items-center justify-between px-5"
   >
     <!-- 左侧菜单：移动端隐藏 -->
     <div class="space-x-2 hidden sm:flex">
-      <Menubar class="menubar">
+      <Menubar class="menubar border-0">
         <FileDropdown />
 
         <MenubarMenu>
@@ -221,12 +222,7 @@ async function copy() {
       >
         <PanelLeftOpen v-show="!isOpenPostSlider" class="size-4" />
         <PanelLeftClose v-show="isOpenPostSlider" class="size-4" />
-      </Button>
 
-      <!-- 暗色切换 -->
-      <Button variant="outline" size="icon" @click="toggleDark()">
-        <Moon v-show="isDark" class="size-4" />
-        <Sun v-show="!isDark" class="size-4" />
       </Button>
 
       <!-- 复制按钮组 -->
