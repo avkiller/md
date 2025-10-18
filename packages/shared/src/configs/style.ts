@@ -118,7 +118,7 @@ export const widthOptions: IConfigOption[] = [
   },
 ]
 
-const codeBlockUrlPrefix = `https://cdn-doocs.oss-cn-shenzhen.aliyuncs.com/npm/highlightjs/11.11.1/styles/`
+const codeBlockUrlPrefix = `https://s4.zstatic.net/ajax/libs/highlight.js/11.11.1/styles/`
 const codeBlockThemeList = [
   `1c-light`,
   `a11y-dark`,
