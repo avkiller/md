@@ -4,12 +4,16 @@ import type { RendererObject, Tokens } from 'marked'
 import type { ReadTimeResults } from 'reading-time'
 import { cloneDeep, toMerged } from 'es-toolkit'
 import frontMatter from 'front-matter'
-import hljs from 'highlight.js'
+import hljs from 'highlight.js/lib/core'
 import { marked } from 'marked'
-// import mermaid from 'mermaid'
 import readingTime from 'reading-time'
-import { markedAlert, markedFootnotes, markedPlantUML, markedRuby, markedSlider, markedToc, MDKatex } from '../extensions'
+import { markedAlert, markedFootnotes, markedMarkup, markedPlantUML, markedRuby, markedSlider, markedToc, MDKatex } from '../extensions'
 import { getStyleString } from '../utils'
+import { COMMON_LANGUAGES } from '../utils/languages'
+
+Object.entries(COMMON_LANGUAGES).forEach(([name, lang]) => {
+  hljs.registerLanguage(name, lang)
+})
 
 marked.setOptions({
   breaks: true,
@@ -169,6 +173,13 @@ export function initRenderer(opts: IOpts): RendererAPI {
   }
 
   function addFootnote(title: string, link: string): number {
+    // 检查是否已经存在相同的链接
+    const existingFootnote = footnotes.find(([, , existingLink]) => existingLink === link)
+    if (existingFootnote) {
+      return existingFootnote[0] // 返回已存在的脚注索引
+    }
+
+    // 如果不存在，创建新的脚注
     footnotes.push([++footnoteIndex, title, link])
     return footnoteIndex
   }
@@ -190,6 +201,7 @@ export function initRenderer(opts: IOpts): RendererAPI {
         MDKatex({ nonStandard: true }, styles(`inline_katex`, `;line-height: 1;`), styles(`block_katex`, `;text-align: center;`),
         ),
       )
+      marked.use(markedMarkup({ styles: styleMapping }))
     }
   }
 
@@ -244,35 +256,42 @@ export function initRenderer(opts: IOpts): RendererAPI {
     code({ text, lang = `` }: Tokens.Code): string {
       if (lang.startsWith(`mermaid`)) {
         clearTimeout(codeIndex)
-        // codeIndex = setTimeout(() => {
-        //   mermaid.run()
-        // }, 0) as any as number
-        import(`mermaid`).then((mermaid) => {
-          codeIndex = setTimeout(() => {
-            mermaid.default.run()
-          }, 0) as any as number
-        })
+        codeIndex = setTimeout(async () => {
+          // 优先使用全局 CDN 的 mermaid
+          if (typeof window !== `undefined` && (window as any).mermaid) {
+            const mermaid = (window as any).mermaid
+            await mermaid.run()
+          }
+          else {
+            // 回退到动态导入（开发环境）
+            const mermaid = await import(`mermaid`)
+            await mermaid.default.run()
+          }
+        }, 0) as any as number
         return `<pre class="mermaid">${text}</pre>`
       }
       const langText = lang.split(` `)[0]
       const language = hljs.getLanguage(langText) ? langText : `plaintext`
+
       let highlighted = ``
+
       if (opts.isShowLineNumber) {
         const rawLines = text.replace(/\r\n/g, `\n`).split(`\n`)
+
         const highlightedLines = rawLines.map((lineRaw) => {
           let lineHtml = hljs.highlight(lineRaw, { language }).value
-
           lineHtml = lineHtml.replace(/(<span[^>]*>[^<]*<\/span>)(\s+)(<span[^>]*>[^<]*<\/span>)/g, (_, span1, spaces, span2) => span1 + span2.replace(/^(<span[^>]*>)/, `$1${spaces}`))
           lineHtml = lineHtml.replace(/(\s+)(<span[^>]*>)/g, (_, spaces, span) => span.replace(/^(<span[^>]*>)/, `$1${spaces}`))
           lineHtml = lineHtml.replace(/\t/g, `    `)
           lineHtml = lineHtml.replace(/(>[^<]+)|(^[^<]+)/g, str => str.replace(/\s/g, `&nbsp;`))
           return lineHtml === `` ? `&nbsp;` : lineHtml
-      })
+        })
 
         const lineNumbersHtml = highlightedLines.map((_, idx) => `<section style="padding:0 10px 0 0;line-height:1.75">${idx + 1}</section>`).join(``)
         const codeInnerHtml = highlightedLines.join(`<br/>`)
         const codeLinesHtml = `<div style="white-space:pre;min-width:max-content;line-height:1.75">${codeInnerHtml}</div>`
         const lineNumberColumnStyles = `text-align:right;padding:8px 0;border-right:1px solid rgba(0,0,0,0.04);user-select:none;background:var(--code-bg,transparent);`
+
         highlighted = `
           <section style="display:flex;align-items:flex-start;overflow-x:hidden;overflow-y:auto;width:100%;max-width:100%;padding:0;box-sizing:border-box">
             <section class="line-numbers" style="${lineNumberColumnStyles}">${lineNumbersHtml}</section>
@@ -284,9 +303,10 @@ export function initRenderer(opts: IOpts): RendererAPI {
         highlighted = hljs.highlight(text, { language }).value
         highlighted = highlighted.replace(/(<span[^>]*>[^<]*<\/span>)(\s+)(<span[^>]*>[^<]*<\/span>)/g, (_, span1, spaces, span2) => span1 + span2.replace(/^(<span[^>]*>)/, `$1${spaces}`))
         highlighted = highlighted.replace(/(\s+)(<span[^>]*>)/g, (_, spaces, span) => span.replace(/^(<span[^>]*>)/, `$1${spaces}`))
-      highlighted = highlighted.replace(/\t/g, `    `)
+        highlighted = highlighted.replace(/\t/g, `    `)
         highlighted = highlighted.replace(/\r\n/g, `<br/>`).replace(/\n/g, `<br/>`).replace(/(>[^<]+)|(^[^<]+)/g, str => str.replace(/\s/g, `&nbsp;`))
       }
+
       const span = `<span class="mac-sign" style="padding: 10px 14px 0;">${macCodeSvg}</span>`
       const code = `<code class="language-${lang}" ${styles(`code`)}>${highlighted}</code>`
       return `<pre class="hljs code__pre" ${styles(`code_pre`)}>${span}${code}</pre>`
@@ -356,9 +376,9 @@ export function initRenderer(opts: IOpts): RendererAPI {
       if (/^https?:\/\/mp\.weixin\.qq\.com/.test(href)) {
         return `<a href="${href}" title="${title || text}" ${styles(`wx_link`)}>${parsedText}</a>`
       }
-      // if (href === text) {
-      //   return parsedText
-      // }
+      if (href === text) {
+        return parsedText
+      }
       if (opts.citeStatus) {
         const ref = addFootnote(title || text, href)
         return `<span ${styles(`link`)}>${parsedText}<sup>[${ref}]</sup></span>`
@@ -390,8 +410,8 @@ export function initRenderer(opts: IOpts): RendererAPI {
         })
         .join(``)
       return `
-        <section style="padding:0 8px; max-width: 100%; overflow: auto">
-          <table class="preview-table">
+        <section style="max-width: 100%; overflow: auto">
+          <table class="preview-table" ${styles(`table`)}>
             <thead ${styles(`thead`)}>${headerRow}</thead>
             <tbody>${body}</tbody>
           </table>
@@ -410,6 +430,7 @@ export function initRenderer(opts: IOpts): RendererAPI {
   }
 
   marked.use({ renderer })
+  marked.use(markedMarkup({ styles: styleMapping }))
   marked.use(markedToc())
   marked.use(markedSlider({ styles: styleMapping }))
   marked.use(markedAlert({ styles: styleMapping }))

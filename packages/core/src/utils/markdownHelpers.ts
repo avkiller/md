@@ -40,13 +40,13 @@ export function postProcessHtml(baseHtml: string, reading: ReadTimeResults, rend
   html += renderer.buildFootnotes()
   // 附加的一些 style
   html += renderer.buildAddition()
-    html += `
-        <style>
-          .hljs.code__pre > .mac-sign {
+  html += `
+    <style>
+      .hljs.code__pre > .mac-sign {
         display: ${renderer.getOpts().isMacCodeBlock ? `flex` : `none`};
-          }
-        </style>
-      `
+      }
+    </style>
+  `
   html += `
     <style>
       .code__pre {

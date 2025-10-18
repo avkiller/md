@@ -1,9 +1,7 @@
-// import * as prettierPluginBabel from 'prettier/plugins/babel'
-// import * as prettierPluginEstree from 'prettier/plugins/estree'
-// import * as prettierPluginMarkdown from 'prettier/plugins/markdown'
-// import * as prettierPluginCss from 'prettier/plugins/postcss'
-// import { format } from 'prettier/standalone'
-import { addSpacingToMarkdown } from './autoSpace'
+// import parserBabel from 'prettier/parser-babel'
+// import parserMarkdown from 'prettier/parser-markdown'
+// import parserPostcss from 'prettier/parser-postcss'
+// import * as prettier from 'prettier/standalone'
 
 /**
  * 通用文件下载函数
@@ -90,21 +88,35 @@ export function createTable({ data, rows, cols }: {
  * @param type - 内容类型，决定使用的解析器，默认为 'markdown'
  * @returns 格式化后的内容
  */
-export async function formatDoc(content: string, type: `markdown` | `css` = `markdown`): Promise<string> {
-  const prettierPluginMarkdown = await import(`prettier/plugins/markdown`)
-  const prettierPluginBabel = await import(`prettier/plugins/babel`)
-  const prettierPluginEstree = await import(`prettier/plugins/estree`)
-  const prettierPluginCss = await import(`prettier/plugins/postcss`)
-  const { format } = await import(`prettier/standalone`)
-  const plugins = {
-    markdown: [prettierPluginMarkdown.default, prettierPluginBabel.default, prettierPluginEstree.default],
-    css: [prettierPluginCss.default],
-  }
-  const addSpaceContent = await addSpacingToMarkdown(content)
+export async function formatDoc(content: string, type: `markdown` | `css` | `javascript` = `markdown`): Promise<string> {
+  // @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
+  const parserMarkdown = await import(`prettier/parser-markdown`)
+  // @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
+  const parserBabel = await import(`prettier/parser-babel`)
+  // @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
+  const parserPostcss = await import(`prettier/parser-postcss`)
+  // @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
+  const prettier_moudle  = await import(`prettier/standalone`)
+  const prettier  = prettier_moudle.default
+  const parser = type === `css` ? `css` : type === `javascript` ? `babel` : `markdown`
+  const plugins = type === `css` ? [parserPostcss.default] : type === `javascript` ? [parserBabel.default] : [parserMarkdown.default, parserBabel.default]
 
-  const parser = type in plugins ? type : `markdown`
-  return await format(addSpaceContent, {
+  return await prettier.format(content, {
     parser,
-    plugins: plugins[parser],
+    plugins,
+    // prettier v2.8.8 配置选项
+    printWidth: 80,
+    tabWidth: 2,
+    useTabs: false,
+    semi: false,
+    singleQuote: true,
+    quoteProps: `as-needed`,
+    trailingComma: `es5`,
+    bracketSpacing: true,
+    bracketSameLine: false,
+    arrowParens: `avoid`,
+    proseWrap: `preserve`,
+    htmlWhitespaceSensitivity: `css`,
+    endOfLine: `lf`,
   })
 }
