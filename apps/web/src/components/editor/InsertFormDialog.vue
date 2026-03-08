@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { useDisplayStore, useStore } from '@/stores'
+import { useEditorStore } from '@/stores/editor'
+import { useUIStore } from '@/stores/ui'
 import { createTable } from '@/utils'
 
-const store = useStore()
-const displayStore = useDisplayStore()
+const editorStore = useEditorStore()
+const uiStore = useUIStore()
 
-const { toggleShowInsertFormDialog } = displayStore
+const { toggleShowInsertFormDialog } = uiStore
 
 const rowNum = ref(3)
 const colNum = ref(3)
@@ -24,7 +25,7 @@ function insertTable() {
     cols: colNum.value,
     data: tableData.value,
   })
-  const editor = toRaw(store.editor!)
+  const editor = toRaw(editorStore.editor!)
   const selection = editor.state.selection.main
   editor.dispatch({
     changes: { from: selection.from, to: selection.to, insert: `\n${table}\n` },
@@ -41,7 +42,7 @@ function onUpdate(val: boolean) {
 </script>
 
 <template>
-  <Dialog :open="displayStore.isShowInsertFormDialog" @update:open="onUpdate">
+  <Dialog :open="uiStore.isShowInsertFormDialog" @update:open="onUpdate">
     <DialogContent>
       <DialogHeader>
         <DialogTitle>插入表格</DialogTitle>

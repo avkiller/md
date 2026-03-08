@@ -1,17 +1,40 @@
 <script setup lang="ts">
-import { ChevronDownIcon, Menu, Settings } from 'lucide-vue-next'
-import { useDisplayStore, useStore } from '@/stores'
+import { Copy, Menu, Palette } from 'lucide-vue-next'
+import { useEditorStore } from '@/stores/editor'
+import { useExportStore } from '@/stores/export'
+import { useRenderStore } from '@/stores/render'
+import { useThemeStore } from '@/stores/theme'
+import { useUIStore } from '@/stores/ui'
 import { addPrefix, generatePureHTML, processClipboardContent } from '@/utils'
+import { store } from '@/utils/storage'
+import EditDropdown from './EditDropdown.vue'
+import FileDropdown from './FileDropdown.vue'
 import FormatDropdown from './FormatDropdown.vue'
+// import HelpDropdown from './HelpDropdown.vue'
+import InsertDropdown from './InsertDropdown.vue'
+import StyleDropdown from './StyleDropdown.vue'
+import ViewDropdown from './ViewDropdown.vue'
 
 const emit = defineEmits([`startCopy`, `endCopy`])
 
-const store = useStore()
-const displayStore = useDisplayStore()
+const editorStore = useEditorStore()
+const themeStore = useThemeStore()
+const renderStore = useRenderStore()
+const uiStore = useUIStore()
+const exportStore = useExportStore()
 
-const { output, primaryColor, editor } = storeToRefs(store)
+const { editor } = storeToRefs(editorStore)
+const { output } = storeToRefs(renderStore)
+const { primaryColor } = storeToRefs(themeStore)
+const { isOpenRightSlider } = storeToRefs(uiStore)
 
-const { editorRefresh } = store
+// Editor refresh function
+function editorRefresh() {
+  themeStore.updateCodeTheme()
+
+  const raw = editorStore.getContent()
+  renderStore.render(raw)
+}
 
 // 对话框状态
 // const aboutDialogVisible = ref(false)
@@ -31,7 +54,7 @@ function handleOpenEditorState() {
   editorStateDialogVisible.value = true
 }
 
-const copyMode = useStorage(addPrefix(`copyMode`), `txt`)
+const copyMode = store.reactive(addPrefix(`copyMode`), `txt`)
 
 const { copy: copyContent } = useClipboard({
   legacy: true,
@@ -115,7 +138,16 @@ async function copy() {
 
   setTimeout(() => {
     nextTick(async () => {
-      await processClipboardContent(primaryColor.value)
+      try {
+        await processClipboardContent(primaryColor.value)
+      }
+      catch (error) {
+        toast.error(`处理 HTML 失败，请联系开发者。${normalizeErrorMessage(error)}`)
+        editorRefresh()
+        emit(`endCopy`)
+        return
+      }
+
       const clipboardDiv = document.getElementById(`output`)
 
       if (!clipboardDiv) {
@@ -166,7 +198,7 @@ async function copy() {
         await copyContent(await generatePureHTML(editor.value!.state.doc.toString()))
       }
       else if (copyMode.value === `html-and-style`) {
-        await copyContent(store.editorContent2HTML())
+        await copyContent(exportStore.editorContent2HTML())
       }
 
       // 输出提示
@@ -187,6 +219,16 @@ async function copy() {
     })
   }, 350)
 }
+
+function handleCopy(mode: string) {
+  copyMode.value = mode
+  copy()
+}
+
+function copyToWeChat() {
+  copyMode.value = 'txt'
+  copy()
+}
 </script>
 
 <template>
@@ -194,12 +236,14 @@ async function copy() {
     class="header-container h-15 flex flex-wrap items-center justify-between px-5 relative"
   >
     <!-- 桌面端左侧菜单 -->
-    <div class="space-x-2 hidden md:flex">
+    <div class="space-x-1 hidden md:flex">
       <Menubar class="menubar border-0">
         <FileDropdown @open-editor-state="handleOpenEditorState" />
+        <EditDropdown @copy="handleCopy" />
         <FormatDropdown />
-        <EditDropdown />
+        <InsertDropdown />
         <StyleDropdown />
+        <ViewDropdown />
         <!-- <HelpDropdown @open-about="handleOpenAbout" @open-fund="handleOpenFund" /> -->
       </Menubar>
     </div>
@@ -215,9 +259,11 @@ async function copy() {
           </MenubarTrigger>
           <MenubarContent align="start">
             <FileDropdown :as-sub="true" @open-editor-state="handleOpenEditorState" />
+            <EditDropdown :as-sub="true" @copy="handleCopy" />
             <FormatDropdown :as-sub="true" />
-            <EditDropdown :as-sub="true" />
+            <InsertDropdown :as-sub="true" />
             <StyleDropdown :as-sub="true" />
+            <ViewDropdown :as-sub="true" />
             <!-- <HelpDropdown :as-sub="true" @open-about="handleOpenAbout" @open-fund="handleOpenFund" /> -->
           </MenubarContent>
         </MenubarMenu>
@@ -225,76 +271,136 @@ async function copy() {
     </div>
 
     <!-- 右侧操作区 -->
-    <div class="space-x-2 flex flex-wrap items-center">
-      <!-- 复制按钮组 -->
-      <div
-        class="bg-background space-x-1 text-background-foreground flex items-center border rounded-md"
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- 复制按钮 -->
+      <Button
+        variant="outline"
+        class="h-9"
+        @click="copyToWeChat"
       >
-        <Button variant="ghost" class="shadow-none text-sm px-2 md:px-4" @click="copy">
-          复制
-        </Button>
-        <Separator orientation="vertical" class="h-5" />
-        <DropdownMenu v-model="copyMode">
-          <DropdownMenuTrigger as-child>
-            <Button variant="ghost" class="px-2 shadow-none">
-              <ChevronDownIcon class="text-secondary-foreground h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" :align-offset="-5" class="w-[220px]">
-            <DropdownMenuRadioGroup v-model="copyMode">
-              <DropdownMenuRadioItem value="txt">
-                公众号格式
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="html">
-                HTML 格式
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="html-without-style">
-                <span class="whitespace-nowrap">HTML 格式（无样式）</span>
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="html-and-style">
-                <span class="whitespace-nowrap">HTML 格式（兼容样式）</span>
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="md">
-                MD 格式
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+        <Copy class="mr-2 h-4 w-4" />
+        <span>复制</span>
+      </Button>
 
       <!-- 文章信息（移动端隐藏） -->
       <PostInfo class="hidden md:inline-flex" />
 
-      <!-- 设置按钮 -->
+      <!-- 样式面板 -->
       <Button
         variant="outline"
-        size="icon"
-        @click="store.isOpenRightSlider = !store.isOpenRightSlider"
+        class="h-9"
+        :class="{ 'bg-accent text-accent-foreground': isOpenRightSlider }"
+        @click="isOpenRightSlider = !isOpenRightSlider"
       >
-        <Settings class="size-4" />
+        <Palette class="mr-2 h-4 w-4" />
+        <span>样式</span>
       </Button>
     </div>
   </header>
 
   <!-- 对话框组件，嵌套菜单无法正常挂载，需要提取层级 -->
-  <!-- <AboutDialog :visible="aboutDialogVisible" @close="aboutDialogVisible = false" /> -->
-  <!-- <FundDialog :visible="fundDialogVisible" @close="fundDialogVisible = false" /> -->
+  <!-- <AboutDialog :visible="aboutDialogVisible" @close="aboutDialogVisible = false" />
+  <FundDialog :visible="fundDialogVisible" @close="fundDialogVisible = false" /> -->
   <EditorStateDialog :visible="editorStateDialogVisible" @close="editorStateDialogVisible = false" />
-  <AIImageGeneratorPanel v-model:open="displayStore.aiImageDialogVisible" />
+  <AIImageGeneratorPanel v-model:open="uiStore.aiImageDialogVisible" />
 </template>
 
 <style lang="less" scoped>
+.header-container {
+  background: hsl(var(--background) / 0.95);
+  border-bottom: 1px solid hsl(var(--border));
+  backdrop-filter: blur(12px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 50;
+
+  @media (max-width: 768px) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
 .menubar {
   user-select: none;
+
+  :deep([data-radix-menubar-trigger]) {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.5rem 0.875rem;
+    border-radius: 6px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+
+    &:hover {
+      background: hsl(var(--accent) / 0.8);
+      color: hsl(var(--accent-foreground));
+      transform: translateY(-1px);
+    }
+
+    &[data-state='open'] {
+      background: hsl(var(--accent));
+      color: hsl(var(--accent-foreground));
+      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  :deep([data-radix-menubar-content]) {
+    animation: slideDownAndFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  :deep([data-radix-menubar-item]) {
+    border-radius: 4px;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      background: hsl(var(--accent) / 0.8);
+    }
+  }
+
+  :deep([data-radix-menubar-sub-trigger]) {
+    border-radius: 4px;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      background: hsl(var(--accent) / 0.8);
+    }
+  }
 }
 
 kbd {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  border: 1px solid #a8a8a8;
-  padding: 1px 4px;
-  border-radius: 2px;
+  min-width: 1.5rem;
+  height: 1.375rem;
+  border: 1px solid hsl(var(--border));
+  background: linear-gradient(to bottom, hsl(var(--muted)), hsl(var(--muted) / 0.9));
+  padding: 0 0.375rem;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+  box-shadow:
+    0 1px 0 hsl(var(--border)),
+    inset 0 0.5px 0 hsl(var(--background));
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+@keyframes slideDownAndFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 768px) {

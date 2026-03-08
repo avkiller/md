@@ -1,55 +1,34 @@
-import type { ExtendedProperties, IOpts, RendererAPI, ThemeStyles } from '@md/shared/types'
-import type { PropertiesHyphen } from 'csstype'
+import type { IOpts, RendererAPI } from '@md/shared/types'
 import type { RendererObject, Tokens } from 'marked'
 import type { ReadTimeResults } from 'reading-time'
-import { cloneDeep, toMerged } from 'es-toolkit'
 import frontMatter from 'front-matter'
 import hljs from 'highlight.js/lib/core'
 import { marked } from 'marked'
 import readingTime from 'reading-time'
-import { markedAlert, markedFootnotes, markedMarkup, markedPlantUML, markedRuby, markedSlider, markedToc, MDKatex } from '../extensions'
-import { getStyleString } from '../utils'
-import { COMMON_LANGUAGES } from '../utils/languages'
+import {
+  markedAlert,
+  markedFootnotes,
+  markedInfographic,
+  markedMarkup,
+  markedMermaid,
+  markedPlantUML,
+  markedRuby,
+  markedSlider,
+  markedToc,
+  MDKatex,
+} from '../extensions'
+import { COMMON_LANGUAGES, highlightAndFormatCode } from '../utils/languages'
 
 Object.entries(COMMON_LANGUAGES).forEach(([name, lang]) => {
   hljs.registerLanguage(name, lang)
 })
 
+export { hljs }
+
 marked.setOptions({
   breaks: true,
 })
 marked.use(markedSlider())
-
-function buildTheme({ theme: _theme, fonts, size, isUseIndent, isUseJustify }: IOpts): ThemeStyles {
-  const theme = cloneDeep(_theme)
-  const base = toMerged(theme.base, {
-    'font-family': fonts,
-    'font-size': size,
-  })
-
-  if (isUseIndent) {
-    theme.block.p = {
-      'text-indent': `2em`,
-      ...theme.block.p,
-    }
-  }
-
-  if (isUseJustify) {
-    theme.block.p = {
-      'text-align': `justify`,
-      ...theme.block.p,
-    }
-  }
-
-  const mergeStyles = (styles: Record<string, PropertiesHyphen>): Record<string, ExtendedProperties> =>
-    Object.fromEntries(
-      Object.entries(styles).map(([ele, style]) => [ele, toMerged(base, style)]),
-    )
-  return {
-    ...mergeStyles(theme.inline),
-    ...mergeStyles(theme.block),
-  } as ThemeStyles
-}
 
 function escapeHtml(text: string): string {
   return text
@@ -78,15 +57,6 @@ function buildAddition(): string {
       }
     </style>
   `
-}
-
-function getStyles(styleMapping: ThemeStyles, tokenName: string, addition: string = ``): string {
-  const dict = styleMapping[tokenName as keyof ThemeStyles]
-  if (!dict) {
-    return ``
-  }
-  const styles = getStyleString(dict)
-  return `style="${styles}${addition}"`
 }
 
 function buildFootnoteArray(footnotes: [number, string, string][]): string {
@@ -150,11 +120,9 @@ function parseFrontMatterAndContent(markdownText: string): ParseResult {
   }
 }
 
-export function initRenderer(opts: IOpts): RendererAPI {
+export function initRenderer(opts: IOpts = {}): RendererAPI {
   const footnotes: [number, string, string][] = []
   let footnoteIndex: number = 0
-  let styleMapping: ThemeStyles = buildTheme(opts)
-  let codeIndex: number = 0
   const listOrderedStack: boolean[] = []
   const listCounters: number[] = []
 
@@ -162,14 +130,17 @@ export function initRenderer(opts: IOpts): RendererAPI {
     return opts
   }
 
-  function styles(tag: string, addition: string = ``): string {
-    return getStyles(styleMapping, tag, addition)
-  }
-
+  /**
+   * 生成带 CSS 类的内容（新主题系统）
+   * @param styleLabel CSS 类名标识
+   * @param content 内容
+   * @param tagName HTML 标签名（可选）
+   */
   function styledContent(styleLabel: string, content: string, tagName?: string): string {
     const tag = tagName ?? styleLabel
-
-    return `<${tag} ${/^h\d$/.test(tag) ? `data-heading="true"` : ``} ${styles(styleLabel)}>${content}</${tag}>`
+    const className = `${styleLabel.replace(/_/g, `-`)}`
+    const headingAttr = /^h\d$/.test(tag) ? ` data-heading="true"` : ``
+    return `<${tag} class="${className}"${headingAttr}>${content}</${tag}>`
   }
 
   function addFootnote(title: string, link: string): number {
@@ -192,17 +163,7 @@ export function initRenderer(opts: IOpts): RendererAPI {
 
   function setOptions(newOpts: Partial<IOpts>): void {
     opts = { ...opts, ...newOpts }
-    const oldStyle = JSON.stringify(styleMapping)
-    styleMapping = buildTheme(opts)
-    const newStyle = JSON.stringify(styleMapping)
-    if (oldStyle !== newStyle) {
-      marked.use(markedAlert({ styles: styleMapping }))
-      marked.use(
-        MDKatex({ nonStandard: true }, styles(`inline_katex`, `;line-height: 1;`), styles(`block_katex`, `;text-align: center;`),
-        ),
-      )
-      marked.use(markedMarkup({ styles: styleMapping }))
-    }
+    marked.use(markedInfographic({ themeMode: newOpts.themeMode }))
   }
 
   function buildReadingTime(readingTime: ReadTimeResults): string {
@@ -213,8 +174,8 @@ export function initRenderer(opts: IOpts): RendererAPI {
       return ``
     }
     return `
-      <blockquote ${styles(`blockquote`)}>
-        <p ${styles(`blockquote_p`)}>字数 ${readingTime?.words}，阅读大约需 ${Math.ceil(readingTime?.minutes)} 分钟</p>
+      <blockquote class="md-blockquote">
+        <p class="md-blockquote-p">字数 ${readingTime?.words}，阅读大约需 ${Math.ceil(readingTime?.minutes)} 分钟</p>
       </blockquote>
     `
   }
@@ -248,68 +209,28 @@ export function initRenderer(opts: IOpts): RendererAPI {
     },
 
     blockquote({ tokens }: Tokens.Blockquote): string {
-      let text = this.parser.parse(tokens)
-      text = text.replace(/<p .*?>/g, `<p ${styles(`blockquote_p`)}>`)
+      const text = this.parser.parse(tokens)
+      // 新主题系统：blockquote 内的 p 标签由 CSS 选择器 `blockquote p` 控制
       return styledContent(`blockquote`, text)
     },
 
     code({ text, lang = `` }: Tokens.Code): string {
-      if (lang.startsWith(`mermaid`)) {
-        clearTimeout(codeIndex)
-        codeIndex = setTimeout(async () => {
-          // 优先使用全局 CDN 的 mermaid
-          if (typeof window !== `undefined` && (window as any).mermaid) {
-            const mermaid = (window as any).mermaid
-            await mermaid.run()
-          }
-          else {
-            // 回退到动态导入（开发环境）
-            const mermaid = await import(`mermaid`)
-            await mermaid.default.run()
-          }
-        }, 0) as any as number
-        return `<pre class="mermaid">${text}</pre>`
-      }
       const langText = lang.split(` `)[0]
-      const language = hljs.getLanguage(langText) ? langText : `plaintext`
+      const isLanguageRegistered = hljs.getLanguage(langText)
+      const language = isLanguageRegistered ? langText : `plaintext`
 
-      let highlighted = ``
-
-      if (opts.isShowLineNumber) {
-        const rawLines = text.replace(/\r\n/g, `\n`).split(`\n`)
-
-        const highlightedLines = rawLines.map((lineRaw) => {
-          let lineHtml = hljs.highlight(lineRaw, { language }).value
-          lineHtml = lineHtml.replace(/(<span[^>]*>[^<]*<\/span>)(\s+)(<span[^>]*>[^<]*<\/span>)/g, (_, span1, spaces, span2) => span1 + span2.replace(/^(<span[^>]*>)/, `$1${spaces}`))
-          lineHtml = lineHtml.replace(/(\s+)(<span[^>]*>)/g, (_, spaces, span) => span.replace(/^(<span[^>]*>)/, `$1${spaces}`))
-          lineHtml = lineHtml.replace(/\t/g, `    `)
-          lineHtml = lineHtml.replace(/(>[^<]+)|(^[^<]+)/g, str => str.replace(/\s/g, `&nbsp;`))
-          return lineHtml === `` ? `&nbsp;` : lineHtml
-        })
-
-        const lineNumbersHtml = highlightedLines.map((_, idx) => `<section style="padding:0 10px 0 0;line-height:1.75">${idx + 1}</section>`).join(``)
-        const codeInnerHtml = highlightedLines.join(`<br/>`)
-        const codeLinesHtml = `<div style="white-space:pre;min-width:max-content;line-height:1.75">${codeInnerHtml}</div>`
-        const lineNumberColumnStyles = `text-align:right;padding:8px 0;border-right:1px solid rgba(0,0,0,0.04);user-select:none;background:var(--code-bg,transparent);`
-
-        highlighted = `
-          <section style="display:flex;align-items:flex-start;overflow-x:hidden;overflow-y:auto;width:100%;max-width:100%;padding:0;box-sizing:border-box">
-            <section class="line-numbers" style="${lineNumberColumnStyles}">${lineNumbersHtml}</section>
-            <section class="code-scroll" style="flex:1 1 auto;overflow-x:auto;overflow-y:visible;padding:8px;min-width:0;box-sizing:border-box">${codeLinesHtml}</section>
-          </section>
-        `
-      }
-      else {
-        highlighted = hljs.highlight(text, { language }).value
-        highlighted = highlighted.replace(/(<span[^>]*>[^<]*<\/span>)(\s+)(<span[^>]*>[^<]*<\/span>)/g, (_, span1, spaces, span2) => span1 + span2.replace(/^(<span[^>]*>)/, `$1${spaces}`))
-        highlighted = highlighted.replace(/(\s+)(<span[^>]*>)/g, (_, spaces, span) => span.replace(/^(<span[^>]*>)/, `$1${spaces}`))
-        highlighted = highlighted.replace(/\t/g, `    `)
-        highlighted = highlighted.replace(/\r\n/g, `<br/>`).replace(/\n/g, `<br/>`).replace(/(>[^<]+)|(^[^<]+)/g, str => str.replace(/\s/g, `&nbsp;`))
-      }
+      const highlighted = highlightAndFormatCode(text, language, hljs, !!opts.isShowLineNumber)
 
       const span = `<span class="mac-sign" style="padding: 10px 14px 0;">${macCodeSvg}</span>`
-      const code = `<code class="language-${lang}" ${styles(`code`)}>${highlighted}</code>`
-      return `<pre class="hljs code__pre" ${styles(`code_pre`)}>${span}${code}</pre>`
+      // 如果语言未注册，添加 data-language-pending 属性和原始代码文本用于后续动态加载
+      let pendingAttr = ``
+      if (!isLanguageRegistered && langText !== `plaintext`) {
+        const escapedText = text.replace(/"/g, `&quot;`)
+        pendingAttr = ` data-language-pending="${langText}" data-raw-code="${escapedText}" data-show-line-number="${opts.isShowLineNumber}"`
+      }
+      const code = `<code class="language-${lang}"${pendingAttr}>${highlighted}</code>`
+
+      return `<pre class="hljs code__pre">${span}${code}</pre>`
     },
 
     codespan({ text }: Tokens.Codespan): string {
@@ -336,8 +257,8 @@ export function initRenderer(opts: IOpts): RendererAPI {
 
     // 2. listitem：从栈顶取 ordered + counter，计算 prefix 并自增
     listitem(token: Tokens.ListItem) {
-      const ordered = listOrderedStack[listOrderedStack.length - 1]
-      const idx = listCounters[listCounters.length - 1]!
+      const ordered = listOrderedStack.at(-1)
+      const idx = listCounters.at(-1)!
 
       // 准备下一个
       listCounters[listCounters.length - 1] = idx + 1
@@ -365,25 +286,25 @@ export function initRenderer(opts: IOpts): RendererAPI {
     },
 
     image({ href, title, text }: Tokens.Image): string {
-      const subText = styledContent(`figcaption`, transform(opts.legend!, text, title))
-      const figureStyles = styles(`figure`)
-      const imgStyles = styles(`image`)
-      return `<figure ${figureStyles}><img ${imgStyles} src="${href}" title="${title}" alt="${text}"/>${subText}</figure>`
+      const newText = opts.legend ? transform(opts.legend, text, title) : ``
+      const subText = newText ? styledContent(`figcaption`, newText) : ``
+      const titleAttr = title ? ` title="${title}"` : ``
+      return `<figure><img src="${href}"${titleAttr} alt="${text}"/>${subText}</figure>`
     },
 
     link({ href, title, text, tokens }: Tokens.Link): string {
       const parsedText = this.parser.parseInline(tokens)
       if (/^https?:\/\/mp\.weixin\.qq\.com/.test(href)) {
-        return `<a href="${href}" title="${title || text}" ${styles(`wx_link`)}>${parsedText}</a>`
+        return `<a href="${href}" title="${title || text}">${parsedText}</a>`
       }
-      if (href === text) {
-        return parsedText
-      }
+      // if (href === text) {
+      //   return parsedText
+      // }
       if (opts.citeStatus) {
         const ref = addFootnote(title || text, href)
-        return `<span ${styles(`link`)}>${parsedText}<sup>[${ref}]</sup></span>`
+        return `<a href="${href}" title="${title || text}">${parsedText}<sup>[${ref}]</sup></a>`
       }
-      return styledContent(`link`, parsedText, `span`)
+      return `<a href="${href}" title="${title || text}">${parsedText}</a>`
     },
 
     strong({ tokens }: Tokens.Strong): string {
@@ -391,7 +312,7 @@ export function initRenderer(opts: IOpts): RendererAPI {
     },
 
     em({ tokens }: Tokens.Em): string {
-      return styledContent(`em`, this.parser.parseInline(tokens), `span`)
+      return styledContent(`em`, this.parser.parseInline(tokens))
     },
 
     table({ header, rows }: Tokens.Table): string {
@@ -411,8 +332,8 @@ export function initRenderer(opts: IOpts): RendererAPI {
         .join(``)
       return `
         <section style="max-width: 100%; overflow: auto">
-          <table class="preview-table" ${styles(`table`)}>
-            <thead ${styles(`thead`)}>${headerRow}</thead>
+          <table class="preview-table">
+            <thead>${headerRow}</thead>
             <tbody>${body}</tbody>
           </table>
         </section>
@@ -430,18 +351,18 @@ export function initRenderer(opts: IOpts): RendererAPI {
   }
 
   marked.use({ renderer })
-  marked.use(markedMarkup({ styles: styleMapping }))
+  // 新主题系统：扩展不再需要 styles 参数
+  marked.use(markedMarkup())
   marked.use(markedToc())
-  marked.use(markedSlider({ styles: styleMapping }))
-  marked.use(markedAlert({ styles: styleMapping }))
-  marked.use(
-    MDKatex({ nonStandard: true }, styles(`inline_katex`, `;line-height: 1;`), styles(`block_katex`, `;text-align: center;`),
-    ),
-  )
+  marked.use(markedSlider())
+  marked.use(markedAlert({}))
+  marked.use(MDKatex({ nonStandard: true }, true))
   marked.use(markedFootnotes())
+  marked.use(markedMermaid())
   marked.use(markedPlantUML({
     inlineSvg: true, // 启用SVG内嵌，适用于微信公众号
   }))
+  marked.use(markedInfographic({ themeMode: opts.themeMode }))
   marked.use(markedRuby())
 
   return {

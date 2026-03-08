@@ -3,26 +3,80 @@ import type { ComponentPublicInstance } from 'vue'
 
 import { Compartment, EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
+import { highlightPendingBlocks, hljs } from '@md/core'
 import { markdownSetup, theme } from '@md/shared/editor'
 // import imageCompression from 'browser-image-compression'
 import { Eye, Pen } from 'lucide-vue-next'
 import { SidebarAIToolbar } from '@/components/ai'
+import FolderSourcePanel from '@/components/editor/FolderSourcePanel.vue'
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from '@/components/ui/resizable'
 import { SearchTab } from '@/components/ui/search-tab'
+import { useImageUploader } from '@/composables/useImageUploader'
+import { useCssEditorStore } from '@/stores/cssEditor'
+import { useEditorStore } from '@/stores/editor'
+import { usePostStore } from '@/stores/post'
+import { useRenderStore } from '@/stores/render'
+import { useThemeStore } from '@/stores/theme'
+import { useUIStore } from '@/stores/ui'
 import { checkImage, toBase64 } from '@/utils'
 import { fileUpload } from '@/utils/file'
+import { store } from '@/utils/storage'
 
-const store = useStore()
-const displayStore = useDisplayStore()
+const editorStore = useEditorStore()
+const postStore = usePostStore()
+const renderStore = useRenderStore()
+const themeStore = useThemeStore()
+const uiStore = useUIStore()
+const cssEditorStore = useCssEditorStore()
+const { upload } = useImageUploader()
 
-const { isDark, output, editor } = storeToRefs(store)
-const { editorRefresh } = store
+const { editor } = storeToRefs(editorStore)
+const { output } = storeToRefs(renderStore)
+const { isDark } = storeToRefs(uiStore)
+const { posts, currentPostIndex } = storeToRefs(postStore)
+const { previewWidth } = storeToRefs(themeStore)
+const {
+  isMobile,
+  isEditOnLeft,
+  isOpenPostSlider,
+  isOpenFolderPanel,
+  isOpenRightSlider,
+  isOpenConfirmDialog,
+  enableImageReupload,
+} = storeToRefs(uiStore)
 
-const { toggleShowUploadImgDialog } = displayStore
+const { toggleShowUploadImgDialog } = uiStore
+
+// Editor refresh function
+function editorRefresh() {
+  themeStore.updateCodeTheme()
+
+  const raw = editorStore.getContent()
+  renderStore.render(raw)
+}
+
+// Reset style function
+function resetStyle() {
+  themeStore.resetStyle()
+  cssEditorStore.resetCssConfig()
+  // 使用新主题系统
+  themeStore.applyCurrentTheme()
+  editorRefresh()
+  toast.success(`样式已重置`)
+}
+
+watch(output, () => {
+  nextTick(() => {
+    const outputElement = document.getElementById(`output`)
+    if (outputElement) {
+      highlightPendingBlocks(hljs, outputElement)
+    }
+  })
+})
 
 const backLight = ref(false)
 const isCoping = ref(false)
@@ -164,6 +218,20 @@ function openSearchWithSelection(view: EditorView) {
   }
 }
 
+function openReplaceWithSelection(view: EditorView) {
+  const selection = view.state.selection.main
+  const selected = view.state.doc.sliceString(selection.from, selection.to).trim()
+
+  if (searchTabRef.value) {
+    // SearchTab 已准备好，直接使用
+    searchTabRef.value.setSearchWithReplace(selected)
+  }
+  else {
+    // SearchTab 还没准备好，通过 UI Store 触发
+    uiStore.openSearchTab(selected, true)
+  }
+}
+
 // 监听 searchTabRef 的变化，处理待处理的请求
 watch(searchTabRef, (newRef) => {
   if (newRef && pendingSearchRequest.value) {
@@ -175,6 +243,30 @@ watch(searchTabRef, (newRef) => {
       newRef.showSearchTab = true
     }
     pendingSearchRequest.value = null
+  }
+})
+
+// 监听 UI Store 中的搜索请求
+const { searchTabRequest } = storeToRefs(uiStore)
+watch(searchTabRequest, (request) => {
+  if (request && searchTabRef.value) {
+    const { word, showReplace } = request
+
+    // 根据是否需要替换功能，调用不同的方法
+    if (showReplace) {
+      searchTabRef.value.setSearchWithReplace(word)
+    }
+    else {
+      if (word) {
+        searchTabRef.value.setSearchWord(word)
+      }
+      else {
+        searchTabRef.value.showSearchTab = true
+      }
+    }
+
+    // 清除请求
+    uiStore.clearSearchTabRequest()
   }
 })
 
@@ -194,8 +286,7 @@ onMounted(() => {
   document.addEventListener(`keydown`, handleGlobalKeydown, { passive: false, capture: false })
 })
 
-function beforeUpload(file: File) {
-  // validate image
+async function beforeImageUpload(file: File) {
   const checkResult = checkImage(file)
   if (!checkResult.ok) {
     toast.error(checkResult.msg)
@@ -203,10 +294,10 @@ function beforeUpload(file: File) {
   }
 
   // check image host
-  const imgHost = localStorage.getItem(`imgHost`) || `default`
-  localStorage.setItem(`imgHost`, imgHost)
+  const imgHost = (await store.get(`imgHost`)) || `default`
+  await store.set(`imgHost`, imgHost)
 
-  const config = localStorage.getItem(`${imgHost}Config`)
+  const config = await store.get(`${imgHost}Config`)
   const isValidHost = imgHost === `default` || config
   if (!isValidHost) {
     toast.error(`请先配置 ${imgHost} 图床参数`)
@@ -242,7 +333,7 @@ async function compressImage(file: File) {
     useWebWorker: true,
   }
   const imageCompression = await import(`browser-image-compression`)
-  const compressedFile = imageCompression.default(file, options)
+  const compressedFile = await imageCompression.default(file, options)
   return compressedFile
 }
 async function uploadImage(
@@ -253,7 +344,7 @@ async function uploadImage(
   try {
     isImgLoading.value = true
     // compress image if useCompression is true
-    const useCompression = localStorage.getItem(`useCompression`) === `true`
+    const useCompression = (await store.get(`useCompression`)) === `true`
     if (useCompression) {
       file = await compressImage(file)
     }
@@ -386,7 +477,9 @@ function mdLocalToRemote() {
           else {
             const file = await handle.getFile()
             console.log(`file`, file)
-            beforeUpload(file) && uploadImage(file)
+            if (await beforeImageUpload(file)) {
+              uploadImage(file)
+            }
           }
         })
     }
@@ -401,10 +494,11 @@ const progressValue = ref(0)
 function createFormTextArea(dom: HTMLDivElement) {
   // 创建编辑器状态
   const state = EditorState.create({
-    doc: store.posts[store.currentPostIndex].content,
+    doc: posts.value[currentPostIndex.value].content,
     extensions: [
       markdownSetup({
         onSearch: openSearchWithSelection,
+        onReplace: openReplaceWithSelection,
       }),
       themeCompartment.of(theme(isDark.value)),
       EditorView.updateListener.of((update) => {
@@ -414,7 +508,7 @@ function createFormTextArea(dom: HTMLDivElement) {
           changeTimer.value = setTimeout(() => {
             editorRefresh()
 
-            const currentPost = store.posts[store.currentPostIndex]
+            const currentPost = posts.value[currentPostIndex.value]
             if (value === currentPost.content) {
               return
             }
@@ -423,6 +517,127 @@ function createFormTextArea(dom: HTMLDivElement) {
             currentPost.content = value
           }, 300)
         }
+      }),
+      EditorView.domEventHandlers({
+        paste: (event, view) => {
+          // 1. 处理剪贴板中的文件 (截图/复制文件)
+          if (event.clipboardData?.items && [...event.clipboardData.items].some(item => item.kind === 'file')) {
+            if (isImgLoading.value) {
+              return true
+            }
+            Promise.all(
+              Array.from(event.clipboardData.items, item => item.getAsFile())
+                .filter(item => item != null)
+                .map(async item => (await beforeImageUpload(item!)) ? item : null),
+            ).then((items) => {
+              const validItems = items.filter(item => item != null) as File[]
+              if (validItems.length === 0) {
+                return
+              }
+              // start progress
+              const intervalId = setInterval(() => {
+                const newProgress = progressValue.value + 1
+                if (newProgress >= 100) {
+                  return
+                }
+                progressValue.value = newProgress
+              }, 100)
+
+              const processFiles = async () => {
+                for (const item of validItems) {
+                  await uploadImage(item)
+                }
+                clearInterval(intervalId)
+                progressValue.value = 100
+                setTimeout(() => {
+                  progressValue.value = 0
+                }, 1000)
+              }
+              processFiles()
+            })
+            return true
+          }
+
+          // 2. 处理剪贴板中的文本 (检测 Markdown 图片链接)
+          const text = event.clipboardData?.getData('text/plain')
+          if (text) {
+            // 匹配 ![alt](url) 格式
+            const mdImgRegex = /!\[(.*?)\]\((https?:\/\/[^)]+)\)/g
+            const matches = [...text.matchAll(mdImgRegex)]
+
+            if (matches.length > 0) {
+              isImgLoading.value = true
+
+              // 2.1 插入带有唯一 ID 的占位文本
+              let previewText = text
+              const placeholderMap = new Map<string, { originalUrl: string, originalAlt: string }>()
+
+              // 使用 replace 来生成唯一的占位符
+              let matchIndex = 0
+              previewText = previewText.replace(mdImgRegex, (_, alt, url) => {
+                const id = `LOADING_${Date.now()}_${matchIndex++}`
+                placeholderMap.set(id, { originalUrl: url, originalAlt: alt })
+                return `![⏳ 转存中...](${id})`
+              })
+
+              // 插入占位文本到编辑器
+              view.dispatch(view.state.replaceSelection(previewText))
+
+              // 2.2 提取唯一 URL 进行并发转存
+              const uniqueUrls = [...new Set(matches.map(m => m[2]))]
+
+              // 并发处理
+              Promise.all(uniqueUrls.map(async (url) => {
+                try {
+                  // 根据开关决定是否转存
+                  const newUrl = enableImageReupload.value ? await upload(url) : url
+
+                  // 2.3 转存成功后（或直接使用原URL），精确替换编辑器中的对应内容
+                  // 遍历 map，找到所有 originalUrl 为当前 url 的占位符 ID
+                  for (const [id, info] of placeholderMap.entries()) {
+                    if (info.originalUrl === url) {
+                      // 查找该 ID 在文档中的位置
+                      const searchStr = `![⏳ 转存中...](${id})`
+                      const currentDoc = view.state.doc.toString()
+                      const pos = currentDoc.indexOf(searchStr)
+
+                      if (pos !== -1) {
+                        const newText = `![${info.originalAlt}](${newUrl})`
+                        view.dispatch({
+                          changes: { from: pos, to: pos + searchStr.length, insert: newText },
+                        })
+                      }
+                    }
+                  }
+                }
+                catch (e) {
+                  console.error(`转存失败: ${url}`, e)
+                  // 失败时，将占位符恢复为原样
+                  for (const [id, info] of placeholderMap.entries()) {
+                    if (info.originalUrl === url) {
+                      const searchStr = `![⏳ 转存中...](${id})`
+                      const currentDoc = view.state.doc.toString()
+                      const pos = currentDoc.indexOf(searchStr)
+
+                      if (pos !== -1) {
+                        const newText = `![${info.originalAlt}](${info.originalUrl})`
+                        view.dispatch({
+                          changes: { from: pos, to: pos + searchStr.length, insert: newText },
+                        })
+                      }
+                    }
+                  }
+                  toast.error(`图片转存失败，已保留原链接`)
+                }
+              })).finally(() => {
+                isImgLoading.value = false
+              })
+
+              return true
+            }
+          }
+          return false
+        },
       }),
     ],
   })
@@ -435,39 +650,6 @@ function createFormTextArea(dom: HTMLDivElement) {
 
   codeMirrorView.value = view
 
-  // 添加粘贴事件监听
-  view.dom.addEventListener(`paste`, async (event: ClipboardEvent) => {
-    if (!(event.clipboardData?.items) || isImgLoading.value) {
-      return
-    }
-    const items = [...event.clipboardData.items].map(item => item.getAsFile()).filter(item => item != null && beforeUpload(item)) as File[]
-    // 即使return了，粘贴的文本内容也会被插入
-    if (items.length === 0) {
-      return
-    }
-    // start progress
-    const intervalId = setInterval(() => {
-      const newProgress = progressValue.value + 1
-      if (newProgress >= 100) {
-        return
-      }
-      progressValue.value = newProgress
-    }, 100)
-    for (const item of items) {
-      event.preventDefault()
-      await uploadImage(item)
-    }
-    const cleanup = () => {
-      clearInterval(intervalId)
-      progressValue.value = 100 // 设置完成状态
-      // 可选：延迟一段时间后重置进度
-      setTimeout(() => {
-        progressValue.value = 0
-      }, 1000)
-    }
-    cleanup()
-  })
-
   // 返回编辑器 view
   return view
 }
@@ -479,6 +661,15 @@ onMounted(() => {
   if (editorDom == null) {
     return
   }
+
+  // 初始化渲染器（新主题系统）
+  renderStore.initRendererInstance({
+    isMacCodeBlock: themeStore.isMacCodeBlock,
+    isShowLineNumber: themeStore.isShowLineNumber,
+  })
+
+  // 应用主题样式（新主题系统）
+  themeStore.applyCurrentTheme()
 
   nextTick(() => {
     const editorView = createFormTextArea(editorDom)
@@ -497,6 +688,34 @@ watch(isDark, () => {
       effects: themeCompartment.reconfigure(theme(isDark.value)),
     })
   }
+  // 重新渲染 markdown 以更新 infographic 等扩展的主题
+  editorRefresh()
+})
+
+// 监听当前文章切换，更新编辑器内容
+watch(currentPostIndex, () => {
+  if (!codeMirrorView.value)
+    return
+
+  const currentPost = posts.value[currentPostIndex.value]
+  if (!currentPost)
+    return
+
+  const currentContent = codeMirrorView.value.state.doc.toString()
+
+  // 只有当内容不同时才更新，避免不必要的更新
+  if (currentContent !== currentPost.content) {
+    codeMirrorView.value.dispatch({
+      changes: {
+        from: 0,
+        to: codeMirrorView.value.state.doc.length,
+        insert: currentPost.content,
+      },
+    })
+
+    // 更新编辑器后刷新渲染
+    editorRefresh()
+  }
 })
 
 // 历史记录的定时器
@@ -504,7 +723,7 @@ const historyTimer = ref<NodeJS.Timeout>()
 onMounted(() => {
   // 定时，30 秒记录一次文章的历史记录
   historyTimer.value = setInterval(() => {
-    const currentPost = store.posts[store.currentPostIndex]
+    const currentPost = posts.value[currentPostIndex.value]
 
     // 与最后一篇记录对比
     const pre = (currentPost.history || [])[0]?.content
@@ -549,25 +768,33 @@ onUnmounted(() => {
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel
             :default-size="15"
-            :max-size="store.isOpenPostSlider ? 30 : 0"
-            :min-size="store.isOpenPostSlider ? 10 : 0"
+            :max-size="isOpenPostSlider ? 20 : 0"
+            :min-size="isOpenPostSlider ? 10 : 0"
           >
             <PostSlider />
           </ResizablePanel>
           <ResizableHandle class="hidden md:block" />
+          <ResizablePanel
+            :default-size="isOpenFolderPanel ? 15 : 0"
+            :max-size="isOpenFolderPanel ? 25 : 0"
+            :min-size="isOpenFolderPanel ? 10 : 0"
+          >
+            <FolderSourcePanel />
+          </ResizablePanel>
+          <ResizableHandle v-if="isOpenFolderPanel" class="hidden md:block" />
           <ResizablePanel class="flex">
             <div
-              v-show="!store.isMobile || (store.isMobile && showEditor)"
+              v-show="!isMobile || (isMobile && showEditor)"
               ref="codeMirrorWrapper"
               class="codeMirror-wrapper relative flex-1"
               :class="{
-                'order-1 border-l': !store.isEditOnLeft,
-                'border-r': store.isEditOnLeft,
+                'order-1 border-l': !isEditOnLeft,
+                'border-r': isEditOnLeft,
               }"
             >
               <SearchTab v-if="codeMirrorView" ref="searchTabRef" :editor-view="codeMirrorView as any" />
               <SidebarAIToolbar
-                :is-mobile="store.isMobile"
+                :is-mobile="isMobile"
                 :show-editor="showEditor"
               />
 
@@ -580,23 +807,26 @@ onUnmounted(() => {
               </EditorContextMenu>
             </div>
             <div
-              v-show="!store.isMobile || (store.isMobile && !showEditor)"
+              v-show="!isMobile || (isMobile && !showEditor)"
               class="relative flex-1 overflow-x-hidden transition-width"
-              :class="[store.isOpenRightSlider ? 'w-0' : 'w-100']"
+              :class="[isOpenRightSlider ? 'w-0' : 'w-100']"
             >
               <div
                 id="preview"
                 ref="previewRef"
-                class="preview-wrapper w-full p-5"
+                class="preview-wrapper w-full p-5 flex justify-center"
               >
                 <div
                   id="output-wrapper"
-                  class="w-full"
+                  class="w-full max-w-full"
                   :class="{ output_night: !backLight }"
                 >
                   <div
-                    class="preview border-x shadow-xl"
-                    :class="[store.isMobile ? 'w-[100%]' : store.previewWidth]"
+                    class="preview border-x shadow-xl mx-auto"
+                    :class="[
+                      isMobile ? 'w-full' : previewWidth,
+                      themeStore.previewWidth === 'w-[375px]' ? 'max-w-full' : '',
+                    ]"
                   >
                     <section id="output" class="w-full" v-html="output" />
                     <div v-if="isCoping" class="loading-mask">
@@ -609,8 +839,8 @@ onUnmounted(() => {
                 </div>
                 <BackTop
                   target="preview"
-                  :right="store.isMobile ? 24 : 20"
-                  :bottom="store.isMobile ? 90 : 20"
+                  :right="isMobile ? 24 : 20"
+                  :bottom="isMobile ? 90 : 20"
                 />
               </div>
 
@@ -623,7 +853,7 @@ onUnmounted(() => {
       </div>
 
       <!-- 移动端浮动按钮组 -->
-      <div v-if="store.isMobile" class="fixed bottom-16 right-6 z-50 flex flex-col gap-2">
+      <div v-if="isMobile" class="fixed bottom-16 right-6 z-50 flex flex-col gap-2">
         <!-- 切换编辑/预览按钮 -->
         <button
           class="bg-primary flex items-center justify-center rounded-full p-3 text-white shadow-lg transition active:scale-95 hover:scale-105 dark:bg-gray-700 dark:text-white dark:ring-2 dark:ring-white/30"
@@ -642,7 +872,11 @@ onUnmounted(() => {
 
       <InsertMpCardDialog />
 
-      <AlertDialog v-model:open="store.isOpenConfirmDialog">
+      <ImportMarkdownDialog />
+
+      <TemplateDialog />
+
+      <AlertDialog v-model:open="isOpenConfirmDialog">
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>提示</AlertDialogTitle>
@@ -652,8 +886,8 @@ onUnmounted(() => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction @click="store.resetStyle()">
-              确认
+            <AlertDialogAction @click="resetStyle">
+              确定
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

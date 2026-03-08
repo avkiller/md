@@ -1,0 +1,124 @@
+import path from 'node:path'
+import process from 'node:process'
+
+import { cloudflare } from '@cloudflare/vite-plugin'
+import tailwindcss from '@tailwindcss/vite'
+import vue from '@vitejs/plugin-vue'
+import { visualizer } from 'rollup-plugin-visualizer'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { defineConfig, loadEnv } from 'vite'
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
+// import { VitePluginRadar } from 'vite-plugin-radar'
+import vueDevTools from 'vite-plugin-vue-devtools'
+
+const isNetlify = process.env.SERVER_ENV === `NETLIFY`
+const isUTools = process.env.SERVER_ENV === `UTOOLS`
+const isCfWorkers = process.env.CF_WORKERS === `1`
+const isCfPages = process.env.CF_PAGES === `1`
+
+const base = isNetlify || isCfWorkers || isCfPages ? `/` : isUTools ? `./` : `/md/`
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd())
+
+  return {
+    base,
+    define: { process },
+    envPrefix: [`VITE_`, `CF_`],
+    plugins: [
+      vue(),
+      isCfWorkers && cloudflare(),
+      tailwindcss(),
+      vueDevTools({
+        launchEditor: env.VITE_LAUNCH_EDITOR ?? `code`,
+      }),
+      !isCfWorkers && nodePolyfills({
+        include: [`path`, `util`, `timers`, `stream`, `fs`],
+        overrides: {
+          // Since `fs` is not supported in browsers, we can use the `memfs` package to polyfill it.
+          // fs: 'memfs',
+        },
+      }),
+      // VitePluginRadar({
+      //   analytics: { id: `G-7NZL3PZ0NK` },
+      // }),
+      // process.env.ANALYZE === `true`
+      // && visualizer({ emitFile: true, filename: `stats.html` }),
+      visualizer({
+        emitFile: true,
+        // gzipSize: true,
+        filename: `stats.html`,
+        // template: `treemap`,
+        open: true,
+      }),
+      AutoImport({
+        imports: [`vue`, `pinia`, `@vueuse/core`],
+        dirs: [`./src/stores`, `./src/utils/toast`, `./src/composables`],
+      }),
+      Components({
+        resolvers: [],
+      }),
+    ],
+    resolve: {
+      alias: { '@': path.resolve(__dirname, `./src`) },
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        target: 'esnext',
+      },
+    },
+    css: { devSourcemap: true },
+    build: {
+      rollupOptions: {
+        external: [`mermaid`],
+        output: {
+          manualChunks: {
+
+            vendor: [
+              `pinia`,
+              `vue`,
+              `yup`,
+              `vee-validate`,
+              `@vueuse/core`,
+              `tailwind-merge`,
+              // `prettier`,
+              //  `@lezer/markdown`,
+              `vue-sonner`,
+            ],
+            res: [
+              `lucide-vue-next`,
+              `vue-pick-colors`,
+            ],
+            makedown_lib: [
+              `marked`,
+              // `infographic`,
+              // `mdast-util-from-markdown`,
+            ],
+            utils: [
+              `html-to-image`,
+              // `readable-stream`,
+            ],
+            awssdk: [
+              `@aws-sdk/s3-request-presigner`,
+              `@aws-sdk/client-s3`,
+            ],
+            codemirror: [
+              `codemirror`,
+            ],
+            ui: [
+              // `codemirror`,
+              `radix-vue`,
+              `reka-ui`,
+            ],
+            // components: [
+            //   path.resolve(__dirname, 'src/components/editor/UploadImgDialog.vue'),
+
+            // ],
+
+          },
+        },
+      },
+    },
+  }
+})

@@ -1,17 +1,43 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import { Toaster } from '@/components/ui/sonner'
+import { useUIStore } from '@/stores/ui'
 import CodemirrorEditor from '@/views/CodemirrorEditor.vue'
 
-const store = useStore()
+const uiStore = useUIStore()
+const { isDark } = storeToRefs(uiStore)
+
+const isUtools = ref(false)
+
+onMounted(() => {
+  // 检测是否为 Utools 环境
+  isUtools.value = !!(window as any).__MD_UTOOLS__
+  if (isUtools.value) {
+    document.documentElement.classList.add(`is-utools`)
+  }
+
+  // 若 URL 带有 open 参数（Markdown 链接），打开导入对话框并自动导入
+  const params = new URLSearchParams(window.location.search)
+  const openUrl = params.get(`open`)
+  if (openUrl && URL.canParse(openUrl) && /^https?:\/\//i.test(openUrl)) {
+    uiStore.importMdOpenUrl = openUrl
+    uiStore.isShowImportMdDialog = true
+    params.delete(`open`)
+    const newSearch = params.toString()
+    const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : ``) + window.location.hash
+    window.history.replaceState({}, ``, newUrl)
+  }
+})
 </script>
 
 <template>
   <AppSplash />
   <CodemirrorEditor />
+
   <Toaster
     rich-colors
     position="top-center"
-    :theme="store.isDark ? 'dark' : 'light'"
+    :theme="isDark ? 'dark' : 'light'"
   />
 </template>
 
@@ -46,6 +72,23 @@ body {
   background-color: rgba(144, 146, 152, 0.5);
 }
 
+// Utools 模式下隐藏所有滚动条
+.is-utools {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  // Firefox
+  * {
+    scrollbar-width: none;
+  }
+
+  // IE and Edge
+  * {
+    -ms-overflow-style: none;
+  }
+}
+
 /* CSS-hints */
 .CodeMirror-hints {
   position: absolute;
@@ -61,9 +104,7 @@ body {
 
   color: #333333;
   background-color: #ffffff;
-  box-shadow:
-    0 4px 8px 0 rgba(0, 0, 0, 0.12),
-    0 2px 4px 0 rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.12), 0 2px 4px 0 rgba(0, 0, 0, 0.08);
 }
 
 .CodeMirror-hint {

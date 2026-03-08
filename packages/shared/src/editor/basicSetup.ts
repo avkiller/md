@@ -5,7 +5,8 @@ import { bracketMatching, defaultHighlightStyle, foldGutter, foldKeymap, indentO
 import { lintKeymap } from '@codemirror/lint'
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
-import { crosshairCursor, drawSelection, dropCursor, highlightActiveLine, highlightActiveLineGutter, highlightSpecialChars, keymap, lineNumbers, rectangularSelection } from '@codemirror/view'
+import { crosshairCursor, drawSelection, dropCursor, highlightActiveLine, highlightActiveLineGutter, highlightSpecialChars, keymap, rectangularSelection } from '@codemirror/view'
+import { indentationMarkers } from '@replit/codemirror-indentation-markers'
 
 // (The superfluous function calls around the list of extensions work
 // around current limitations in tree-shaking software.)
@@ -46,7 +47,7 @@ import { crosshairCursor, drawSelection, dropCursor, highlightActiveLine, highli
 /// and an array literal), copy it into your own code, and adjust it
 /// as desired.
 export const basicSetup: Extension = (() => [
-  lineNumbers(),
+  // lineNumbers(), // 移除行号显示
   highlightActiveLineGutter(),
   highlightSpecialChars(),
   history(),
@@ -63,6 +64,7 @@ export const basicSetup: Extension = (() => [
   crosshairCursor(),
   highlightActiveLine(),
   highlightSelectionMatches(),
+  indentationMarkers(), // 添加缩进标记
   keymap.of([
     ...closeBracketsKeymap,
     ...defaultKeymap,

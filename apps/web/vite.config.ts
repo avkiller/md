@@ -9,15 +9,16 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv } from 'vite'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
-import { VitePWA } from 'vite-plugin-pwa'
 // import { VitePluginRadar } from 'vite-plugin-radar'
 import vueDevTools from 'vite-plugin-vue-devtools'
+
 const isNetlify = process.env.SERVER_ENV === `NETLIFY`
 const isUTools = process.env.SERVER_ENV === `UTOOLS`
 const isCfWorkers = process.env.CF_WORKERS === `1`
 const isCfPages = process.env.CF_PAGES === `1`
 
 const base = isNetlify || isCfWorkers || isCfPages ? `/` : isUTools ? `./` : `/md/`
+const WINDOWS_PATH_REG = /\\/g
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd())
@@ -33,40 +34,6 @@ export default defineConfig(({ mode }) => {
       vueDevTools({
         launchEditor: env.VITE_LAUNCH_EDITOR ?? `code`,
       }),
-
-      // VitePWA({
-      //   registerType: `autoUpdate`,
-      //   includeAssets: [`favicon.ico`],
-      //   manifest: {
-      //     name: `@avkiller-md`,
-      //     short_name: `@avkiller-md`,
-      //     theme_color: `#ffffff`,
-      //     icons: [
-      //       {
-      //         src: `${base}pwa-192x192.png`,
-      //         sizes: `192x192`,
-      //         type: `image/png`,
-      //       },
-      //       {
-      //         src: `${base}pwa-512x512.png`,
-      //         sizes: `512x512`,
-      //         type: `image/png`,
-      //       },
-      //       {
-      //         src: `${base}pwa-512x512.png`,
-      //         sizes: `512x512`,
-      //         type: `image/png`,
-      //         purpose: `any maskable`,
-      //       },
-      //     ],
-      //   },
-      //   workbox: {
-      //     maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-      //   },
-      //   devOptions: {
-      //     enabled: true,
-      //   },
-      // }),
       !isCfWorkers && nodePolyfills({
         include: [`path`, `util`, `timers`, `stream`, `fs`],
         overrides: {
@@ -97,70 +64,70 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: { '@': path.resolve(__dirname, `./src`) },
     },
+    optimizeDeps: {
+      esbuildOptions: {
+        target: 'esnext',
+      },
+    },
     css: { devSourcemap: true },
     build: {
+      chunkSizeWarningLimit: 500,
       rollupOptions: {
+        external: [`mermaid`],
         output: {
-          manualChunks: {
+          chunkFileNames: `static/js/md-[name]-[hash].js`,
+          entryFileNames: `static/js/md-[name]-[hash].js`,
+          assetFileNames: `static/[ext]/md-[name]-[hash].[ext]`,
+          globals: { mermaid: `mermaid` },
+          manualChunks(id) {
+            if (id.includes(`node_modules`)) {
+              const normalizedId = id.replace(WINDOWS_PATH_REG, '/')
+              if (id.includes('@vue/')) {
+                return 'vue-bundle'
+              }
+              if (
+                normalizedId.includes('radix-vue')
+                || normalizedId.includes('reka-ui')
+                || normalizedId.includes('lucide-vue-next')
+                || normalizedId.includes('/.pnpm/radix-vue')
+                || normalizedId.includes('/.pnpm/reka-ui')
+              ) {
+                return 'ui' // 它们都会被打包进 ui.js
+              }
 
-            vendor: [
-              `pinia`,
-              `vue`,
-              `yup`,
-              `vee-validate`,
-              `@vueuse/core`,
-              `tailwind-merge`,
-              `isomorphic-dompurify`,
-              `unified`,
-              `remark-parse`,
-              `remark-stringify`,
-              // `prettier`,
-            //  `@lezer/markdown`,
-              `vue-sonner`,
-            ],
-            res: [
-              `lucide-vue-next`,
-              `vue-pick-colors`,
-            ],
-            makedown_lib: [
-              `front-matter`,
-              `marked`,
-              // `mdast-util-from-markdown`,
-            ],
-            utils: [
-              `reading-time`,
-              `crypto-js`,
-              `axios`,
-              `html-to-image`,
-            ],
-            cosdk: [
-              `cos-js-sdk-v5`,
-            ],
-            awssdk: [
-              `@aws-sdk/s3-request-presigner`,
-              `@aws-sdk/client-s3`,
-            ],
-            othercloudsdk: [
-              `qiniu-js`,
-              `tiny-oss`,
-            ],
-            codemirror: [
-              `codemirror`,
-            ],
-            hljs: [
-              `highlight.js`
-            ],
+              if (
+                normalizedId.includes('@aws-sdk/s3-request-presigner')
+                || normalizedId.includes('@aws-sdk/client-s3')
+              ) {
+                return 'aws' // 它们都会被打包进 ui.js
+              }
+              if (
+                normalizedId.includes('html-to-image')
+                || normalizedId.includes('pinia')
+                || normalizedId.includes('yup')
+                || normalizedId.includes('vee-validate')
+                || normalizedId.includes('tailwind-merge')
+                || normalizedId.includes('highlight.js')
+                || normalizedId.includes('vue-sonner')
+              ) {
+                return 'utils'
+              }
 
-            ui: [
-              // `codemirror`,
-              `radix-vue`,
-              `reka-ui`,
-            ],
-            'components': [
-              path.resolve(__dirname, 'src/components/editor/UploadImgDialog.vue'),
-
-            ],
-
+              if (normalizedId.includes(`codemirror`))
+                return `codemirror`
+              if (normalizedId.includes(`katex`))
+                return `katex`
+              if (normalizedId.includes(`prettier`))
+                return `prettier`
+              // Skip automatic vendor splitting for pnpm virtual store to avoid circular deps
+              if (normalizedId.includes(`/.pnpm/`))
+                return
+              const pkg = id
+                .split(`node_modules/`)[1]
+                .split(`/`)[0]
+                .replace(`@`, `npm_`)
+              return `vendor_${pkg}`
+            }
           },
         },
       },

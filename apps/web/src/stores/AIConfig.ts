@@ -5,76 +5,106 @@ import {
   DEFAULT_SERVICE_TEMPERATURE,
   DEFAULT_SERVICE_TYPE,
 } from '@md/shared/constants'
-import { useStorage } from '@vueuse/core'
-import { defineStore } from 'pinia'
-import { customRef, ref, watch } from 'vue'
+import { store } from '@/utils/storage'
 
-export default defineStore(`AIConfig`, () => {
-  /* ————— 与 service 无关的全局配置 ————— */
-  const type = useStorage<string>(`openai_type`, DEFAULT_SERVICE_TYPE)
-  const temperature = useStorage<number>(`openai_temperature`, DEFAULT_SERVICE_TEMPERATURE)
-  const maxToken = useStorage<number>(`openai_max_token`, DEFAULT_SERVICE_MAX_TOKEN)
+/**
+ * AI 配置 Store
+ * 负责管理 AI 服务的配置，包括服务类型、模型、温度等参数
+ */
+export const useAIConfigStore = defineStore(`AIConfig`, () => {
+  // ==================== 全局配置 ====================
 
-  /* ————— 与 service 强相关的字段 ————— */
-  const endpoint = ref<string>(``) // 由 watch(type) 初始化
-  const model = ref<string>(``) // 同上
+  // 服务类型
+  const type = store.reactive<string>(`openai_type`, DEFAULT_SERVICE_TYPE)
 
-  /* ————— apiKey：按 service 前缀持久化 ————— */
-  const apiKey = customRef<string>((track, trigger) => ({
-    get() {
-      track()
-      return localStorage.getItem(`openai_key_${type.value}`) || DEFAULT_SERVICE_KEY
-    },
-    set(val: string) {
-      if (type.value !== DEFAULT_SERVICE_TYPE) {
-        localStorage.setItem(`openai_key_${type.value}`, val)
-      }
-      trigger()
-    },
-  }))
+  // 温度参数（0-2，控制随机性）
+  const temperature = store.reactive<number>(`openai_temperature`, DEFAULT_SERVICE_TEMPERATURE)
 
-  /* ————————————————— 核心逻辑 ————————————————— */
+  // 最大 token 数
+  const maxToken = store.reactive<number>(`openai_max_token`, DEFAULT_SERVICE_MAX_TOKEN)
 
-  // ① type 变化（含首次加载）→ 同步 endpoint & model
-  watch(
-    type,
-    (newType) => {
-      const svc = serviceOptions.find(s => s.value === newType) ?? serviceOptions[0]
+  // ==================== 服务相关字段 ====================
 
-      // 更新端点
-      endpoint.value = svc.endpoint
+  // 服务端点（由 watch(type) 自动初始化）
+  const endpoint = ref<string>(``)
 
-      // 读取或回退模型
-      const saved = localStorage.getItem(`openai_model_${newType}`) || ``
-      model.value = svc.models.includes(saved) ? saved : svc.models[0]
+  // 模型名称（由 watch(type) 自动初始化）
+  const model = ref<string>(``)
 
-      // 如有回退，写回存储保持一致
-      localStorage.setItem(`openai_model_${newType}`, model.value)
-    },
-    { immediate: true }, // ⬅️ 关键：首次也执行
-  )
+  // ==================== API Key 管理 ====================
 
-  // ② model 变化 → 持久化到对应 service 键
-  watch(model, (val) => {
-    localStorage.setItem(`openai_model_${type.value}`, val)
+  // API Key（按服务类型分别持久化）
+  const apiKey = customRef<string>((track, trigger) => {
+    let cachedKey = ``
+
+    // 异步加载初始值
+    store.get(`openai_key_${type.value}`).then((value) => {
+      cachedKey = value || DEFAULT_SERVICE_KEY
+    })
+
+    return {
+      get() {
+        track()
+        return cachedKey
+      },
+      set(val: string) {
+        cachedKey = val
+        trigger()
+
+        if (type.value !== DEFAULT_SERVICE_TYPE) {
+          store.set(`openai_key_${type.value}`, val)
+        }
+      },
+    }
   })
 
-  /* ————— actions ————— */
+  // ==================== 响应式逻辑 ====================
 
-  function reset() {
+  // 监听服务类型变化，自动同步端点和模型
+  watch(
+    type,
+    async (newType) => {
+      const svc = serviceOptions.find(s => s.value === newType) ?? serviceOptions[0]
+
+      // 更新服务端点
+      endpoint.value = svc.endpoint
+
+      // 读取已保存的模型，如果不存在或不在列表中，则使用默认模型
+      const saved = await store.get(`openai_model_${newType}`) || ``
+      model.value = svc.models.includes(saved) ? saved : svc.models[0]
+
+      // 保存当前模型
+      await store.set(`openai_model_${newType}`, model.value)
+    },
+    { immediate: true }, // 首次加载时也执行
+  )
+
+  // 监听模型变化，持久化存储
+  watch(model, async (val) => {
+    await store.set(`openai_model_${type.value}`, val)
+  })
+
+  // ==================== Actions ====================
+
+  /**
+   * 重置所有配置到默认值
+   */
+  const reset = async () => {
     type.value = DEFAULT_SERVICE_TYPE
     temperature.value = DEFAULT_SERVICE_TEMPERATURE
     maxToken.value = DEFAULT_SERVICE_MAX_TOKEN
 
-    // 清理所有 service 相关持久化
-    serviceOptions.forEach(({ value }) => {
-      localStorage.removeItem(`openai_key_${value}`)
-      localStorage.removeItem(`openai_model_${value}`)
-    })
+    // 清理所有服务相关的持久化数据
+    await Promise.all(
+      serviceOptions.map(async ({ value }) => {
+        await store.remove(`openai_key_${value}`)
+        await store.remove(`openai_model_${value}`)
+      }),
+    )
   }
 
   return {
-    // state
+    // State
     type,
     endpoint,
     model,
@@ -82,7 +112,10 @@ export default defineStore(`AIConfig`, () => {
     maxToken,
     apiKey,
 
-    // actions
+    // Actions
     reset,
   }
 })
+
+// 默认导出（向后兼容）
+export default useAIConfigStore

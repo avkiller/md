@@ -2,11 +2,13 @@
 import { Compartment } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { javascriptSetup, theme } from '@md/shared'
+import { useUIStore } from '@/stores/ui'
 import { removeLeft } from '@/utils'
+import { store } from '@/utils/storage'
 
-const code = useLocalStorage(`formCustomConfig`, removeLeft(`
+const code = store.reactive(`formCustomConfig`, removeLeft(`
   const { file, util, okCb, errCb } = CUSTOM_ARG
-  const param = new FormData()
+  param = new FormData()
   param.append('file', file)
   util.axios.post('${window.location.origin}/upload', param, {
     headers: { 'Content-Type': 'multipart/form-data' }
@@ -19,8 +21,8 @@ const code = useLocalStorage(`formCustomConfig`, removeLeft(`
 
 const formCustomTextarea = useTemplateRef<HTMLDivElement>(`formCustomTextarea`)
 
-const store = useStore()
-const { isDark } = storeToRefs(store)
+const uiStore = useUIStore()
+const { isDark } = storeToRefs(uiStore)
 
 const editor = ref<EditorView | null>(null)
 
@@ -50,14 +52,14 @@ onUnmounted(() => {
 
 function formCustomSave() {
   const str = editor.value!.state.doc.toString()
-  localStorage.setItem(`formCustomConfig`, str)
   code.value = str
   toast.success(`保存成功`)
 }
 </script>
 
 <template>
-  <div class="space-y-4 min-w-0">
+  <div class="flex flex-col flex-1 overflow-hidden">
+    <div class="flex-1 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-4">
     <div class="h-60 border border-gray-200 dark:border-gray-700 rounded-lg flex flex-col overflow-y-auto">
       <div
         ref="formCustomTextarea"
@@ -66,16 +68,19 @@ function formCustomSave() {
     </div>
     <Button
       variant="link"
-      class="p-0"
+        class="p-0 h-auto text-left whitespace-normal"
       as="a"
       href="https://github.com/avkiller/md/blob/main/docs/custom-upload.md"
       target="_blank"
     >
       参数详情？
     </Button>
-    <Button class="block" @click="formCustomSave">
+    </div>
+    <DialogFooter class="p-1">
+      <Button @click="formCustomSave">
       保存配置
     </Button>
+    </DialogFooter>
   </div>
 </template>
 

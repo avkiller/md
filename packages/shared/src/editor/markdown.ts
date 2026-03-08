@@ -3,8 +3,9 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
 import { highlightSelectionMatches } from '@codemirror/search'
-import { EditorState, Prec } from '@codemirror/state'
+import { EditorSelection, EditorState, Prec } from '@codemirror/state'
 import { EditorView, keymap, placeholder } from '@codemirror/view'
+import { indentationMarkers } from '@replit/codemirror-indentation-markers'
 import { formatDoc } from '../utils/fileHelpers'
 import { applyHeading, formatBold, formatCode, formatItalic, formatLink, formatOrderedList, formatStrikethrough, formatUnorderedList, redoAction, undoAction } from './format'
 
@@ -19,8 +20,22 @@ async function formatMarkdown(view: EditorView) {
   })
 }
 
+/**
+ * 在光标位置插入缩进（空格）
+ */
+function insertTabAtCursor(view: EditorView): boolean {
+  const spaces = `  ` // 2 个空格作为缩进
+  const changes = view.state.changeByRange(range => ({
+    changes: { from: range.from, to: range.to, insert: spaces },
+    range: EditorSelection.range(range.from + spaces.length, range.from + spaces.length),
+  }))
+  view.dispatch(changes)
+  return true
+}
+
 interface MarkdownKeymapOptions {
   onSearch?: (view: EditorView) => void
+  onReplace?: (view: EditorView) => void
 }
 
 /**
@@ -30,13 +45,15 @@ interface MarkdownKeymapOptions {
  * @param options.onSearch - 搜索回调（可选）
  */
 export function markdownKeymap(options?: MarkdownKeymapOptions) {
-  const { onSearch } = options || {}
+  const { onSearch, onReplace } = options || {}
 
   return keymap.of([
+    // Tab 键在光标位置插入缩进
+    { key: `Tab`, run: insertTabAtCursor },
+
     // 撤销/重做
     { key: `Mod-z`, run: undoAction },
     { key: `Mod-y`, run: redoAction },
-    { key: `Mod-Shift-z`, run: redoAction },
 
     // 文本格式
     { key: `Mod-b`, run: (view) => { formatBold(view); return true } },
@@ -45,8 +62,7 @@ export function markdownKeymap(options?: MarkdownKeymapOptions) {
     { key: `Mod-k`, run: (view) => { formatLink(view); return true } },
     { key: `Mod-e`, run: (view) => { formatCode(view); return true } },
 
-    // 标题
-    { key: `Mod-h`, run: (view) => { applyHeading(view, 1); return true } },
+    // 标题（使用 Mod-1 到 Mod-6）
     { key: `Mod-1`, run: (view) => { applyHeading(view, 1); return true } },
     { key: `Mod-2`, run: (view) => { applyHeading(view, 2); return true } },
     { key: `Mod-3`, run: (view) => { applyHeading(view, 3); return true } },
@@ -58,8 +74,9 @@ export function markdownKeymap(options?: MarkdownKeymapOptions) {
     { key: `Mod-u`, run: (view) => { formatUnorderedList(view); return true } },
     { key: `Mod-o`, run: (view) => { formatOrderedList(view); return true } },
 
-    // 搜索（可选）
+    // 搜索和替换（可选）
     ...(onSearch ? [{ key: `Mod-f`, run: (view: EditorView) => { onSearch(view); return true } }] : []),
+    ...(onReplace ? [{ key: `Mod-h`, run: (view: EditorView) => { onReplace(view); return true } }] : []),
 
     // 格式化
     { key: `Shift-Alt-f`, run: (view: EditorView) => { formatMarkdown(view); return true } },
@@ -85,6 +102,9 @@ export function markdownSetup(options?: MarkdownKeymapOptions) {
     history(),
     highlightSelectionMatches(),
     closeBrackets(),
+
+    // 缩进标记
+    indentationMarkers(),
 
     // 语言支持
     markdown({

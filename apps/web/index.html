@@ -73,6 +73,9 @@
       <div class="loading">
         <strong>致力于让 Markdown 编辑更简单</strong>
         <p class="txt">正在加载编辑器</p>
+        <p class="timeout-tip" style="display: none; color: #e53935; font-size: 16px; margin-top: 2em">
+          加载时间过长，请尝试刷新页面或按 F12 查看控制台是否有异常信息
+        </p>
       </div>
     </div>
     <script>
@@ -89,15 +92,14 @@
     </script>
     <script>
       window.MathJax = {
-        loader: { load: ['[tex]/ams'] },
-        tex: { packages: { '[+]': ['ams'] }, tags: 'ams' },
+        tex: { tags: 'ams' },
         svg: { fontCache: 'none' },
       }
     </script>
-    <!--<script id="MathJax-script" src="/tex-svg.js"></script>-->
-    <script id="MathJax-script" src="https://s4.zstatic.net/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js"></script>
+    <script id="MathJax-script" src="/static/tex-svg.js"></script>
+    <script src="/static/mermaid.min.js"></script>
     <script type="module" src="/src/main.ts"></script>
     <script type="module" src="/src/sidepanel.ts"></script>
   </body>
-  <!-- <script src="/main.js"></script> -->
+  <script src="/static/wechatsync_main.js"></script>
 </html>

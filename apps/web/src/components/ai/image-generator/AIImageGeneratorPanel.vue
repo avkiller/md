@@ -9,19 +9,21 @@ import {
   Settings,
   Trash2,
 } from 'lucide-vue-next'
-import { storeToRefs } from 'pinia'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import { useDisplayStore, useStore } from '@/stores'
-import useAIImageConfigStore from '@/stores/AIImageConfig'
+import useAIImageConfigStore from '@/stores/aiImageConfig'
+import { useEditorStore } from '@/stores/editor'
+import { useUIStore } from '@/stores/ui'
 import { copyPlain } from '@/utils/clipboard'
+import { store } from '@/utils/storage'
 import AIImageConfig from './AIImageConfig.vue'
 
 /* ---------- 组件属性 ---------- */
@@ -29,10 +31,10 @@ const props = defineProps<{ open: boolean }>()
 const emit = defineEmits([`update:open`])
 
 /* ---------- 编辑器引用 ---------- */
-const store = useStore()
-const { editor } = storeToRefs(store)
-const displayStore = useDisplayStore()
-const { toggleAIDialog } = displayStore
+const editorStore = useEditorStore()
+const { editor } = storeToRefs(editorStore)
+const uiStore = useUIStore()
+const { toggleAIDialog } = uiStore
 
 /* ---------- 弹窗开关 ---------- */
 const dialogVisible = ref(props.open)
@@ -68,18 +70,17 @@ function isImageExpired(timestamp: number): boolean {
   return now - timestamp > EXPIRY_TIME
 }
 
-function cleanExpiredImages() {
-  const savedImages = localStorage.getItem(`ai_generated_images`)
-  const savedPrompts = localStorage.getItem(`ai_image_prompts`)
-  const savedTimestamps = localStorage.getItem(`ai_image_timestamps`)
+async function cleanExpiredImages() {
+  const savedImages = await store.get(`ai_generated_images`)
+  const savedTimestamps = await store.get(`ai_image_timestamps`)
 
   if (!savedImages) {
     return
   }
 
-  const images = JSON.parse(savedImages)
-  const prompts = savedPrompts ? JSON.parse(savedPrompts) : []
-  const timestamps = savedTimestamps ? JSON.parse(savedTimestamps) : []
+  const images = await store.getJSON(`ai_generated_images`, [])
+  const prompts = await store.getJSON(`ai_image_prompts`, [])
+  const timestamps = await store.getJSON(`ai_image_timestamps`, [])
 
   // 如果没有时间戳数据，说明是旧版本，默认清除所有数据
   if (!savedTimestamps || timestamps.length === 0) {
@@ -87,9 +88,9 @@ function cleanExpiredImages() {
     generatedImages.value = []
     imagePrompts.value = []
     imageTimestamps.value = []
-    localStorage.removeItem(`ai_generated_images`)
-    localStorage.removeItem(`ai_image_prompts`)
-    localStorage.removeItem(`ai_image_timestamps`)
+    await store.remove(`ai_generated_images`)
+    await store.remove(`ai_image_prompts`)
+    await store.remove(`ai_image_timestamps`)
     return
   }
 
@@ -110,18 +111,18 @@ function cleanExpiredImages() {
   imagePrompts.value = validPrompts
   imageTimestamps.value = validTimestamps
 
-  // 如果有数据被清除，更新localStorage
+  // 如果有数据被清除，更新存储
   if (validImages.length < images.length) {
     console.log(`🧹 清除了 ${images.length - validImages.length} 张过期图片`)
     if (validImages.length > 0) {
-      localStorage.setItem(`ai_generated_images`, JSON.stringify(validImages))
-      localStorage.setItem(`ai_image_prompts`, JSON.stringify(validPrompts))
-      localStorage.setItem(`ai_image_timestamps`, JSON.stringify(validTimestamps))
+      await store.setJSON(`ai_generated_images`, validImages)
+      await store.setJSON(`ai_image_prompts`, validPrompts)
+      await store.setJSON(`ai_image_timestamps`, validTimestamps)
     }
     else {
-      localStorage.removeItem(`ai_generated_images`)
-      localStorage.removeItem(`ai_image_prompts`)
-      localStorage.removeItem(`ai_image_timestamps`)
+      await store.remove(`ai_generated_images`)
+      await store.remove(`ai_image_prompts`)
+      await store.remove(`ai_image_timestamps`)
     }
   }
 
@@ -129,9 +130,9 @@ function cleanExpiredImages() {
 }
 
 /* ---------- 初始数据 ---------- */
-onMounted(() => {
+onMounted(async () => {
   // 先进行过期检查和清理
-  cleanExpiredImages()
+  await cleanExpiredImages()
 
   // 确保数组长度一致
   const imagesLength = generatedImages.value.length
@@ -146,9 +147,9 @@ onMounted(() => {
     generatedImages.value = []
     imagePrompts.value = []
     imageTimestamps.value = []
-    localStorage.removeItem(`ai_generated_images`)
-    localStorage.removeItem(`ai_image_prompts`)
-    localStorage.removeItem(`ai_image_timestamps`)
+    await store.remove(`ai_generated_images`)
+    await store.remove(`ai_image_prompts`)
+    await store.remove(`ai_image_timestamps`)
   }
   else {
     // 补齐较短的数组
@@ -159,8 +160,6 @@ onMounted(() => {
       imageTimestamps.value = [...imageTimestamps.value, ...Array.from({ length: imagesLength - timestampsLength }, () => Date.now())]
     }
   }
-
-  console.log(`📊 数据加载完成，图片数量:`, generatedImages.value.length, `提示词数量:`, imagePrompts.value.length, `时间戳数量:`, imageTimestamps.value.length)
 
   // 启动定时器，每30秒检查一次过期图片并更新时间显示
   timeUpdateInterval.value = setInterval(() => {
@@ -275,9 +274,9 @@ async function generateImage() {
           imageTimestamps.value = imageTimestamps.value.slice(0, 20)
         }
 
-        localStorage.setItem(`ai_generated_images`, JSON.stringify(generatedImages.value))
-        localStorage.setItem(`ai_image_prompts`, JSON.stringify(imagePrompts.value))
-        localStorage.setItem(`ai_image_timestamps`, JSON.stringify(imageTimestamps.value))
+        await store.setJSON(`ai_generated_images`, generatedImages.value)
+        await store.setJSON(`ai_image_prompts`, imagePrompts.value)
+        await store.setJSON(`ai_image_timestamps`, imageTimestamps.value)
 
         // 清空输入框
         prompt.value = ``
@@ -312,14 +311,14 @@ function cancelGeneration() {
 }
 
 /* ---------- 清空图像 ---------- */
-function clearImages() {
+async function clearImages() {
   generatedImages.value = []
   imagePrompts.value = []
   imageTimestamps.value = []
   currentImageIndex.value = 0
-  localStorage.removeItem(`ai_generated_images`)
-  localStorage.removeItem(`ai_image_prompts`)
-  localStorage.removeItem(`ai_image_timestamps`)
+  await store.remove(`ai_generated_images`)
+  await store.remove(`ai_image_prompts`)
+  await store.remove(`ai_image_timestamps`)
 }
 
 /* ---------- 下载图像 ---------- */
@@ -447,9 +446,9 @@ async function regenerateWithPrompt(promptText: string) {
           imageTimestamps.value = imageTimestamps.value.slice(0, 20)
         }
 
-        localStorage.setItem(`ai_generated_images`, JSON.stringify(generatedImages.value))
-        localStorage.setItem(`ai_image_prompts`, JSON.stringify(imagePrompts.value))
-        localStorage.setItem(`ai_image_timestamps`, JSON.stringify(imageTimestamps.value))
+        await store.setJSON(`ai_generated_images`, generatedImages.value)
+        await store.setJSON(`ai_image_prompts`, imagePrompts.value)
+        await store.setJSON(`ai_image_timestamps`, imageTimestamps.value)
       }
     }
     else {
@@ -617,7 +616,6 @@ function getTimeRemainingClass(index: number): string {
   <Dialog v-model:open="dialogVisible">
     <DialogContent
       class="bg-card text-card-foreground flex flex-col w-[95vw] max-h-[90vh] sm:max-h-[85vh] sm:max-w-4xl overflow-y-auto"
-      :style="{ height: 'auto' }"
     >
       <!-- ============ 头部 ============ -->
       <DialogHeader class="space-y-1 flex flex-col items-start">
@@ -655,9 +653,9 @@ function getTimeRemainingClass(index: number): string {
             <Trash2 class="h-4 w-4" />
           </Button>
         </div>
-        <p class="text-muted-foreground text-sm">
+        <DialogDescription class="text-muted-foreground text-sm">
           使用 AI 根据文字描述生成图像
-        </p>
+        </DialogDescription>
       </DialogHeader>
 
       <!-- ============ 参数配置面板 ============ -->
