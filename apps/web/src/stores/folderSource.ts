@@ -50,7 +50,7 @@ export const useFolderSourceStore = defineStore(`folderSource`, () => {
 
   // 兼容旧代码的属性
   const folderHandles = computed(() => {
-    return Array.from(runtimeFolderMap.values(), folder => ({
+    return Array.from(runtimeFolderMap.values()).map(folder => ({
       id: folder.id,
       name: folder.name,
       handle: folder.handle,
@@ -104,7 +104,7 @@ export const useFolderSourceStore = defineStore(`folderSource`, () => {
 
       // 检查是否已经打开过这个文件夹
       let folderId: string
-      const existingFolder = [...runtimeFolderMap.values()].find(f => f.name === handle.name)
+      const existingFolder = Array.from(runtimeFolderMap.values()).find(f => f.name === handle.name)
 
       if (existingFolder) {
         folderId = existingFolder.id
@@ -284,7 +284,7 @@ export const useFolderSourceStore = defineStore(`folderSource`, () => {
       }
 
       // 获取或创建文件句柄
-      const fileName = pathParts.at(-1)
+      const fileName = pathParts[pathParts.length - 1]
       const fileHandle = await currentHandle.getFileHandle(fileName, { create: true })
 
       // 写入内容

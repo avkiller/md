@@ -63,7 +63,7 @@ function getDir() {
  * @returns {string} `时间戳+uuid`
  */
 function getDateFilename(filename: string) {
-  const currentTimestamp = Date.now()
+  const currentTimestamp = new Date().getTime()
   // 获取最后一个点号后的内容作为文件扩展名
   const fileSuffix = filename.split(`.`).pop()
   return `${currentTimestamp}-${uuidv4()}.${fileSuffix}`
@@ -420,7 +420,7 @@ async function getMpToken(appID: string, appsecret: string, proxyOrigin: string)
   const data = await store.get(`mpToken:${appID}`)
   if (data) {
     const token = JSON.parse(data)
-    if (token.expire && token.expire > Date.now()) {
+    if (token.expire && token.expire > new Date().getTime()) {
       return token.access_token
     }
   }
@@ -440,7 +440,7 @@ async function getMpToken(appID: string, appsecret: string, proxyOrigin: string)
   if (res.access_token) {
     const tokenInfo = {
       ...res,
-      expire: Date.now() + res.expires_in * 1000,
+      expire: new Date().getTime() + res.expires_in * 1000,
     }
     await store.setJSON(`mpToken:${appID}`, tokenInfo)
     return res.access_token

@@ -60,26 +60,26 @@ function formCustomSave() {
 <template>
   <div class="flex flex-col flex-1 overflow-hidden">
     <div class="flex-1 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-4">
-    <div class="h-60 border border-gray-200 dark:border-gray-700 rounded-lg flex flex-col overflow-y-auto">
-      <div
-        ref="formCustomTextarea"
-        class="flex-1 custom-codemirror"
-      />
-    </div>
-    <Button
-      variant="link"
+      <div class="h-60 border border-gray-200 dark:border-gray-700 rounded-lg flex flex-col overflow-y-auto">
+        <div
+          ref="formCustomTextarea"
+          class="flex-1 custom-codemirror"
+        />
+      </div>
+      <Button
+        variant="link"
         class="p-0 h-auto text-left whitespace-normal"
-      as="a"
-      href="https://github.com/avkiller/md/blob/main/docs/custom-upload.md"
-      target="_blank"
-    >
-      参数详情？
-    </Button>
+        as="a"
+        href="https://github.com/avkiller/md/blob/main/docs/custom-upload.md"
+        target="_blank"
+      >
+        参数详情？
+      </Button>
     </div>
     <DialogFooter class="p-1">
       <Button @click="formCustomSave">
-      保存配置
-    </Button>
+        保存配置
+      </Button>
     </DialogFooter>
   </div>
 </template>

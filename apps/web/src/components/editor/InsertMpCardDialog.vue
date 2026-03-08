@@ -89,93 +89,93 @@ function submit(formValues: any) {
 
       <Form :validation-schema="schema" :initial-values="config" class="flex flex-col flex-1 overflow-hidden" @submit="submit">
         <div class="flex-1 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex flex-col">
-        <Field v-slot="{ field, errorMessage }" name="id">
+          <Field v-slot="{ field, errorMessage }" name="id">
             <FormItem label="ID" required :error="errorMessage" :width="50">
-            <Input
-              v-bind="field"
-              v-model.trim="field.value"
-              placeholder="例：MzIxNjA5ODQ0OQ=="
-            />
-          </FormItem>
-        </Field>
+              <Input
+                v-bind="field"
+                v-model.trim="field.value"
+                placeholder="例：MzIxNjA5ODQ0OQ=="
+              />
+            </FormItem>
+          </Field>
 
-        <Field v-slot="{ field, errorMessage }" name="name">
+          <Field v-slot="{ field, errorMessage }" name="name">
             <FormItem label="名称" required :error="errorMessage" :width="50">
-            <Input
-              v-bind="field"
-              v-model.trim="field.value"
-              placeholder="例：Doocs"
-            />
-          </FormItem>
-        </Field>
+              <Input
+                v-bind="field"
+                v-model.trim="field.value"
+                placeholder="例：Doocs"
+              />
+            </FormItem>
+          </Field>
 
-        <Field v-slot="{ field, errorMessage }" name="logo">
+          <Field v-slot="{ field, errorMessage }" name="logo">
             <FormItem label="Logo" :error="errorMessage" :width="50">
-            <Input
-              v-bind="field"
-              v-model.trim="field.value"
-              placeholder="例：https://doocs.com/mp-logo.png"
-            />
-          </FormItem>
-        </Field>
+              <Input
+                v-bind="field"
+                v-model.trim="field.value"
+                placeholder="例：https://doocs.com/mp-logo.png"
+              />
+            </FormItem>
+          </Field>
 
-        <Field v-slot="{ field, errorMessage }" name="desc">
+          <Field v-slot="{ field, errorMessage }" name="desc">
             <FormItem label="描述" :error="errorMessage" :width="50">
-            <Textarea
-              v-bind="field"
-              v-model.trim="field.value"
-              rows="3"
+              <Textarea
+                v-bind="field"
+                v-model.trim="field.value"
+                rows="3"
                 class="resize-none"
-              placeholder="例：GitHub 开源组织 @Doocs 旗下唯一公众号，专注分享技术领域相关知识及行业最新资讯。"
-            />
-          </FormItem>
-        </Field>
+                placeholder="例：GitHub 开源组织 @Doocs 旗下唯一公众号，专注分享技术领域相关知识及行业最新资讯。"
+              />
+            </FormItem>
+          </Field>
 
-        <Field v-slot="{ field, errorMessage }" name="serviceType">
+          <Field v-slot="{ field, errorMessage }" name="serviceType">
             <FormItem label="类型" required :error="errorMessage" :width="50">
-            <RadioGroup class="flex gap-5" v-bind="field" :default-value="field.value">
-              <div class="inline-flex items-center space-x-2 w-20">
-                <RadioGroupItem id="option-one" value="1" />
-                <Label for="option-one">公众号</Label>
-              </div>
-              <div class="inline-flex items-center space-x-2 w-20">
-                <RadioGroupItem id="option-two" value="2" />
-                <Label for="option-two">服务号</Label>
-              </div>
-            </RadioGroup>
-          </FormItem>
-        </Field>
+              <RadioGroup class="flex gap-5" v-bind="field" :default-value="field.value">
+                <div class="inline-flex items-center space-x-2 w-20">
+                  <RadioGroupItem id="option-one" value="1" />
+                  <Label for="option-one">公众号</Label>
+                </div>
+                <div class="inline-flex items-center space-x-2 w-20">
+                  <RadioGroupItem id="option-two" value="2" />
+                  <Label for="option-two">服务号</Label>
+                </div>
+              </RadioGroup>
+            </FormItem>
+          </Field>
 
-        <Field v-slot="{ field, errorMessage }" name="verify">
+          <Field v-slot="{ field, errorMessage }" name="verify">
             <FormItem label="认证" required :error="errorMessage" :width="50">
-            <RadioGroup class="flex gap-5" v-bind="field" :default-value="field.value">
-              <div class="inline-flex items-center space-x-2 w-20">
-                <RadioGroupItem id="service-type-option-one" value="0" />
-                <Label for="service-type-option-one">无</Label>
-              </div>
-              <div class="inline-flex items-center space-x-2 w-20">
-                <RadioGroupItem id="service-type-option-two" value="1" />
-                <Label for="service-type-option-two">个人</Label>
-              </div>
-              <div class="inline-flex items-center space-x-2 w-20">
-                <RadioGroupItem id="service-type-option-three" value="2" />
-                <Label for="service-type-option-three">企业</Label>
-              </div>
-            </RadioGroup>
-          </FormItem>
-        </Field>
+              <RadioGroup class="flex gap-5" v-bind="field" :default-value="field.value">
+                <div class="inline-flex items-center space-x-2 w-20">
+                  <RadioGroupItem id="service-type-option-one" value="0" />
+                  <Label for="service-type-option-one">无</Label>
+                </div>
+                <div class="inline-flex items-center space-x-2 w-20">
+                  <RadioGroupItem id="service-type-option-two" value="1" />
+                  <Label for="service-type-option-two">个人</Label>
+                </div>
+                <div class="inline-flex items-center space-x-2 w-20">
+                  <RadioGroupItem id="service-type-option-three" value="2" />
+                  <Label for="service-type-option-three">企业</Label>
+                </div>
+              </RadioGroup>
+            </FormItem>
+          </Field>
 
           <FormItem :width="50">
-          <Button
-            variant="link"
-            class="p-0 h-auto text-left whitespace-normal"
-            as="a"
-            href="https://github.com/avkiller/md/blob/main/docs/mp-card.md"
-            target="_blank"
-          >
-            如何获取公众号 ID？
-          </Button>
-        </FormItem>
+            <Button
+              variant="link"
+              class="p-0 h-auto text-left whitespace-normal"
+              as="a"
+              href="https://github.com/avkiller/md/blob/main/docs/mp-card.md"
+              target="_blank"
+            >
+              如何获取公众号 ID？
+            </Button>
+          </FormItem>
         </div>
 
         <DialogFooter class="p-1">

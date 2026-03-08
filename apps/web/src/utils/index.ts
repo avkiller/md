@@ -190,7 +190,7 @@ export function solveWeChatImage() {
   const clipboardDiv = document.getElementById(`output`)!
   const images = clipboardDiv.getElementsByTagName(`img`)
 
-  [...images].forEach((image) => {
+  Array.from(images).forEach((image) => {
     const width = image.getAttribute(`width`)
     const height = image.getAttribute(`height`)
     if (width) {

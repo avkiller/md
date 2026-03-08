@@ -526,7 +526,8 @@ function createFormTextArea(dom: HTMLDivElement) {
               return true
             }
             Promise.all(
-              Array.from(event.clipboardData.items, item => item.getAsFile())
+              [...event.clipboardData.items]
+                .map(item => item.getAsFile())
                 .filter(item => item != null)
                 .map(async item => (await beforeImageUpload(item!)) ? item : null),
             ).then((items) => {

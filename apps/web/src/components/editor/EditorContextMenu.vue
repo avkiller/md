@@ -21,7 +21,7 @@ import {
   Link,
   List,
   ListOrdered,
-  RefreshCw,
+  // RefreshCw,
   RotateCcw,
   Strikethrough,
   Table,
@@ -29,7 +29,7 @@ import {
   Wand2,
 } from 'lucide-vue-next'
 // import DEFAULT_CONTENT_LITE from '@/assets/example/markdown-lite.md?raw'
-import DEFAULT_CONTENT from '@/assets/example/markdown.md?raw'
+// import DEFAULT_CONTENT from '@/assets/example/markdown.md?raw'
 import { useEditorFormat } from '@/composables/useEditorFormat'
 import { useEditorStore } from '@/stores/editor'
 import { useExportStore } from '@/stores/export'
@@ -68,10 +68,10 @@ async function formatContent() {
 }
 
 // 导入官方默认内容
-function importDefaultContent() {
-  editorStore.importContent(DEFAULT_CONTENT)
-  toast.success(`文档已重置`)
-}
+// function importDefaultContent() {
+//   editorStore.importContent(DEFAULT_CONTENT)
+//   toast.success(`文档已重置`)
+// }
 // 导入lite默认内容
 // function importLiteContent() {
 //   editorStore.importContent(DEFAULT_CONTENT_LITE)
@@ -290,10 +290,10 @@ function downloadAsCardImage() {
         <RefreshCw class="mr-2 h-4 w-4" />
         重置精简文档
       </ContextMenuItem> -->
-      <ContextMenuItem @click="importDefaultContent()">
+      <!-- <ContextMenuItem @click="importDefaultContent()">
         <RefreshCw class="mr-2 h-4 w-4" />
         重置官方文档
-      </ContextMenuItem>
+      </ContextMenuItem> -->
       <ContextMenuItem @click="resetStyleConfirm()">
         <RotateCcw class="mr-2 h-4 w-4" />
         重置样式

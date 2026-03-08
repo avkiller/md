@@ -115,6 +115,8 @@ export default defineConfig(({ mode }) => {
 
               if (normalizedId.includes(`codemirror`))
                 return `codemirror`
+              if (normalizedId.includes(`browser-image-compression`))
+                return `image-compression`
               if (normalizedId.includes(`katex`))
                 return `katex`
               if (normalizedId.includes(`prettier`))

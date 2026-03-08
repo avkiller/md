@@ -72,7 +72,7 @@ async function renderInfographic(containerId: string, code: string, cacheKey: st
       }
 
       if (retries > 0) {
-        setTimeout(findContainer, delay, retries - 1, delay)
+        setTimeout(() => findContainer(retries - 1, delay), delay)
       }
     }
 

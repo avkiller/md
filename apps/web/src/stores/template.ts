@@ -15,7 +15,7 @@ export const useTemplateStore = defineStore(`template`, () => {
   // ==================== 计算属性 ====================
   // 按创建时间倒序排列的模板列表
   const sortedTemplates = computed(() => {
-    return templates.value.toSorted((a, b) => b.createdAt - a.createdAt)
+    return [...templates.value].sort((a, b) => b.createdAt - a.createdAt)
   })
 
   // 模板总数

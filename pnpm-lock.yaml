@@ -6,6 +6,7 @@ settings:
 
 overrides:
   semver: ^7.7.4
+  core-js: ^3.48.0
 
 patchedDependencies:
   '@codemirror/view@6.39.16':
