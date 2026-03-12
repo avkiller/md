@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { Download, FileCode, FileCog, FileText, FolderKanban, FolderOpen, Package, Upload } from 'lucide-vue-next'
+import { Cog, Download, Eraser, FileCode, FileCog, FileText, FolderKanban, FolderOpen, Package, RefreshCw, Upload } from 'lucide-vue-next'
+import DEFAULT_CONTENT_LITE from '@/assets/example/markdown-lite.md?raw'
+import DEFAULT_CONTENT from '@/assets/example/markdown.md?raw'
 import { useEditorStore } from '@/stores/editor'
 import { useExportStore } from '@/stores/export'
 import { useUIStore } from '@/stores/ui'
@@ -48,6 +50,24 @@ function downloadAsCardImage() {
 
 function exportEditorContent2PDF() {
   exportStore.exportEditorContent2PDF()
+}
+// 清空本地数据库
+function clearLocalStorage() {
+  localStorage.clear()
+}
+// 导入默认内容
+function importDefaultContent() {
+  editorStore.importContent(DEFAULT_CONTENT)
+  toast.success(`文档已重置`)
+}
+// 导入lite默认内容
+function importLiteContent() {
+  editorStore.importContent(DEFAULT_CONTENT_LITE)
+  toast.success(`文档已重置`)
+}
+// 清空内容
+function clearContent() {
+  editorStore.clearContent()
 }
 </script>
 
@@ -108,6 +128,35 @@ function exportEditorContent2PDF() {
           <MenubarItem @click="downloadAsCardImage()">
             <Download class="mr-2 size-4" />
             PNG 图片
+          </MenubarItem>
+        </MenubarSubContent>
+      </MenubarSub>
+
+      <!-- 操作子菜单 -->
+      <MenubarSub>
+        <MenubarSubTrigger>
+          <Cog class="mr-2 size-4" />
+          操作
+        </MenubarSubTrigger>
+        <MenubarSubContent class="w-56">
+          <MenubarItem @click="clearLocalStorage()">
+            <RefreshCw class="mr-2 size-4" />
+            清空本地缓存
+          </MenubarItem>
+          <MenubarSeparator />
+          <MenubarItem @click="clearContent()">
+            <Eraser class="mr-2 size-4" />
+            清空编辑区
+          </MenubarItem>
+          <MenubarSeparator />
+          <MenubarItem @click="importLiteContent()">
+            <RefreshCw class="mr-2 size-4" />
+            重新加载精简MD
+          </MenubarItem>
+          <MenubarSeparator />
+          <MenubarItem @click="importDefaultContent()">
+            <RefreshCw class="mr-2 size-4" />
+            重新加载官方MD
           </MenubarItem>
         </MenubarSubContent>
       </MenubarSub>
@@ -196,6 +245,34 @@ function exportEditorContent2PDF() {
         </MenubarSubContent>
       </MenubarSub>
 
+      <!-- 操作子菜单 -->
+      <MenubarSub>
+        <MenubarSubTrigger>
+          <Cog class="mr-2 size-4" />
+          操作
+        </MenubarSubTrigger>
+        <MenubarSubContent class="w-56">
+          <MenubarItem @click="clearLocalStorage()">
+            <RefreshCw class="mr-2 size-4" />
+            清空本地缓存
+          </MenubarItem>
+          <MenubarSeparator />
+          <MenubarItem @click="clearContent()">
+            <Eraser class="mr-2 size-4" />
+            清空编辑区
+          </MenubarItem>
+          <MenubarSeparator />
+          <MenubarItem @click="importLiteContent()">
+            <RefreshCw class="mr-2 size-4" />
+            重新加载精简MD
+          </MenubarItem>
+          <MenubarSeparator />
+          <MenubarItem @click="importDefaultContent()">
+            <RefreshCw class="mr-2 size-4" />
+            重新加载官方MD
+          </MenubarItem>
+        </MenubarSubContent>
+      </MenubarSub>
       <MenubarSeparator />
 
       <!-- 模板管理 -->

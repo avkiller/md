@@ -297,9 +297,9 @@ export function initRenderer(opts: IOpts = {}): RendererAPI {
       if (/^https?:\/\/mp\.weixin\.qq\.com/.test(href)) {
         return `<a href="${href}" title="${title || text}">${parsedText}</a>`
       }
-      if (href === text) {
-        return parsedText
-      }
+      // if (href === text) {
+      //   return parsedText
+      // }
       if (opts.citeStatus) {
         const ref = addFootnote(title || text, href)
         return `<a href="${href}" title="${title || text}">${parsedText}<sup>[${ref}]</sup></a>`

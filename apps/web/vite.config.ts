@@ -9,10 +9,8 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv } from 'vite'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
-import { VitePluginRadar } from 'vite-plugin-radar'
+// import { VitePluginRadar } from 'vite-plugin-radar'
 import vueDevTools from 'vite-plugin-vue-devtools'
-
-import { utoolsLocalAssetsPlugin } from './plugins/vite-plugin-utools-local-assets'
 
 const isNetlify = process.env.SERVER_ENV === `NETLIFY`
 const isUTools = process.env.SERVER_ENV === `UTOOLS`
@@ -20,6 +18,7 @@ const isCfWorkers = process.env.CF_WORKERS === `1`
 const isCfPages = process.env.CF_PAGES === `1`
 
 const base = isNetlify || isCfWorkers || isCfPages ? `/` : isUTools ? `./` : `/md/`
+const WINDOWS_PATH_REG = /\\/g
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd())
@@ -38,14 +37,22 @@ export default defineConfig(({ mode }) => {
       !isCfWorkers && nodePolyfills({
         include: [`path`, `util`, `timers`, `stream`, `fs`],
         overrides: {
-        // Since `fs` is not supported in browsers, we can use the `memfs` package to polyfill it.
-        // fs: 'memfs',
+          // Since `fs` is not supported in browsers, we can use the `memfs` package to polyfill it.
+          // fs: 'memfs',
         },
       }),
-      VitePluginRadar({
-        analytics: { id: `G-7NZL3PZ0NK` },
+      // VitePluginRadar({
+      //   analytics: { id: `G-7NZL3PZ0NK` },
+      // }),
+      // process.env.ANALYZE === `true`
+      // && visualizer({ emitFile: true, filename: `stats.html` }),
+      visualizer({
+        emitFile: true,
+        // gzipSize: true,
+        filename: `stats.html`,
+        // template: `treemap`,
+        open: true,
       }),
-      ...(process.env.ANALYZE === `true` ? [visualizer({ emitFile: true, filename: `stats.html` }) as any] : []),
       AutoImport({
         imports: [`vue`, `pinia`, `@vueuse/core`],
         dirs: [`./src/stores`, `./src/utils/toast`, `./src/composables`],
@@ -53,7 +60,6 @@ export default defineConfig(({ mode }) => {
       Components({
         resolvers: [],
       }),
-      isUTools && utoolsLocalAssetsPlugin(),
     ],
     resolve: {
       alias: { '@': path.resolve(__dirname, `./src`) },
@@ -65,6 +71,7 @@ export default defineConfig(({ mode }) => {
     },
     css: { devSourcemap: true },
     build: {
+      chunkSizeWarningLimit: 500,
       rollupOptions: {
         external: [`mermaid`],
         output: {
@@ -74,14 +81,54 @@ export default defineConfig(({ mode }) => {
           globals: { mermaid: `mermaid` },
           manualChunks(id) {
             if (id.includes(`node_modules`)) {
-              if (id.includes(`codemirror`))
+              const normalizedId = id.replace(WINDOWS_PATH_REG, '/')
+              if (normalizedId.includes('@vue/')) {
+                return 'vue-bundle'
+              }
+              if (normalizedId.includes('@lezer/')) {
+                return 'lezer-bundle'
+              }
+              if (
+                normalizedId.includes('radix-vue')
+                || normalizedId.includes('reka-ui')
+                || normalizedId.includes('lucide-vue-next')
+                || normalizedId.includes('/.pnpm/radix-vue')
+                || normalizedId.includes('/.pnpm/reka-ui')
+                || normalizedId.includes('/.pnpm/lucide-vue-next')
+              ) {
+                return 'ui' // 它们都会被打包进 ui.js
+              }
+
+              if (
+                normalizedId.includes('@aws-sdk/s3-request-presigner')
+                || normalizedId.includes('@aws-sdk/client-s3')
+              ) {
+                return 'aws' // 它们都会被打包进 ui.js
+              }
+              if (
+                normalizedId.includes('html-to-image')
+                || normalizedId.includes('pinia')
+                || normalizedId.includes('yup')
+                || normalizedId.includes('vee-validate')
+                || normalizedId.includes('tailwind-merge')
+                || normalizedId.includes('highlight.js')
+                || normalizedId.includes('vue-sonner')
+              ) {
+                return `utils`
+              }
+
+              if (normalizedId.includes(`codemirror`))
                 return `codemirror`
-              if (id.includes(`katex`))
+              if (normalizedId.includes(`readable-stream`))
+                return `stream`
+              if (normalizedId.includes(`browser-image-compression`))
+                return `image-compression`
+              if (normalizedId.includes(`katex`))
                 return `katex`
-              if (id.includes(`prettier`))
+              if (normalizedId.includes(`prettier`))
                 return `prettier`
               // Skip automatic vendor splitting for pnpm virtual store to avoid circular deps
-              if (id.includes(`/.pnpm/`))
+              if (normalizedId.includes(`/.pnpm/`))
                 return
               const pkg = id
                 .split(`node_modules/`)[1]

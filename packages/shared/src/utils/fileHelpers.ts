@@ -1,11 +1,7 @@
-// @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
-import parserBabel from 'prettier/parser-babel'
-// @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
-import parserMarkdown from 'prettier/parser-markdown'
-// @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
-import parserPostcss from 'prettier/parser-postcss'
-// @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
-import * as prettier from 'prettier/standalone'
+// import parserBabel from 'prettier/parser-babel'
+// import parserMarkdown from 'prettier/parser-markdown'
+// import parserPostcss from 'prettier/parser-postcss'
+// import * as prettier from 'prettier/standalone'
 
 /**
  * 通用文件下载函数
@@ -93,8 +89,17 @@ export function createTable({ data, rows, cols }: {
  * @returns 格式化后的内容
  */
 export async function formatDoc(content: string, type: `markdown` | `css` | `javascript` = `markdown`): Promise<string> {
+  // @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
+  const parserMarkdown = await import(`prettier/parser-markdown`)
+  // @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
+  const parserBabel = await import(`prettier/parser-babel`)
+  // @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
+  const parserPostcss = await import(`prettier/parser-postcss`)
+  // @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
+  const prettier_moudle  = await import(`prettier/standalone`)
+  const prettier  = prettier_moudle.default
   const parser = type === `css` ? `css` : type === `javascript` ? `babel` : `markdown`
-  const plugins = type === `css` ? [parserPostcss] : type === `javascript` ? [parserBabel] : [parserMarkdown, parserBabel]
+  const plugins = type === `css` ? [parserPostcss.default] : type === `javascript` ? [parserBabel.default] : [parserMarkdown.default, parserBabel.default]
 
   return await prettier.format(content, {
     parser,

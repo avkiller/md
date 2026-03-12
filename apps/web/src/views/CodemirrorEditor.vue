@@ -5,7 +5,7 @@ import { Compartment, EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { highlightPendingBlocks, hljs } from '@md/core'
 import { markdownSetup, theme } from '@md/shared/editor'
-import imageCompression from 'browser-image-compression'
+// import imageCompression from 'browser-image-compression'
 import { Eye, Pen } from 'lucide-vue-next'
 import { SidebarAIToolbar } from '@/components/ai'
 import FolderSourcePanel from '@/components/editor/FolderSourcePanel.vue'
@@ -332,7 +332,8 @@ async function compressImage(file: File) {
     maxWidthOrHeight: 1920,
     useWebWorker: true,
   }
-  const compressedFile = await imageCompression(file, options)
+  const imageCompression = await import(`browser-image-compression`)
+  const compressedFile = await imageCompression.default(file, options)
   return compressedFile
 }
 async function uploadImage(

@@ -70,7 +70,7 @@ function formCustomSave() {
         variant="link"
         class="p-0 h-auto text-left whitespace-normal"
         as="a"
-        href="https://github.com/doocs/md/blob/main/docs/custom-upload.md"
+        href="https://github.com/avkiller/md/blob/main/docs/custom-upload.md"
         target="_blank"
       >
         参数详情？

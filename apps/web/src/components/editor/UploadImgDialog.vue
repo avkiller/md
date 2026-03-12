@@ -78,95 +78,95 @@ async function txCOSSubmit(formValues: any) {
 }
 
 // 七牛云
-const qiniuSchema = toTypedSchema(yup.object({
-  accessKey: yup.string().required(`AccessKey 不能为空`),
-  secretKey: yup.string().required(`SecretKey 不能为空`),
-  bucket: yup.string().required(`Bucket 不能为空`),
-  domain: yup.string().required(`Bucket 对应域名不能为空`),
-  region: yup.string().optional(),
-  path: yup.string().optional(),
-}))
+// const qiniuSchema = toTypedSchema(yup.object({
+//   accessKey: yup.string().required(`AccessKey 不能为空`),
+//   secretKey: yup.string().required(`SecretKey 不能为空`),
+//   bucket: yup.string().required(`Bucket 不能为空`),
+//   domain: yup.string().required(`Bucket 对应域名不能为空`),
+//   region: yup.string().optional(),
+//   path: yup.string().optional(),
+// }))
 
-const qiniuConfig = store.reactive(`qiniuConfig`, {
-  accessKey: ``,
-  secretKey: ``,
-  bucket: ``,
-  domain: ``,
-  region: ``,
-  path: ``,
-})
+// const qiniuConfig = store.reactive(`qiniuConfig`, {
+//   accessKey: ``,
+//   secretKey: ``,
+//   bucket: ``,
+//   domain: ``,
+//   region: ``,
+//   path: ``,
+// })
 
-async function qiniuSubmit(formValues: any) {
-  Object.assign(qiniuConfig.value, formValues)
-  toast.success(`保存成功`)
-}
+// async function qiniuSubmit(formValues: any) {
+//   Object.assign(qiniuConfig.value, formValues)
+//   toast.success(`保存成功`)
+// }
 
 // MinIO
-const minioOSSSchema = toTypedSchema(yup.object({
-  endpoint: yup.string().required(`Endpoint 不能为空`),
-  port: yup.string().optional(),
-  useSSL: yup.boolean().required(),
-  bucket: yup.string().required(`Bucket 不能为空`),
-  accessKey: yup.string().required(`AccessKey 不能为空`),
-  secretKey: yup.string().required(`SecretKey 不能为空`),
-}))
+// const minioOSSSchema = toTypedSchema(yup.object({
+//   endpoint: yup.string().required(`Endpoint 不能为空`),
+//   port: yup.string().optional(),
+//   useSSL: yup.boolean().required(),
+//   bucket: yup.string().required(`Bucket 不能为空`),
+//   accessKey: yup.string().required(`AccessKey 不能为空`),
+//   secretKey: yup.string().required(`SecretKey 不能为空`),
+// }))
 
-const minioOSSConfig = store.reactive(`minioConfig`, {
-  endpoint: ``,
-  port: ``,
-  useSSL: true,
-  bucket: ``,
-  accessKey: ``,
-  secretKey: ``,
-})
+// const minioOSSConfig = store.reactive(`minioConfig`, {
+//   endpoint: ``,
+//   port: ``,
+//   useSSL: true,
+//   bucket: ``,
+//   accessKey: ``,
+//   secretKey: ``,
+// })
 
-async function minioOSSSubmit(formValues: any) {
-  Object.assign(minioOSSConfig.value, formValues)
-  toast.success(`保存成功`)
-}
+// async function minioOSSSubmit(formValues: any) {
+//   Object.assign(minioOSSConfig.value, formValues)
+//   toast.success(`保存成功`)
+// }
 
-// S3
-const s3Schema = toTypedSchema(yup.object({
-  endpoint: yup.string().optional(),
-  region: yup.string().required(`Region 不能为空`),
-  bucket: yup.string().required(`Bucket 不能为空`),
-  accessKeyId: yup.string().required(`AccessKey ID 不能为空`),
-  accessKeySecret: yup.string().required(`Secret AccessKey 不能为空`),
-  path: yup.string().optional(),
-  cdnHost: yup.string().optional(),
-  pathStyle: yup.boolean().optional(),
-}))
+// // S3
+// const s3Schema = toTypedSchema(yup.object({
+//   endpoint: yup.string().optional(),
+//   region: yup.string().required(`Region 不能为空`),
+//   bucket: yup.string().required(`Bucket 不能为空`),
+//   accessKeyId: yup.string().required(`AccessKey ID 不能为空`),
+//   accessKeySecret: yup.string().required(`Secret AccessKey 不能为空`),
+//   path: yup.string().optional(),
+//   cdnHost: yup.string().optional(),
+//   pathStyle: yup.boolean().optional(),
+// }))
 
-const s3Config = store.reactive(`s3Config`, {
-  endpoint: ``,
-  region: ``,
-  bucket: ``,
-  accessKeyId: ``,
-  accessKeySecret: ``,
-  path: ``,
-  cdnHost: ``,
-  pathStyle: false,
-})
+// const s3Config = store.reactive(`s3Config`, {
+//   endpoint: ``,
+//   region: ``,
+//   bucket: ``,
+//   accessKeyId: ``,
+//   accessKeySecret: ``,
+//   path: ``,
+//   cdnHost: ``,
+//   pathStyle: false,
+// })
 
-async function s3Submit(formValues: any) {
-  Object.assign(s3Config.value, formValues)
-  toast.success(`保存成功`)
-}
+// async function s3Submit(formValues: any) {
+//   Object.assign(s3Config.value, formValues)
+//   toast.success(`保存成功`)
+// }
 
-// Telegram 图床
-const telegramSchema = toTypedSchema(
-  yup.object({
-    token: yup.string().required(`Bot Token 不能为空`),
-    chatId: yup.string().required(`Chat ID 不能为空`),
-  }),
-)
+// // Telegram 图床
+// const telegramSchema = toTypedSchema(
+//   yup.object({
+//     token: yup.string().required(`Bot Token 不能为空`),
+//     chatId: yup.string().required(`Chat ID 不能为空`),
+//   }),
+// )
 
-const telegramConfig = store.reactive(`telegramConfig`, { token: ``, chatId: `` })
+// const telegramConfig = store.reactive(`telegramConfig`, { token: ``, chatId: `` })
 
-async function telegramSubmit(values: any) {
-  Object.assign(telegramConfig.value, values)
-  toast.success(`保存成功`)
-}
+// async function telegramSubmit(values: any) {
+//   Object.assign(telegramConfig.value, values)
+//   toast.success(`保存成功`)
+// }
 
 // 公众号
 // 当前是否为网页（http/https 协议）
@@ -211,82 +211,82 @@ async function mpSubmit(formValues: any) {
 }
 
 // Cloudflare R2
-const r2Schema = toTypedSchema(yup.object({
-  accountId: yup.string().required(`Account ID 不能为空`),
-  accessKey: yup.string().required(`AccessKey 不能为空`),
-  secretKey: yup.string().required(`SecretKey 不能为空`),
-  bucket: yup.string().required(`Bucket 不能为空`),
-  domain: yup.string().required(`Bucket 对应域名不能为空`),
-  path: yup.string().optional(),
-}))
+// const r2Schema = toTypedSchema(yup.object({
+//   accountId: yup.string().required(`Account ID 不能为空`),
+//   accessKey: yup.string().required(`AccessKey 不能为空`),
+//   secretKey: yup.string().required(`SecretKey 不能为空`),
+//   bucket: yup.string().required(`Bucket 不能为空`),
+//   domain: yup.string().required(`Bucket 对应域名不能为空`),
+//   path: yup.string().optional(),
+// }))
 
-const r2Config = store.reactive(`r2Config`, {
-  accountId: ``,
-  accessKey: ``,
-  secretKey: ``,
-  bucket: ``,
-  domain: ``,
-  path: ``,
-})
+// const r2Config = store.reactive(`r2Config`, {
+//   accountId: ``,
+//   accessKey: ``,
+//   secretKey: ``,
+//   bucket: ``,
+//   domain: ``,
+//   path: ``,
+// })
 
-async function r2Submit(formValues: any) {
-  Object.assign(r2Config.value, formValues)
-  toast.success(`保存成功`)
-}
+// async function r2Submit(formValues: any) {
+//   Object.assign(r2Config.value, formValues)
+//   toast.success(`保存成功`)
+// }
 
-// 又拍云
-const upyunSchema = computed(() => toTypedSchema(
-  yup.object({
-    bucket: yup.string().required(`Bucket 不能为空`),
-    operator: yup.string().required(`操作员 不能为空`),
-    password: yup.string().required(`密码 不能为空`),
-    domain: yup.string().required(`CDN 域名不能为空`),
-    path: yup.string().optional(),
-  }),
-))
+// // 又拍云
+// const upyunSchema = computed(() => toTypedSchema(
+//   yup.object({
+//     bucket: yup.string().required(`Bucket 不能为空`),
+//     operator: yup.string().required(`操作员 不能为空`),
+//     password: yup.string().required(`密码 不能为空`),
+//     domain: yup.string().required(`CDN 域名不能为空`),
+//     path: yup.string().optional(),
+//   }),
+// ))
 
-const upyunConfig = store.reactive(`upyunConfig`, {
-  bucket: ``,
-  operator: ``,
-  password: ``,
-  domain: ``,
-  path: ``,
-})
+// const upyunConfig = store.reactive(`upyunConfig`, {
+//   bucket: ``,
+//   operator: ``,
+//   password: ``,
+//   domain: ``,
+//   path: ``,
+// })
 
-async function upyunSubmit(formValues: any) {
-  Object.assign(upyunConfig.value, formValues)
-  toast.success(`保存成功`)
-}
+// async function upyunSubmit(formValues: any) {
+//   Object.assign(upyunConfig.value, formValues)
+//   toast.success(`保存成功`)
+// }
 
-// Cloudinary
-const cloudinarySchema = toTypedSchema(
-  yup.object({
-    cloudName: yup.string().required(`Cloud Name 不能为空`),
-    apiKey: yup.string().required(`API Key 不能为空`),
-    apiSecret: yup.string().optional(),
-    uploadPreset: yup.string().when(`apiSecret`, {
-      is: (v: string | undefined) => !v || v.length === 0,
-      then: s => s.required(`未填写 apiSecret 时必须提供上传预设名`),
-      otherwise: s => s.optional(),
-    }),
-    folder: yup.string().optional(),
-    domain: yup.string().optional(),
-  }),
-)
+// // Cloudinary
+// const cloudinarySchema = toTypedSchema(
+//   yup.object({
+//     cloudName: yup.string().required(`Cloud Name 不能为空`),
+//     apiKey: yup.string().required(`API Key 不能为空`),
+//     apiSecret: yup.string().optional(),
+//     uploadPreset: yup.string().when(`apiSecret`, {
+//       is: (v: string | undefined) => !v || v.length === 0,
+//       then: s => s.required(`未填写 apiSecret 时必须提供上传预设名`),
+//       otherwise: s => s.optional(),
+//     }),
+//     folder: yup.string().optional(),
+//     domain: yup.string().optional(),
+//   }),
+// )
 
-const cloudinaryConfig = store.reactive(`cloudinaryConfig`, {
-  cloudName: ``,
-  apiKey: ``,
-  apiSecret: ``,
-  uploadPreset: ``,
-  folder: ``,
-  domain: ``,
-})
+// const cloudinaryConfig = store.reactive(`cloudinaryConfig`, {
+//   cloudName: ``,
+//   apiKey: ``,
+//   apiSecret: ``,
+//   uploadPreset: ``,
+//   folder: ``,
+//   domain: ``,
+// })
 
-async function cloudinarySubmit(formValues: any) {
-  Object.assign(cloudinaryConfig.value, formValues)
-  toast.success(`保存成功`)
-}
+// async function cloudinarySubmit(formValues: any) {
+//   Object.assign(cloudinaryConfig.value, formValues)
+//   toast.success(`保存成功`)
+// }
 
 const options = [
   {
@@ -305,40 +305,40 @@ const options = [
     value: `txCOS`,
     label: `腾讯云`,
   },
-  {
-    value: `qiniu`,
-    label: `七牛云`,
-  },
-  {
-    value: `minio`,
-    label: `MinIO`,
-  },
-  {
-    value: `s3`,
-    label: `S3`,
-  },
+  // {
+  //   value: `qiniu`,
+  //   label: `七牛云`,
+  // },
+  // {
+  //   value: `minio`,
+  //   label: `MinIO`,
+  // },
+  // {
+  //   value: `s3`,
+  //   label: `S3`,
+  // },
   {
     value: `mp`,
     label: `公众号图床`,
   },
-  {
-    value: `r2`,
-    label: `Cloudflare R2`,
-  },
-  {
-    value: `upyun`,
-    label: `又拍云`,
-  },
-  { value: `telegram`, label: `Telegram` },
-  {
-    value: `cloudinary`,
-    label: `Cloudinary`,
-  },
+  // {
+  //   value: `r2`,
+  //   label: `Cloudflare R2`,
+  // },
+  // {
+  //   value: `upyun`,
+  //   label: `又拍云`,
+  // },
+  // { value: `telegram`, label: `Telegram` },
+  // {
+  //   value: `cloudinary`,
+  //   label: `Cloudinary`,
+  // },
 
-  {
-    value: `formCustom`,
-    label: `自定义代码`,
-  },
+  // {
+  //   value: `formCustom`,
+  //   label: `自定义代码`,
+  // },
 ]
 
 const imgHost = store.reactive(`imgHost`, `default`)
@@ -394,7 +394,7 @@ onChange(async (files) => {
 async function onDrop(e: DragEvent) {
   dragover.value = false
   e.stopPropagation()
-  const file = Array.from(e.dataTransfer!.files)[0]
+  const file = [...e.dataTransfer!.files][0]
   if (await beforeImageUpload(file)) {
     emitUploads(file)
   }
@@ -765,7 +765,7 @@ function onTabScroll(e: WheelEvent) {
           </Form>
         </TabsContent>
 
-        <TabsContent value="qiniu" class="flex-1 flex flex-col overflow-hidden">
+        <!-- <TabsContent value="qiniu" class="flex-1 flex flex-col overflow-hidden">
           <Form :validation-schema="qiniuSchema" :initial-values="qiniuConfig" class="flex flex-col flex-1 overflow-hidden" @submit="qiniuSubmit">
             <div class="flex-1 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <Field v-slot="{ field, errorMessage }" name="accessKey">
@@ -848,9 +848,9 @@ function onTabScroll(e: WheelEvent) {
               </Button>
             </DialogFooter>
           </Form>
-        </TabsContent>
+        </TabsContent> -->
 
-        <TabsContent value="minio" class="flex-1 flex flex-col overflow-hidden">
+        <!-- <TabsContent value="minio" class="flex-1 flex flex-col overflow-hidden">
           <Form :validation-schema="minioOSSSchema" :initial-values="minioOSSConfig" class="flex flex-col flex-1 overflow-hidden" @submit="minioOSSSubmit">
             <div class="flex-1 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <Field v-slot="{ field, errorMessage }" name="endpoint">
@@ -926,9 +926,9 @@ function onTabScroll(e: WheelEvent) {
               </Button>
             </DialogFooter>
           </Form>
-        </TabsContent>
+        </TabsContent> -->
 
-        <TabsContent value="s3" class="flex-1 flex flex-col overflow-hidden">
+        <!-- <TabsContent value="s3" class="flex-1 flex flex-col overflow-hidden">
           <Form :validation-schema="s3Schema" :initial-values="s3Config" class="flex flex-col flex-1 overflow-hidden" @submit="s3Submit">
             <div class="flex-1 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <Field v-slot="{ field, errorMessage }" name="endpoint">
@@ -1020,7 +1020,7 @@ function onTabScroll(e: WheelEvent) {
               </Button>
             </DialogFooter>
           </Form>
-        </TabsContent>
+        </TabsContent> -->
 
         <TabsContent value="mp" class="flex-1 flex flex-col overflow-hidden">
           <Form :validation-schema="mpSchema" :initial-values="mpConfig" class="flex flex-col flex-1 overflow-hidden" @submit="mpSubmit">
@@ -1092,7 +1092,7 @@ function onTabScroll(e: WheelEvent) {
           </Form>
         </TabsContent>
 
-        <TabsContent value="r2" class="flex-1 flex flex-col overflow-hidden">
+        <!-- <TabsContent value="r2" class="flex-1 flex flex-col overflow-hidden">
           <Form :validation-schema="r2Schema" :initial-values="r2Config" class="flex flex-col flex-1 overflow-hidden" @submit="r2Submit">
             <div class="flex-1 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <Field v-slot="{ field, errorMessage }" name="accountId">
@@ -1161,9 +1161,9 @@ function onTabScroll(e: WheelEvent) {
               </Button>
             </DialogFooter>
           </Form>
-        </TabsContent>
+        </TabsContent> -->
 
-        <TabsContent value="upyun" class="flex-1 flex flex-col overflow-hidden">
+        <!-- <TabsContent value="upyun" class="flex-1 flex flex-col overflow-hidden">
           <Form :validation-schema="upyunSchema" :initial-values="upyunConfig" class="flex flex-col flex-1 overflow-hidden" @submit="upyunSubmit">
             <div class="flex-1 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <Field v-slot="{ field, errorMessage }" name="bucket">
@@ -1215,8 +1215,8 @@ function onTabScroll(e: WheelEvent) {
               </Button>
             </DialogFooter>
           </Form>
-        </TabsContent>
-
+        </TabsContent> -->
+        <!--
         <TabsContent value="telegram" class="flex-1 flex flex-col overflow-hidden">
           <Form :validation-schema="telegramSchema" :initial-values="telegramConfig" class="flex flex-col flex-1 overflow-hidden" @submit="telegramSubmit">
             <div class="flex-1 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -1249,9 +1249,9 @@ function onTabScroll(e: WheelEvent) {
               </Button>
             </DialogFooter>
           </Form>
-        </TabsContent>
+        </TabsContent> -->
 
-        <TabsContent value="cloudinary" class="flex-1 flex flex-col overflow-hidden">
+        <!-- <TabsContent value="cloudinary" class="flex-1 flex flex-col overflow-hidden">
           <Form
             :validation-schema="cloudinarySchema"
             :initial-values="cloudinaryConfig"
@@ -1331,11 +1331,11 @@ function onTabScroll(e: WheelEvent) {
               </Button>
             </DialogFooter>
           </Form>
-        </TabsContent>
+        </TabsContent> -->
 
-        <TabsContent value="formCustom" class="flex-1 flex flex-col overflow-hidden">
+        <!-- <TabsContent value="formCustom" class="flex-1 flex flex-col overflow-hidden">
           <CustomUploadForm />
-        </TabsContent>
+        </TabsContent> -->
       </Tabs>
     </DialogContent>
   </Dialog>

@@ -43,14 +43,14 @@ function openReleases() {
         <Tag class="mr-2 h-4 w-4" />
         版本历史
       </MenubarItem>
-      <MenubarItem @click="openAboutDialog()">
+      <!-- <MenubarItem @click="openAboutDialog()">
         <HelpCircle class="mr-2 h-4 w-4" />
         关于
       </MenubarItem>
       <MenubarItem @click="openFundDialog()">
         <Heart class="mr-2 h-4 w-4" />
         赞赏
-      </MenubarItem>
+      </MenubarItem> -->
     </MenubarSubContent>
   </MenubarSub>
 

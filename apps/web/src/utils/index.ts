@@ -11,7 +11,7 @@ import {
   toBase64,
 } from '@md/shared/utils'
 
-import juice from 'juice'
+// import juice from 'juice'
 import { Marked } from 'marked'
 
 export {
@@ -30,7 +30,6 @@ export {
   sanitizeTitle,
   toBase64,
 }
-
 // 导出新主题系统需要的函数
 export {
   modifyHtmlContent,
@@ -54,10 +53,12 @@ export function downloadMD(doc: string, title: string = `untitled`) {
 
 /**
  * 获取 HTML 内容
+
  * @returns {string} HTML 字符串
  */
 export function getHtmlContent(): string {
   const element = document.querySelector(`#output`)!
+
   return element.innerHTML
 }
 
@@ -67,7 +68,6 @@ export function getHtmlContent(): string {
 export async function exportHTML(title: string = `untitled`) {
   const htmlStr = getHtmlContent()
   const stylesToAdd = await getStylesToAdd()
-
   const fullHtml = `<!DOCTYPE html>
 <html>
 <head>
@@ -99,7 +99,6 @@ export async function generatePureHTML(raw: string): Promise<string> {
   const pureHtml = await markedInstance.parse(raw)
   return pureHtml
 }
-
 /**
  * 导出无样式 HTML 文件
  * @param raw - 原始 Markdown 内容
@@ -107,7 +106,6 @@ export async function generatePureHTML(raw: string): Promise<string> {
  */
 export async function exportPureHTML(raw: string, title: string = `untitled`) {
   const safeTitle = sanitizeTitle(title)
-
   const pureHtml = await generatePureHTML(raw)
 
   downloadFile(pureHtml, `${safeTitle}.html`, `text/html`)
@@ -144,7 +142,6 @@ export async function exportPDF(title: string = `untitled`) {
           print-color-adjust: exact !important;
           color-adjust: exact !important;
         }
-
         /* 打印页面设置 */
         @page {
           @top-center {
@@ -153,7 +150,7 @@ export async function exportPDF(title: string = `untitled`) {
             color: #666;
           }
           @bottom-left {
-            content: "https://md.doocs.org";
+            content: "微信 Markdown 编辑器";
             font-size: 10px;
             color: #999;
           }
@@ -196,13 +193,11 @@ export function solveWeChatImage() {
   Array.from(images).forEach((image) => {
     const width = image.getAttribute(`width`)
     const height = image.getAttribute(`height`)
-
     if (width) {
       image.removeAttribute(`width`)
       // 如果是纯数字，添加 px 单位；否则保持原值
       image.style.width = /^\d+$/.test(width) ? `${width}px` : width
     }
-
     if (height) {
       image.removeAttribute(`height`)
       // 如果是纯数字，添加 px 单位；否则保持原值
@@ -229,30 +224,25 @@ async function getHljsStyles(): Promise<string> {
 
 function getThemeStyles(): string {
   const themeStyle = document.querySelector(`#md-theme`) as HTMLStyleElement
-
   if (!themeStyle || !themeStyle.textContent) {
     console.warn('[getThemeStyles] 未找到主题样式')
     return ``
   }
-
   // 移除 #output 作用域前缀，因为复制后的 HTML 不在 #output 容器中
   let cssContent = themeStyle.textContent
-
   // 处理 #output {} 为 body {}，避免出现 {} 无效样式
   cssContent = cssContent.replace(/#output\s*\{/g, 'body {')
-
   // 将 "#output h1" 替换为 "h1"，"#output .class" 替换为 ".class" 等
   // 同时处理换行和多个空格的情况
   cssContent = cssContent.replace(/#output\s+/g, '')
   // 处理选择器开头的 #output（如果没有后续内容）
   cssContent = cssContent.replace(/^#output\s*/gm, '')
-
   const styleContent = `<style>${cssContent}</style>`
   return styleContent
 }
-
-function mergeCss(html: string): string {
-  return juice(html, {
+async function mergeCss(html: string): Promise<string> {
+  const juice = await import('juice')
+  return juice.default(html, {
     inlinePseudoElements: true,
     preserveImportant: true,
     // 禁用 CSS 变量解析，避免 juice 处理时的错误
@@ -291,18 +281,16 @@ async function getStylesToAdd(): Promise<string> {
   const hljsStyles = await getHljsStyles()
   return [themeStyles, hljsStyles].filter(Boolean).join(``)
 }
-
 export async function processClipboardContent(primaryColor: string) {
   const clipboardDiv = document.getElementById(`output`)!
 
   const stylesToAdd = await getStylesToAdd()
-
   if (stylesToAdd) {
     clipboardDiv.innerHTML = stylesToAdd + clipboardDiv.innerHTML
   }
 
   // 先合并 CSS 和修改 HTML 结构
-  clipboardDiv.innerHTML = modifyHtmlStructure(mergeCss(clipboardDiv.innerHTML))
+  clipboardDiv.innerHTML = modifyHtmlStructure(await mergeCss(clipboardDiv.innerHTML))
 
   // 处理样式和颜色变量
   clipboardDiv.innerHTML = clipboardDiv.innerHTML
@@ -347,14 +335,12 @@ export async function processClipboardContent(primaryColor: string) {
     grand.innerHTML = ``
     grand.appendChild(section)
   })
-
   // fix: mermaid 部分文本颜色被 stroke 覆盖
   clipboardDiv.innerHTML = clipboardDiv.innerHTML
     .replace(
       /<tspan([^>]*)>/g,
       `<tspan$1 style="fill: #333333 !important; color: #333333 !important; stroke: none !important;">`,
     )
-
   // fix: antv infographic 复制到微信公众平台时 <text></text> 被自动转为 <text><tspan></tspan></text> 导致在 Safari 浏览器中文字异常的问题
   clipboardDiv.querySelectorAll('.infographic-diagram').forEach((diagram) => {
     diagram.querySelectorAll('text').forEach((textElem) => {

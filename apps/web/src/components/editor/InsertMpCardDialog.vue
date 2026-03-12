@@ -50,7 +50,7 @@ const schema = toTypedSchema(yup.object({
 
 /** 组装 HTML 片段 */
 function buildMpHtml(config: Config) {
-  const logo = config.logo || `https://cdn-doocs.oss-cn-shenzhen.aliyuncs.com/gh/doocs/md/images/mp-logo.png`
+  const logo = config.logo || `https://testingcf.jsdelivr.net/gh/avkiller/imgs@main/logo/mp-logo.png`
   const attrs = [
     `data-pluginname="mpprofile"`,
     `data-id="${config.id}"`,
@@ -170,7 +170,7 @@ function submit(formValues: any) {
               variant="link"
               class="p-0 h-auto text-left whitespace-normal"
               as="a"
-              href="https://github.com/doocs/md/blob/main/docs/mp-card.md"
+              href="https://github.com/avkiller/md/blob/main/docs/mp-card.md"
               target="_blank"
             >
               如何获取公众号 ID？

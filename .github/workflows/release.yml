@@ -9,7 +9,7 @@ jobs:
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    if: github.repository == 'doocs/md'
+    if: github.repository == 'avkiller/md'
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
