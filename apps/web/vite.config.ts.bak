@@ -18,7 +18,7 @@ const isCfPages = process.env.CF_PAGES === `1`
 
 const base = isNetlify || isCfWorkers || isCfPages ? `/` : isUTools ? `./` : `/md/`
 const WINDOWS_PATH_REG = /\\/g
-// const PNPM_PATH_REG = /node_modules\/(?:\.pnpm\/)?((?:@[^/]+[+/])?[^/]+)/
+const PNPM_PATH_REG = /node_modules\/(?:\.pnpm\/)?((?:@[^/]+[+/])?[^/]+)/
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd())
@@ -39,10 +39,8 @@ export default defineConfig(({ mode }) => {
         emitFile: true,
         // gzipSize: true,
         filename: `stats.html`,
-        template: `treemap`,
-        // template: `list`,
+        // template: `treemap`,
         open: true,
-        gzipSize: true,
       }),
       AutoImport({
         imports: [`vue`, `pinia`, `@vueuse/core`],
@@ -59,78 +57,73 @@ export default defineConfig(({ mode }) => {
     },
     css: { devSourcemap: true },
     build: {
-      chunkSizeWarningLimit: 1500,
+      chunkSizeWarningLimit: 800,
       cssCodeSplit: false,
-      minify: 'oxc',
       rolldownOptions: {
         external: [`mermaid`],
         output: {
           chunkFileNames: `static/js/md-[name]-[hash].js`,
           entryFileNames: `static/js/md-[name]-[hash].js`,
-          // assetFileNames: `static/[ext]/md-[name]-[hash].[ext]`,
+          assetFileNames: `static/[ext]/md-[name]-[hash].[ext]`,
           globals: { mermaid: `mermaid` },
-
           manualChunks(id) {
             const normalizedId = id.replace(WINDOWS_PATH_REG, '/')
             if (normalizedId.includes(`node_modules`)) {
-              if (normalizedId.includes('@vue/')
-                || normalizedId.includes('vue')
-                || normalizedId.includes('@vueuse')
-                || normalizedId.includes('pinia')
-                || normalizedId.includes('axios')) {
+              const match = normalizedId.match(PNPM_PATH_REG)
+              let pkgName = match ? match[1] : ''
+              pkgName = pkgName.replace('+', '/')
+              if (pkgName.includes('@vue/')
+                || pkgName.includes('pinia')) {
                 return 'vue-bundle'
               }
+
+              if (pkgName.includes(`codemirror`)
+                || pkgName.includes(`@codemirror`)
+                || pkgName.includes('@lezer/')) {
+                return `codemirror`
+              }
+              if (pkgName.includes(`readable-stream`)) {
+                return `stream`
+              }
+              if (pkgName.includes(`juice`)) {
+                return `juice`
+              }
+              if (pkgName.includes(`katex`)) {
+                return `katex`
+              }
+              if (pkgName.includes(`prettier`)) {
+                return `prettier`
+              }
+              // if (normalizedId.includes('@lezer/')) {
+              //   return 'lezer-bundle'
+              // }
               if (
-                normalizedId.includes('radix-vue')
-                || normalizedId.includes('reka-ui')
-                || normalizedId.includes('lucide-vue-next')
+                pkgName.includes('radix-vue')
+                || pkgName.includes('reka-ui')
+                || pkgName.includes('lucide-vue-next')
               ) {
                 return 'ui' // 它们都会被打包进 ui.js
               }
-              if (normalizedId.includes(`juice`)) {
-                return `juice`
-              }
-              if (normalizedId.includes('@aws-sdk+client-s3') || normalizedId.includes('@aws-sdk/client-s3')) {
-                return 'aws-s3'
-              }
+
               if (
-                normalizedId.includes('smithy')
-                || normalizedId.includes('@aws-crypto')
+                pkgName.startsWith('@aws-sdk')
+                || pkgName.includes('smithy')
               ) {
-                return 'aws-infra'
+                return 'aws' // 它们都会被打包进 ui.js
               }
-              if (normalizedId.includes('@codemirror/lang-')) {
-                return 'editor-langs'
-              }
-              if (normalizedId.includes('codemirror') || normalizedId.includes('@codemirror')) {
-                return 'editor-main'
-              }
-              if (normalizedId.includes('@lezer')) {
-                return 'editor-parser' // lezer 解析器也是大头
-              }
-              // if (id.includes(`codemirror`))
-              //   return `codemirror`
-              if (normalizedId.includes(`katex`))
-                return `katex`
-              if (normalizedId.includes(`prettier`))
-                return `prettier`
-              // Skip automatic vendor splitting for pnpm virtual store to avoid circular deps
               if (
-                normalizedId.includes('html-to-image')
-                || normalizedId.includes('yup')
-                || normalizedId.includes('vee-validate')
-                || normalizedId.includes('tailwind-merge')
-                || normalizedId.includes('highlight.js')
+                pkgName.includes('html-to-image')
+                || pkgName.includes('yup')
+                || pkgName.includes('vee-validate')
+                || pkgName.includes('tailwind-merge')
+                || pkgName.includes('highlight.js')
+                // || pkgName.includes('vue-sonner')
+                // || normalizedId.includes(`browser-image-compression`)
               ) {
                 return `utils`
               }
-              if (normalizedId.includes(`/.pnpm/`))
-                return
-              const pkg = normalizedId
-                .split(`node_modules/`)[1]
-                .split(`/`)[0]
-                .replace(`@`, `npm_`)
-              return `vendor_${pkg}`
+
+              return 'vendor'
             }
           },
         },

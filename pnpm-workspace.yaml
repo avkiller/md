@@ -28,10 +28,11 @@ overrides:
   prettier: 2.8.8
   qs: ^6.14.2
   querystring: npm:qs@^6.14.2
+  semver: ^7.0.0
+
   serialize-javascript@<7.0.3: ^7.0.4
   source-map@0.8.0-beta.0: 0.7.4
   underscore@<1.13.8: 1.13.8
   workbox-build>source-map: 0.7.4
-
 patchedDependencies:
   '@codemirror/view@6.39.17': patches/@codemirror__view@6.39.17.patch
