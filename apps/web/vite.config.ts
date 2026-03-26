@@ -17,6 +17,8 @@ const isCfWorkers = process.env.CF_WORKERS === `1`
 const isCfPages = process.env.CF_PAGES === `1`
 
 const base = isNetlify || isCfWorkers || isCfPages ? `/` : isUTools ? `./` : `/md/`
+
+// const PKG_NAME_SPECIAL_CHARS = /[^\w-]/g
 const WINDOWS_PATH_REG = /\\/g
 // const PNPM_PATH_REG = /node_modules\/(?:\.pnpm\/)?((?:@[^/]+[+/])?[^/]+)/
 
@@ -56,7 +58,6 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: { '@': path.resolve(__dirname, `./src`) },
-      dedupe: [`@codemirror/state`, `@codemirror/view`],
       dedupe: [`@codemirror/state`, `@codemirror/view`],
     },
     css: { devSourcemap: true },
@@ -104,11 +105,8 @@ export default defineConfig(({ mode }) => {
               if (normalizedId.includes('@codemirror/lang-')) {
                 return 'editor-langs'
               }
-              if (normalizedId.includes('codemirror') || normalizedId.includes('@codemirror')) {
-                return 'editor-main'
-              }
-              if (normalizedId.includes('@lezer')) {
-                return 'editor-parser' // lezer 解析器也是大头
+              if (normalizedId.includes('codemirror') || normalizedId.includes('@codemirror') || normalizedId.includes('@lezer')) {
+                return 'codemirror'
               }
               // if (id.includes(`codemirror`))
               //   return `codemirror`
@@ -116,6 +114,8 @@ export default defineConfig(({ mode }) => {
                 return `katex`
               if (normalizedId.includes(`prettier`))
                 return `prettier`
+              if (normalizedId.includes(`highlight.js`))
+                return `highlight`
               // Skip automatic vendor splitting for pnpm virtual store to avoid circular deps
               if (
                 normalizedId.includes('html-to-image')
@@ -126,8 +126,32 @@ export default defineConfig(({ mode }) => {
               ) {
                 return `utils`
               }
-              if (normalizedId.includes(`/.pnpm/`))
+              if (normalizedId.includes(`/.pnpm/`)) {
+                // if (
+                //   normalizedId.includes(`/@vue/`)
+                //   || normalizedId.includes(`/@vue+`)
+                //   || normalizedId.includes(`/node_modules/vue/`)
+                //   || normalizedId.includes(`/node_modules/pinia/`)
+                // ) {
+                //   return `vendor_vue`
+                // }
+                // if (normalizedId.includes(`/@vueuse+`) || normalizedId.includes(`/@vueuse/`))
+                //   return `vendor_vueuse`
+
+                // Extract actual package name from the real package path within .pnpm store
+                // Format: .pnpm/<outer>@version/node_modules/<actual-pkg>/...
+                // const nmIndex = normalizedId.lastIndexOf(`/node_modules/`)
+                // if (nmIndex !== -1) {
+                //   const afterNm = normalizedId.slice(nmIndex + `/node_modules/`.length)
+                //   const parts = afterNm.split(`/`)
+                //   const pkgName = afterNm.startsWith(`@`)
+                //     ? `${parts[0].slice(1)}_${parts[1]}`
+                //     : parts[0]
+                //   return `vendor_${pkgName.replace(PKG_NAME_SPECIAL_CHARS, `_`)}`
+                // }
                 return
+              }
+
               const pkg = normalizedId
                 .split(`node_modules/`)[1]
                 .split(`/`)[0]
@@ -137,8 +161,6 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
-      chunkSizeWarningLimit: 1700,
-      chunkSizeWarningLimit: 1700,
     },
   }
 })

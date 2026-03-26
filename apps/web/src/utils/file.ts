@@ -43,7 +43,6 @@ async function getConfig(useDefault: boolean, platform: string) {
     branch: customConfig.branch || `main`,
     accessToken: customConfig.accessToken,
     useCDN: customConfig.useCDN ?? false,
-    useCDN: customConfig.useCDN ?? false,
   }
 }
 
@@ -66,7 +65,6 @@ function getDir() {
  */
 function getDateFilename(filename: string) {
   const currentTimestamp = Date.now()
-  const currentTimestamp = Date.now()
   // 获取最后一个点号后的内容作为文件扩展名
   const fileSuffix = filename.split(`.`).pop()
   return `${currentTimestamp}-${uuidv4()}.${fileSuffix}`
@@ -78,7 +76,6 @@ function getDateFilename(filename: string) {
 
 async function ghFileUpload(content: string, filename: string) {
   const useDefault = await store.get(`imgHost`) === `default`
-  const { username, repo, branch, accessToken, useCDN } = await getConfig(
   const { username, repo, branch, accessToken, useCDN } = await getConfig(
     useDefault,
     `github`,
@@ -112,8 +109,6 @@ async function ghFileUpload(content: string, filename: string) {
   const githubResourceUrl = `raw.githubusercontent.com/${username}/${repo}/${branch}/`
   const cdnResourceUrl = `testingcf.jsdelivr.net/gh/${username}/${repo}@${branch}/`
   res.content = res.data?.content || res.content
-  const shouldUseCDN = useDefault || useCDN
-  return shouldUseCDN
   const shouldUseCDN = useDefault || useCDN
   return shouldUseCDN
     ? res.content.download_url.replace(githubResourceUrl, cdnResourceUrl)
@@ -348,6 +343,7 @@ async function txCOSFileUpload(file: File) {
 // -----------------------------------------------------------------------
 // S3 File Upload
 // -----------------------------------------------------------------------
+// const PROTOCOL_REGEX = /^https?:\/\//
 // async function s3Upload(file: File) {
 //   const dateFilename = getDateFilename(file.name)
 //   const config = await store.getJSON(`s3Config`, {
@@ -398,7 +394,7 @@ async function txCOSFileUpload(file: File) {
 //     }
 //     if (endpoint) {
 //       const proto = clientConfig.endpoint.startsWith('https') ? 'https' : 'http'
-//       const host = clientConfig.endpoint.replace(/^https?:\/\//, '')
+//       const host = clientConfig.endpoint.replace(PROTOCOL_REGEX, '')
 //       if (pathStyle) {
 //         return `${proto}://${host}/${bucket}/${key}`
 //       }
@@ -428,7 +424,6 @@ async function getMpToken(appID: string, appsecret: string, proxyOrigin: string)
   if (data) {
     const token = JSON.parse(data)
     if (token.expire && token.expire > Date.now()) {
-    if (token.expire && token.expire > Date.now()) {
       return token.access_token
     }
   }
@@ -448,7 +443,6 @@ async function getMpToken(appID: string, appsecret: string, proxyOrigin: string)
   if (res.access_token) {
     const tokenInfo = {
       ...res,
-      expire: Date.now() + res.expires_in * 1000,
       expire: Date.now() + res.expires_in * 1000,
     }
     await store.setJSON(`mpToken:${appID}`, tokenInfo)
@@ -588,7 +582,7 @@ async function r2Upload(file: File) {
 //     throw new Error(`Telegram sendPhoto 失败`)
 //   }
 //   // 取最大的分辨率那张图
-//   const fileId = sendRes.result.photo.at(-1).file_id
+//   const fileId = sendRes.result.photo[sendRes.result.photo.length - 1].file_id
 
 //   // 2. getFile
 //   const fileRes = await fetch<any, {
@@ -740,7 +734,9 @@ export async function fileUpload(content: string, file: File) {
     case `aliOSS`:
       return aliOSSFileUpload(file)
     // case `minio`:
-    //   return minioFileUpload(file)
+    //   return minioFileUpload(file)	
+    //case `s3`:
+    //  return s3Upload(file)
     case `txCOS`:
       return txCOSFileUpload(file)
     // case `qiniu`:

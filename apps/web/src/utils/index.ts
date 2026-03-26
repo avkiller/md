@@ -120,16 +120,8 @@ export async function exportPDF(title: string = `untitled`) {
   const stylesToAdd = await getStylesToAdd()
   const safeTitle = sanitizeTitle(title)
 
-  // 创建新窗口用于打印
-  const printWindow = window.open(``, `_blank`)
-  if (!printWindow) {
-    console.error(`无法打开打印窗口`)
-    return
-  }
 
-  // 写入HTML内容，包含主题样式和自定义页眉页脚
-  printWindow.document.write(`
-    <!DOCTYPE html>
+  const printHtml = `<!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
@@ -150,7 +142,7 @@ export async function exportPDF(title: string = `untitled`) {
             color: #666;
           }
           @bottom-left {
-            content: "微信 Markdown 编辑器";
+            content: "md.avkiller.top";
             font-size: 10px;
             color: #999;
           }
@@ -184,29 +176,7 @@ export async function exportPDF(title: string = `untitled`) {
     setTimeout(() => {
       document.body.removeChild(iframe)
     }, 500)
-    @media print {
-      body { margin: 0; }
-    }
-  </style>
-</head>
-<body>
-  <div style="width: 100%; max-width: 750px; margin: auto;">
-    ${htmlStr}
-  </div>
-</body>
-</html>`
-  const iframe = document.createElement(`iframe`)
-  iframe.style.cssText = `position:fixed;width:0;height:0;top:-9999px;left:-9999px;border:none;`
-  iframe.srcdoc = printHtml
-  document.body.appendChild(iframe)
 
-  iframe.onload = () => {
-    iframe.contentWindow?.focus()
-    iframe.contentWindow?.print()
-    // 延迟移除，确保打印完成
-    setTimeout(() => {
-      document.body.removeChild(iframe)
-    }, 500)
   }
 }
 
