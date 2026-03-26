@@ -56,6 +56,7 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: { '@': path.resolve(__dirname, `./src`) },
+      dedupe: [`@codemirror/state`, `@codemirror/view`],
     },
     css: { devSourcemap: true },
     build: {
@@ -135,6 +136,7 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
+      chunkSizeWarningLimit: 1700,
     },
   }
 })

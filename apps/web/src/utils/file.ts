@@ -42,6 +42,7 @@ async function getConfig(useDefault: boolean, platform: string) {
     repo: repoUrl[1],
     branch: customConfig.branch || `main`,
     accessToken: customConfig.accessToken,
+    useCDN: customConfig.useCDN ?? false,
   }
 }
 
@@ -63,7 +64,7 @@ function getDir() {
  * @returns {string} `时间戳+uuid`
  */
 function getDateFilename(filename: string) {
-  const currentTimestamp = new Date().getTime()
+  const currentTimestamp = Date.now()
   // 获取最后一个点号后的内容作为文件扩展名
   const fileSuffix = filename.split(`.`).pop()
   return `${currentTimestamp}-${uuidv4()}.${fileSuffix}`
@@ -75,7 +76,7 @@ function getDateFilename(filename: string) {
 
 async function ghFileUpload(content: string, filename: string) {
   const useDefault = await store.get(`imgHost`) === `default`
-  const { username, repo, branch, accessToken } = await getConfig(
+  const { username, repo, branch, accessToken, useCDN } = await getConfig(
     useDefault,
     `github`,
   )
@@ -108,7 +109,8 @@ async function ghFileUpload(content: string, filename: string) {
   const githubResourceUrl = `raw.githubusercontent.com/${username}/${repo}/${branch}/`
   const cdnResourceUrl = `testingcf.jsdelivr.net/gh/${username}/${repo}@${branch}/`
   res.content = res.data?.content || res.content
-  return useDefault
+  const shouldUseCDN = useDefault || useCDN
+  return shouldUseCDN
     ? res.content.download_url.replace(githubResourceUrl, cdnResourceUrl)
     : res.content.download_url
 }
@@ -420,7 +422,7 @@ async function getMpToken(appID: string, appsecret: string, proxyOrigin: string)
   const data = await store.get(`mpToken:${appID}`)
   if (data) {
     const token = JSON.parse(data)
-    if (token.expire && token.expire > new Date().getTime()) {
+    if (token.expire && token.expire > Date.now()) {
       return token.access_token
     }
   }
@@ -440,7 +442,7 @@ async function getMpToken(appID: string, appsecret: string, proxyOrigin: string)
   if (res.access_token) {
     const tokenInfo = {
       ...res,
-      expire: new Date().getTime() + res.expires_in * 1000,
+      expire: Date.now() + res.expires_in * 1000,
     }
     await store.setJSON(`mpToken:${appID}`, tokenInfo)
     return res.access_token

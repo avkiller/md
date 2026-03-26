@@ -18,9 +18,10 @@ const githubSchema = toTypedSchema(yup.object({
   repo: yup.string().required(`GitHub 仓库不能为空`),
   branch: yup.string().optional(),
   accessToken: yup.string().required(`GitHub Token 不能为空`),
+  useCDN: yup.boolean().required(),
 }))
 
-const githubConfig = store.reactive(`githubConfig`, { repo: ``, branch: ``, accessToken: `` })
+const githubConfig = store.reactive(`githubConfig`, { repo: ``, branch: ``, accessToken: ``, useCDN: false })
 
 async function githubSubmit(formValues: any) {
   Object.assign(githubConfig.value, formValues)
@@ -559,6 +560,17 @@ function onTabScroll(e: WheelEvent) {
                     v-model="field.value"
                     type="password"
                     placeholder="如：cc1d0c1426d0fd0902bd2d7184b14da61b8abc46"
+                  />
+                </FormItem>
+              </Field>
+
+              <Field v-slot="{ field, errorMessage }" name="useCDN" type="boolean">
+                <FormItem label="CDN 加速" :error="errorMessage">
+                  <Switch
+                    :checked="field.value"
+                    :name="field.name"
+                    @update:checked="field.onChange"
+                    @blur="field.onBlur"
                   />
                 </FormItem>
               </Field>

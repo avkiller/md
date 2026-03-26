@@ -161,28 +161,29 @@ export async function exportPDF(title: string = `untitled`) {
           }
         }
 
-        @media print {
-          body { margin: 0; }
-        }
-      </style>
-    </head>
-    <body>
-      <div style="width: 100%; max-width: 750px; margin: auto;">
-        ${htmlStr}
-      </div>
-    </body>
-    </html>
-  `)
-
-  printWindow.document.close()
-
-  // 等待内容加载完成后自动打开打印对话框
-  printWindow.onload = () => {
-    printWindow.print()
-    // 打印完成后关闭窗口
-    printWindow.onafterprint = () => {
-      printWindow.close()
+    @media print {
+      body { margin: 0; }
     }
+  </style>
+</head>
+<body>
+  <div style="width: 100%; max-width: 750px; margin: auto;">
+    ${htmlStr}
+  </div>
+</body>
+</html>`
+  const iframe = document.createElement(`iframe`)
+  iframe.style.cssText = `position:fixed;width:0;height:0;top:-9999px;left:-9999px;border:none;`
+  iframe.srcdoc = printHtml
+  document.body.appendChild(iframe)
+
+  iframe.onload = () => {
+    iframe.contentWindow?.focus()
+    iframe.contentWindow?.print()
+    // 延迟移除，确保打印完成
+    setTimeout(() => {
+      document.body.removeChild(iframe)
+    }, 500)
   }
 }
 
