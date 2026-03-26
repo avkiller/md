@@ -184,6 +184,29 @@ export async function exportPDF(title: string = `untitled`) {
     setTimeout(() => {
       document.body.removeChild(iframe)
     }, 500)
+    @media print {
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div style="width: 100%; max-width: 750px; margin: auto;">
+    ${htmlStr}
+  </div>
+</body>
+</html>`
+  const iframe = document.createElement(`iframe`)
+  iframe.style.cssText = `position:fixed;width:0;height:0;top:-9999px;left:-9999px;border:none;`
+  iframe.srcdoc = printHtml
+  document.body.appendChild(iframe)
+
+  iframe.onload = () => {
+    iframe.contentWindow?.focus()
+    iframe.contentWindow?.print()
+    // 延迟移除，确保打印完成
+    setTimeout(() => {
+      document.body.removeChild(iframe)
+    }, 500)
   }
 }
 

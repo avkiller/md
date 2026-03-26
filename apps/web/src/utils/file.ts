@@ -43,6 +43,7 @@ async function getConfig(useDefault: boolean, platform: string) {
     branch: customConfig.branch || `main`,
     accessToken: customConfig.accessToken,
     useCDN: customConfig.useCDN ?? false,
+    useCDN: customConfig.useCDN ?? false,
   }
 }
 
@@ -65,6 +66,7 @@ function getDir() {
  */
 function getDateFilename(filename: string) {
   const currentTimestamp = Date.now()
+  const currentTimestamp = Date.now()
   // 获取最后一个点号后的内容作为文件扩展名
   const fileSuffix = filename.split(`.`).pop()
   return `${currentTimestamp}-${uuidv4()}.${fileSuffix}`
@@ -76,6 +78,7 @@ function getDateFilename(filename: string) {
 
 async function ghFileUpload(content: string, filename: string) {
   const useDefault = await store.get(`imgHost`) === `default`
+  const { username, repo, branch, accessToken, useCDN } = await getConfig(
   const { username, repo, branch, accessToken, useCDN } = await getConfig(
     useDefault,
     `github`,
@@ -109,6 +112,8 @@ async function ghFileUpload(content: string, filename: string) {
   const githubResourceUrl = `raw.githubusercontent.com/${username}/${repo}/${branch}/`
   const cdnResourceUrl = `testingcf.jsdelivr.net/gh/${username}/${repo}@${branch}/`
   res.content = res.data?.content || res.content
+  const shouldUseCDN = useDefault || useCDN
+  return shouldUseCDN
   const shouldUseCDN = useDefault || useCDN
   return shouldUseCDN
     ? res.content.download_url.replace(githubResourceUrl, cdnResourceUrl)
@@ -423,6 +428,7 @@ async function getMpToken(appID: string, appsecret: string, proxyOrigin: string)
   if (data) {
     const token = JSON.parse(data)
     if (token.expire && token.expire > Date.now()) {
+    if (token.expire && token.expire > Date.now()) {
       return token.access_token
     }
   }
@@ -442,6 +448,7 @@ async function getMpToken(appID: string, appsecret: string, proxyOrigin: string)
   if (res.access_token) {
     const tokenInfo = {
       ...res,
+      expire: Date.now() + res.expires_in * 1000,
       expire: Date.now() + res.expires_in * 1000,
     }
     await store.setJSON(`mpToken:${appID}`, tokenInfo)
