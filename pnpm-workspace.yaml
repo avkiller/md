@@ -1,4 +1,10 @@
 shellEmulator: true
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+- vue
+- vite
+- '@cloudflare/*'
+- '@aws-sdk/*'
 
 trustPolicy: no-downgrade
 packages:
