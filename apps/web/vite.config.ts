@@ -9,7 +9,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv } from 'vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
-import { utoolsLocalAssetsPlugin } from './plugins/vite-plugin-utools-local-assets'
+// import { utoolsLocalAssetsPlugin } from './plugins/vite-plugin-utools-local-assets'
 
 const isNetlify = process.env.SERVER_ENV === `NETLIFY`
 const isUTools = process.env.SERVER_ENV === `UTOOLS`
@@ -52,9 +52,11 @@ export default defineConfig(({ mode }) => {
         dts: 'src/auto-imports.d.ts',
       }),
       Components({
+        exclude: [/[\\/]node_modules[\\/]/, /[\\/]\.git[\\/]/, /[\\/]\.pnpm[\\/]/],
+        extensions: ['vue', 'tsx'],
         resolvers: [],
       }),
-      isUTools && utoolsLocalAssetsPlugin(),
+      // isUTools && utoolsLocalAssetsPlugin(),
     ],
     resolve: {
       alias: { '@': path.resolve(__dirname, `./src`) },
@@ -62,9 +64,9 @@ export default defineConfig(({ mode }) => {
     },
     css: { devSourcemap: true },
     build: {
-      chunkSizeWarningLimit: 1500,
+      chunkSizeWarningLimit: 4096,
       cssCodeSplit: false,
-      minify: 'oxc',
+      // minify: 'terser',
       rolldownOptions: {
         output: {
           chunkFileNames: `static/js/md-[name]-[hash].js`,
@@ -72,7 +74,7 @@ export default defineConfig(({ mode }) => {
           assetFileNames: `static/[ext]/md-[name]-[hash].[ext]`,
 
           manualChunks(id) {
-            const normalizedId = id.replace(WINDOWS_PATH_REG, '/')
+            const normalizedId = id.toLowerCase().replace(WINDOWS_PATH_REG, '/')
             if (normalizedId.includes(`node_modules`)) {
               if (normalizedId.includes('@vue/')
                 || normalizedId.includes('vue')
@@ -106,14 +108,58 @@ export default defineConfig(({ mode }) => {
               if (normalizedId.includes('codemirror') || normalizedId.includes('@codemirror') || normalizedId.includes('@lezer')) {
                 return 'codemirror'
               }
-              // if (id.includes(`codemirror`))
-              //   return `codemirror`
+
               if (normalizedId.includes(`katex`))
                 return `katex`
-              if (normalizedId.includes(`prettier`))
+              if (normalizedId.includes(`prettier`)) {
                 return `prettier`
-              if (normalizedId.includes(`highlight.js`))
-                return `highlight`
+              }
+              if (normalizedId.includes('marked')) {
+                return `marked`
+              }
+              // if (normalizedId.includes('flowDiagram')) {
+              //   return `flowDiagram`
+              // }
+              if (normalizedId.includes('mermaid')) {
+                return `mermaid`
+              }
+              if (normalizedId.includes('chevrotain')) {
+                return `chevrotain`
+              }
+
+              if (normalizedId.includes('d3')) {
+                return `d3`
+              }
+
+              // 2. 提取 langium (它是 mermaid 的解析引擎，也很大)
+              // if (normalizedId.includes('langium')) {
+              //   return 'langium'
+              // }
+              // if (normalizedId.includes('d3-shape')) {
+              //   return `d3-shape`
+              // }
+              // if (normalizedId.includes('langium')) {
+              //   console.log('--- Path Check:', normalizedId)
+              //   return `langium`
+              // }
+
+              if (normalizedId.includes('@antv')) {
+                return 'vendor-antv-engine'
+              }
+
+              // if (normalizedId.includes('/node_modules/d3')
+              //   || normalizedId.includes('/node_modules/dagre')) {
+              //   console.log('--- d3 Path Check:', normalizedId)
+              //   return 'vendor-charts-engine'
+              // }
+
+              if (normalizedId.includes(`browser-image-compression`))
+                return `browser-image-compression`
+              // if (normalizedId.includes(`marked`))
+              //   return `marked`
+
+              // if (normalizedId.includes(`highlight.js`))
+              //   return `highlight`
               // Skip automatic vendor splitting for pnpm virtual store to avoid circular deps
               if (
                 normalizedId.includes('html-to-image')
@@ -121,8 +167,13 @@ export default defineConfig(({ mode }) => {
                 || normalizedId.includes('vee-validate')
                 || normalizedId.includes('tailwind-merge')
                 || normalizedId.includes('highlight.js')
+                // || normalizedId.includes('langium')
               ) {
                 return `utils`
+              }
+
+              if (normalizedId.includes('node_modules')) {
+                return 'vendor-lib'
               }
               if (normalizedId.includes(`/.pnpm/`)) {
                 // if (
