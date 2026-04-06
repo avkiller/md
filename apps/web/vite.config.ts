@@ -66,12 +66,10 @@ export default defineConfig(({ mode }) => {
       cssCodeSplit: false,
       minify: 'oxc',
       rolldownOptions: {
-        external: [`mermaid`],
         output: {
           chunkFileNames: `static/js/md-[name]-[hash].js`,
           entryFileNames: `static/js/md-[name]-[hash].js`,
-          // assetFileNames: `static/[ext]/md-[name]-[hash].[ext]`,
-          globals: { mermaid: `mermaid` },
+          assetFileNames: `static/[ext]/md-[name]-[hash].[ext]`,
 
           manualChunks(id) {
             const normalizedId = id.replace(WINDOWS_PATH_REG, '/')

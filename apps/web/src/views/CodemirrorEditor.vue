@@ -6,7 +6,6 @@ import { EditorView } from '@codemirror/view'
 import { highlightPendingBlocks, hljs } from '@md/core'
 import { markdownSetup, theme } from '@md/shared/editor'
 // import imageCompression from 'browser-image-compression'
-import { Eye, Pen } from 'lucide-vue-next'
 import { SidebarAIToolbar } from '@/components/ai'
 import FolderSourcePanel from '@/components/editor/FolderSourcePanel.vue'
 import {
@@ -173,6 +172,13 @@ const effectivePreviewWidth = computed(() => {
     return `w-full`
   return previewDevice.value === `mobile` ? `w-[375px]` : `w-full`
 })
+
+
+
+
+
+
+
 
 // AI 工具箱已移到侧边栏
 
@@ -396,6 +402,30 @@ function handlePreviewContentClick(event: MouseEvent) {
 
   syncEditorToPreviewElement(block)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const searchTabRef
   = useTemplateRef<InstanceType<typeof SearchTab>>(`searchTabRef`)
@@ -725,6 +755,7 @@ function createFormTextArea(dom: HTMLDivElement) {
         if (update.selectionSet || update.docChanged) {
           scheduleSyncPreviewToEditorCursor()
         }
+
       }),
       EditorView.domEventHandlers({
         paste: (event, view) => {
@@ -991,6 +1022,7 @@ onUnmounted(() => {
           </ResizablePanel>
           <ResizableHandle v-if="isOpenFolderPanel" class="hidden md:block" />
 
+
           <!-- 主内容区域 (嵌套灵动布局) -->
           <ResizablePanel :min-size="30">
             <ResizablePanelGroup direction="horizontal">
@@ -1104,6 +1136,10 @@ onUnmounted(() => {
             </template>
           </ResizablePanel>
         </ResizablePanelGroup>
+
+
+
+
       </div>
 
       <!-- AI工具箱已移到侧边栏，这里不再显示 -->
@@ -1203,6 +1239,8 @@ onUnmounted(() => {
     display: none;
   }
 }
+
+
 
 .codeMirror-wrapper {
   overflow-x: hidden;
