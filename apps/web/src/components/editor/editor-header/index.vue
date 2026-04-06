@@ -13,7 +13,6 @@ import FormatDropdown from './FormatDropdown.vue'
 // import HelpDropdown from './HelpDropdown.vue'
 import InsertDropdown from './InsertDropdown.vue'
 import StyleDropdown from './StyleDropdown.vue'
-import ViewDropdown from './ViewDropdown.vue'
 
 const emit = defineEmits([`startCopy`, `endCopy`])
 
