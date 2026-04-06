@@ -173,13 +173,6 @@ const effectivePreviewWidth = computed(() => {
   return previewDevice.value === `mobile` ? `w-[375px]` : `w-full`
 })
 
-
-
-
-
-
-
-
 // AI 工具箱已移到侧边栏
 
 const previewRef = useTemplateRef<HTMLDivElement>(`previewRef`)
@@ -402,30 +395,6 @@ function handlePreviewContentClick(event: MouseEvent) {
 
   syncEditorToPreviewElement(block)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 const searchTabRef
   = useTemplateRef<InstanceType<typeof SearchTab>>(`searchTabRef`)
@@ -755,7 +724,6 @@ function createFormTextArea(dom: HTMLDivElement) {
         if (update.selectionSet || update.docChanged) {
           scheduleSyncPreviewToEditorCursor()
         }
-
       }),
       EditorView.domEventHandlers({
         paste: (event, view) => {
@@ -1022,7 +990,6 @@ onUnmounted(() => {
           </ResizablePanel>
           <ResizableHandle v-if="isOpenFolderPanel" class="hidden md:block" />
 
-
           <!-- 主内容区域 (嵌套灵动布局) -->
           <ResizablePanel :min-size="30">
             <ResizablePanelGroup direction="horizontal">
@@ -1136,10 +1103,6 @@ onUnmounted(() => {
             </template>
           </ResizablePanel>
         </ResizablePanelGroup>
-
-
-
-
       </div>
 
       <!-- AI工具箱已移到侧边栏，这里不再显示 -->
@@ -1239,8 +1202,6 @@ onUnmounted(() => {
     display: none;
   }
 }
-
-
 
 .codeMirror-wrapper {
   overflow-x: hidden;
