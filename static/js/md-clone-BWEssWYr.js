@@ -1,1 +1,0 @@
-import{Ft as e}from"./md-highlight-BPtt7gRF.js";var t=4;function n(n){return e(n,t)}export{n as t};
