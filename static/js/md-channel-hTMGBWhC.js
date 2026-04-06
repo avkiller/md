@@ -1,0 +1,1 @@
+import{nt as e,rt as t}from"./md-chunk-ICPOFSXX-KpVHCLeU.js";var n=(n,r)=>t.lang.round(e.parse(n)[r]);export{n as t};
