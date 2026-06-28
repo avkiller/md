@@ -1,5 +1,5 @@
-import { addPrefix } from '@/utils'
-import { store } from '@/utils/storage'
+import { store } from '@/storage'
+import { addPrefix } from '@/storage/prefix'
 
 /**
  * UI 状态 Store
@@ -10,10 +10,6 @@ export const useUIStore = defineStore(`ui`, () => {
   // 是否开启深色模式
   const isDark = useDark()
   const toggleDark = useToggle(isDark)
-
-  // 是否在左侧编辑
-  const isEditOnLeft = store.reactive(`isEditOnLeft`, true)
-  const toggleEditOnLeft = useToggle(isEditOnLeft)
 
   // 是否开启 AI 工具箱
   const showAIToolbox = store.reactive(`showAIToolbox`, true)
@@ -52,17 +48,16 @@ export const useUIStore = defineStore(`ui`, () => {
     previewDevice.value = previewDevice.value === `desktop` ? `mobile` : `desktop`
   }
 
-  // 是否固定显示浮动目录
-  const isPinFloatingToc = store.reactive(addPrefix(`isPinFloatingToc`), false)
-  const togglePinFloatingToc = useToggle(isPinFloatingToc)
-
-  // 是否显示浮动目录
-  const isShowFloatingToc = store.reactive(addPrefix(`isShowFloatingToc`), true)
-  const toggleShowFloatingToc = useToggle(isShowFloatingToc)
-
   // 是否启用图片转存（默认关闭）
   const enableImageReupload = store.reactive(addPrefix(`enableImageReupload`), false)
   const toggleImageReupload = useToggle(enableImageReupload)
+
+  // 是否开启同步滚动（编辑器与预览区联动）
+  const enableScrollSync = store.reactive(addPrefix(`enableScrollSync`), true)
+  const toggleScrollSync = useToggle(enableScrollSync)
+
+  // 复制到公众号时的格式模式
+  const copyMode = store.reactive(addPrefix(`copyMode`), `txt`)
 
   // ==================== 对话框状态 ====================
   // 是否展示 CSS 编辑器
@@ -73,13 +68,33 @@ export const useUIStore = defineStore(`ui`, () => {
   const isShowInsertFormDialog = ref(false)
   const toggleShowInsertFormDialog = useToggle(isShowInsertFormDialog)
 
-  // 是否展示插入公众号名片对话框
-  const isShowInsertMpCardDialog = ref(false)
-  const toggleShowInsertMpCardDialog = useToggle(isShowInsertMpCardDialog)
-
   // 是否展示上传图片对话框
   const isShowUploadImgDialog = ref(false)
   const toggleShowUploadImgDialog = useToggle(isShowUploadImgDialog)
+
+  // 是否展示公式编辑对话框
+  const isShowFormulaEditorDialog = ref(false)
+  const formulaEditorValue = ref(``)
+  const formulaEditorDisplayMode = ref(true)
+  const formulaEditorSourceRaw = ref<string | null>(null)
+
+  function openFormulaEditor(options: {
+    value?: string
+    displayMode?: boolean
+    sourceRaw?: string | null
+  } = {}) {
+    formulaEditorValue.value = options.value ?? ``
+    formulaEditorDisplayMode.value = options.displayMode ?? true
+    formulaEditorSourceRaw.value = options.sourceRaw ?? null
+    isShowFormulaEditorDialog.value = true
+  }
+
+  function closeFormulaEditor() {
+    isShowFormulaEditorDialog.value = false
+    formulaEditorValue.value = ``
+    formulaEditorDisplayMode.value = true
+    formulaEditorSourceRaw.value = null
+  }
 
   // 是否展示导入 Markdown 对话框
   const isShowImportMdDialog = ref(false)
@@ -87,12 +102,73 @@ export const useUIStore = defineStore(`ui`, () => {
   /** 通过 URL 参数 open 打开时传入的待导入链接，对话框打开后会据此自动执行导入 */
   const importMdOpenUrl = ref<string | null>(null)
 
+  // 是否展示本地图片上传对话框
+  const isShowLocalImageUpload = ref(false)
+  const toggleShowLocalImageUpload = useToggle(isShowLocalImageUpload)
+  /** 待处理的本地图片上传数据 */
+  const localImageUploadData = ref<{
+    markdownContent: string
+    detectedPaths: string[]
+    processed?: boolean
+    skipUpload?: boolean
+    successCount?: number
+    failCount?: number
+  } | null>(null)
+
   // 是否展示模板管理对话框
   const isShowTemplateDialog = ref(false)
   const toggleShowTemplateDialog = useToggle(isShowTemplateDialog)
 
-  // 是否打开重置样式确认对话框
-  const isOpenConfirmDialog = ref(false)
+  // 是否展示组件对话框
+  const isShowComponentDialog = ref(false)
+  const toggleShowComponentDialog = useToggle(isShowComponentDialog)
+
+  // 是否展示云同步对话框
+  const isShowSyncDialog = ref(false)
+  const toggleShowSyncDialog = useToggle(isShowSyncDialog)
+
+  // 是否展示账户对话框
+  const isShowAccountDialog = ref(false)
+  const toggleShowAccountDialog = useToggle(isShowAccountDialog)
+
+  // 是否展示分享对话框
+  const isShowShareDialog = ref(false)
+  const shareDialogInitialTab = ref<`create` | `manage`>(`create`)
+
+  function openShareDialog(options?: { tab?: `create` | `manage` }) {
+    shareDialogInitialTab.value = options?.tab ?? `create`
+    isShowShareDialog.value = true
+  }
+
+  // 是否展示关于 / 赞赏 / 语法帮助 / 配置导入导出对话框
+  const isShowAboutDialog = ref(false)
+  const toggleShowAboutDialog = useToggle(isShowAboutDialog)
+
+  const isShowFundDialog = ref(false)
+  const toggleShowFundDialog = useToggle(isShowFundDialog)
+
+  const isShowMarkdownHelpDialog = ref(false)
+  const toggleShowMarkdownHelpDialog = useToggle(isShowMarkdownHelpDialog)
+
+  const isShowEditorStateDialog = ref(false)
+  const toggleShowEditorStateDialog = useToggle(isShowEditorStateDialog)
+
+  const isShowPreferencesDialog = ref(false)
+  const toggleShowPreferencesDialog = useToggle(isShowPreferencesDialog)
+
+  const isShowKeyboardShortcutsDialog = ref(false)
+  const toggleShowKeyboardShortcutsDialog = useToggle(isShowKeyboardShortcutsDialog)
+
+  const isShowCommandPalette = ref(false)
+  const toggleShowCommandPalette = useToggle(isShowCommandPalette)
+
+  // 组件对话框 — 打开时预展开的组件名（如 'MpProfile'）
+  const componentDialogTarget = ref<string | null>(null)
+
+  function openComponentDialogWithTarget(target: string) {
+    componentDialogTarget.value = target
+    isShowComponentDialog.value = true
+  }
 
   // AI 对话框
   const aiDialogVisible = ref(false)
@@ -117,12 +193,30 @@ export const useUIStore = defineStore(`ui`, () => {
     searchTabRequest.value = null
   }
 
+  // 跳转行号（Footer 监听并打开输入框）
+  const goToLineRequest = ref(0)
+
+  function requestGoToLine() {
+    goToLineRequest.value++
+  }
+
   // ==================== 工具函数 ====================
   // 处理窗口大小变化
+  let splitCollapsedByResize = false
+
   function handleResize() {
+    const wasMobile = isMobile.value
     isMobile.value = window.innerWidth <= 768
-    if (isMobile.value && viewMode.value === `split`) {
+
+    if (!wasMobile && isMobile.value && viewMode.value === `split`) {
+      // 从桌面端变为移动端且当前是双屏：切换为编辑模式并记录
       viewMode.value = `edit`
+      splitCollapsedByResize = true
+    }
+    else if (wasMobile && !isMobile.value && splitCollapsedByResize) {
+      // 从移动端变回桌面端且是由 resize 触发的折叠：还原为双屏
+      viewMode.value = `split`
+      splitCollapsedByResize = false
     }
   }
 
@@ -138,7 +232,6 @@ export const useUIStore = defineStore(`ui`, () => {
   return {
     // ==================== 全局 UI 状态 ====================
     isDark,
-    isEditOnLeft,
     showAIToolbox,
     hasShownAIToolboxHint,
     isOpenRightSlider,
@@ -146,26 +239,57 @@ export const useUIStore = defineStore(`ui`, () => {
     isMobile,
     viewMode,
     previewDevice,
-    isPinFloatingToc,
-    isShowFloatingToc,
     isOpenFolderPanel,
     enableImageReupload,
+    enableScrollSync,
+    copyMode,
 
     // ==================== 对话框状态 ====================
     isShowCssEditor,
     toggleShowCssEditor,
     isShowInsertFormDialog,
     toggleShowInsertFormDialog,
-    isShowInsertMpCardDialog,
-    toggleShowInsertMpCardDialog,
     isShowUploadImgDialog,
     toggleShowUploadImgDialog,
+    isShowFormulaEditorDialog,
+    formulaEditorValue,
+    formulaEditorDisplayMode,
+    formulaEditorSourceRaw,
+    openFormulaEditor,
+    closeFormulaEditor,
     isShowImportMdDialog,
     toggleShowImportMdDialog,
     importMdOpenUrl,
+    isShowLocalImageUpload,
+    toggleShowLocalImageUpload,
+    localImageUploadData,
     isShowTemplateDialog,
     toggleShowTemplateDialog,
-    isOpenConfirmDialog,
+    isShowComponentDialog,
+    toggleShowComponentDialog,
+    isShowSyncDialog,
+    toggleShowSyncDialog,
+    isShowAccountDialog,
+    toggleShowAccountDialog,
+    isShowShareDialog,
+    shareDialogInitialTab,
+    openShareDialog,
+    isShowAboutDialog,
+    toggleShowAboutDialog,
+    isShowFundDialog,
+    toggleShowFundDialog,
+    isShowMarkdownHelpDialog,
+    toggleShowMarkdownHelpDialog,
+    isShowEditorStateDialog,
+    toggleShowEditorStateDialog,
+    isShowPreferencesDialog,
+    toggleShowPreferencesDialog,
+    isShowKeyboardShortcutsDialog,
+    toggleShowKeyboardShortcutsDialog,
+    isShowCommandPalette,
+    toggleShowCommandPalette,
+    componentDialogTarget,
+    openComponentDialogWithTarget,
     aiDialogVisible,
     toggleAIDialog,
     aiImageDialogVisible,
@@ -175,14 +299,14 @@ export const useUIStore = defineStore(`ui`, () => {
     searchTabRequest,
     openSearchTab,
     clearSearchTabRequest,
+    goToLineRequest,
+    requestGoToLine,
 
     // ==================== Actions ====================
     toggleDark,
-    toggleEditOnLeft,
     toggleAIToolbox,
-    togglePinFloatingToc,
-    toggleShowFloatingToc,
     toggleImageReupload,
+    toggleScrollSync,
     setViewMode,
     setPreviewDevice,
     togglePreviewDevice,

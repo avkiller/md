@@ -5,14 +5,14 @@ import { cp, mkdir, readFile, rm, writeFile, access } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import archiver from 'archiver'
+import { ZipArchive } from 'archiver'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, `..`)
 const utoolsDir = path.join(rootDir, `apps`, `utools`)
 const distDir = path.join(utoolsDir, `dist`)
 const releaseDir = path.join(utoolsDir, `release`)
-const iconSource = path.join(rootDir, `public`, `mpmd`, `icon-256.png`)
+const iconSource = path.join(rootDir, `apps`, `web`, `public`, `mpmd`, `icon-256.png`)
 const iconTarget = path.join(utoolsDir, `logo.png`)
 const manifestPath = path.join(utoolsDir, `plugin.json`)
 
@@ -52,7 +52,7 @@ async function main() {
 
   await ensureFileExists(distDir, `apps/utools/dist`)
   await ensureFileExists(manifestPath, `apps/utools/plugin.json`)
-  await ensureFileExists(iconSource, `public/mpmd/icon-256.png`)
+  await ensureFileExists(iconSource, `apps/web/public/mpmd/icon-256.png`)
 
   const manifest = JSON.parse(await readFile(manifestPath, `utf8`))
   manifest.version = version
@@ -79,7 +79,7 @@ async function main() {
   const zipPath = path.join(releaseDir, `${packageName}.zip`)
   await new Promise((resolve, reject) => {
     const output = fs.createWriteStream(zipPath)
-    const archive = archiver(`zip`, { zlib: { level: 9 } })
+    const archive = new ZipArchive({ zlib: { level: 9 } })
 
     output.on(`close`, resolve)
     archive.on(`error`, reject)

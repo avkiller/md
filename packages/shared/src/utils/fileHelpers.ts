@@ -1,8 +1,3 @@
-// import parserBabel from 'prettier/parser-babel'
-// import parserMarkdown from 'prettier/parser-markdown'
-// import parserPostcss from 'prettier/parser-postcss'
-// import * as prettier from 'prettier/standalone'
-
 /**
  * 通用文件下载函数
  * @param content - 文件内容
@@ -17,9 +12,10 @@ export function downloadFile(content: string, filename: string, mimeType: string
   const downLink = document.createElement(`a`)
   downLink.download = filename
   downLink.style.display = `none`
+  let objectUrl: string | null = null
 
   // 检查是否是 base64 data URL
-  if (content.startsWith(`data:`)) {
+  if (content.startsWith(`data:`) || content.startsWith(`blob:`)) {
     downLink.href = content
   }
   else if (mimeType === `text/html`) {
@@ -27,7 +23,8 @@ export function downloadFile(content: string, filename: string, mimeType: string
   }
   else {
     const blob = new Blob([content], { type: mimeType })
-    downLink.href = URL.createObjectURL(blob)
+    objectUrl = URL.createObjectURL(blob)
+    downLink.href = objectUrl
   }
 
   document.body.appendChild(downLink)
@@ -35,8 +32,8 @@ export function downloadFile(content: string, filename: string, mimeType: string
   document.body.removeChild(downLink)
 
   // 如果是 blob URL，释放内存
-  if (!content.startsWith(`data:`) && mimeType !== `text/html`) {
-    URL.revokeObjectURL(downLink.href)
+  if (objectUrl) {
+    URL.revokeObjectURL(objectUrl)
   }
 }
 
@@ -80,43 +77,4 @@ export function createTable({ data, rows, cols }: {
   }
 
   return table
-}
-
-/**
- * 格式化文档内容
- * @param content - 要格式化的内容
- * @param type - 内容类型，决定使用的解析器，默认为 'markdown'
- * @returns 格式化后的内容
- */
-export async function formatDoc(content: string, type: `markdown` | `css` | `javascript` = `markdown`): Promise<string> {
-  // @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
-  const parserMarkdown = await import(`prettier/parser-markdown`)
-  // @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
-  const parserBabel = await import(`prettier/parser-babel`)
-  // @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
-  const parserPostcss = await import(`prettier/parser-postcss`)
-  // @ts-expect-error - prettier v2.8.8 doesn't have proper TypeScript declarations
-  const prettier_moudle  = await import(`prettier/standalone`)
-  const prettier  = prettier_moudle.default
-  const parser = type === `css` ? `css` : type === `javascript` ? `babel` : `markdown`
-  const plugins = type === `css` ? [parserPostcss.default] : type === `javascript` ? [parserBabel.default] : [parserMarkdown.default, parserBabel.default]
-
-  return await prettier.format(content, {
-    parser,
-    plugins,
-    // prettier v2.8.8 配置选项
-    printWidth: 80,
-    tabWidth: 2,
-    useTabs: false,
-    semi: false,
-    singleQuote: true,
-    quoteProps: `as-needed`,
-    trailingComma: `es5`,
-    bracketSpacing: true,
-    bracketSameLine: false,
-    arrowParens: `avoid`,
-    proseWrap: `preserve`,
-    htmlWhitespaceSensitivity: `css`,
-    endOfLine: `lf`,
-  })
 }

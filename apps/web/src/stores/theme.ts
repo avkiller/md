@@ -1,61 +1,82 @@
-import type { HeadingLevel, HeadingStyles, HeadingStyleType, ThemeName } from '@md/shared/configs'
+import type { HeadingLevel, HeadingStyles, HeadingStyleType, PerThemeSettings, PerThemeSettingsMap, ThemeName } from '@md/shared/configs'
 import { applyTheme } from '@md/core'
-import { defaultStyleConfig, widthOptions } from '@md/shared/configs'
+import { defaultPerThemeSettings, defaultStyleConfig, widthOptions } from '@md/shared/configs'
+import { store } from '@/storage'
+import { addPrefix } from '@/storage/prefix'
 import { useCssEditorStore } from '@/stores/cssEditor'
-import { addPrefix } from '@/utils'
-import { store } from '@/utils/storage'
 
 /**
  * 主题和样式配置 Store
  * 负责管理所有与主题、字体、颜色相关的配置
+ *
+ * 每个主题拥有独立的配置（primaryColor、fontFamily、fontSize、codeBlockTheme、
+ * headingStyles、isShowLineNumber、isMacCodeBlock），切换主题时自动加载对应配置。
  */
 export const useThemeStore = defineStore(`theme`, () => {
-  // 文本主题
   const theme = store.reactive<ThemeName>(addPrefix(`theme`), defaultStyleConfig.theme)
 
-  // 文本字体
-  const fontFamily = store.reactive(`fonts`, defaultStyleConfig.fontFamily)
+  const themeSettings = store.reactive<PerThemeSettingsMap>(
+    addPrefix(`themeSettings`),
+    {},
+  )
 
-  // 文本大小
-  const fontSize = store.reactive(`size`, defaultStyleConfig.fontSize)
+  const currentSettings = computed<PerThemeSettings>(() => {
+    return themeSettings.value[theme.value] ?? defaultPerThemeSettings()
+  })
 
-  // 主色
-  const primaryColor = store.reactive(`color`, defaultStyleConfig.primaryColor)
+  const primaryColor = computed<string>({
+    get: () => currentSettings.value.primaryColor,
+    set: (v: string) => { setThemeField(`primaryColor`, v) },
+  })
 
-  // 代码块主题
-  const codeBlockTheme = store.reactive(`codeBlockTheme`, defaultStyleConfig.codeBlockTheme)
+  const fontFamily = computed<string>({
+    get: () => currentSettings.value.fontFamily,
+    set: (v: string) => { setThemeField(`fontFamily`, v) },
+  })
 
-  // 图注格式
-  const legend = store.reactive(`legend`, defaultStyleConfig.legend)
+  const fontSize = computed<string>({
+    get: () => currentSettings.value.fontSize,
+    set: (v: string) => { setThemeField(`fontSize`, v) },
+  })
 
-  // 是否开启 Mac 代码块
-  const isMacCodeBlock = store.reactive(`isMacCodeBlock`, defaultStyleConfig.isMacCodeBlock)
+  const codeBlockTheme = computed<string>({
+    get: () => currentSettings.value.codeBlockTheme,
+    set: (v: string) => { setThemeField(`codeBlockTheme`, v) },
+  })
 
-  // 是否开启代码块行号显示
-  const isShowLineNumber = store.reactive(`isShowLineNumber`, defaultStyleConfig.isShowLineNumber)
+  const headingStyles = computed<HeadingStyles>({
+    get: () => currentSettings.value.headingStyles,
+    set: (v: HeadingStyles) => { setThemeField(`headingStyles`, v) },
+  })
 
-  // 是否开启微信外链接底部引用
+  const isShowLineNumber = computed<boolean>({
+    get: () => currentSettings.value.isShowLineNumber,
+    set: (v: boolean) => { setThemeField(`isShowLineNumber`, v) },
+  })
+
+  const isMacCodeBlock = computed<boolean>({
+    get: () => currentSettings.value.isMacCodeBlock,
+    set: (v: boolean) => { setThemeField(`isMacCodeBlock`, v) },
+  })
+
+  function setThemeField<K extends keyof PerThemeSettings>(key: K, value: PerThemeSettings[K]) {
+    const t = theme.value
+    const existing = themeSettings.value[t] ?? defaultPerThemeSettings()
+    themeSettings.value = {
+      ...themeSettings.value,
+      [t]: { ...existing, [key]: value },
+    }
+  }
+
   const isCiteStatus = store.reactive(`isCiteStatus`, defaultStyleConfig.isCiteStatus)
-
-  // 是否统计字数和阅读时间
   const isCountStatus = store.reactive(`isCountStatus`, defaultStyleConfig.isCountStatus)
-
-  // 是否开启段落首行缩进
   const isUseIndent = store.reactive(addPrefix(`use_indent`), false)
-
-  // 是否开启两端对齐
   const isUseJustify = store.reactive(addPrefix(`use_justify`), false)
-
-  // 预览宽度
+  const legend = store.reactive(`legend`, defaultStyleConfig.legend)
   const previewWidth = store.reactive(`previewWidth`, widthOptions[0].value)
 
-  // 标题样式
-  const headingStyles = store.reactive<HeadingStyles>(`headingStyles`, defaultStyleConfig.headingStyles)
-
-  // 计算属性
   const fontSizeNumber = computed(() => Number(fontSize.value.replace(`px`, ``)))
 
-  // Toggle 方法
   const toggleMacCodeBlock = useToggle(isMacCodeBlock)
   const toggleShowLineNumber = useToggle(isShowLineNumber)
   const toggleCiteStatus = useToggle(isCiteStatus)
@@ -63,39 +84,30 @@ export const useThemeStore = defineStore(`theme`, () => {
   const toggleUseIndent = useToggle(isUseIndent)
   const toggleUseJustify = useToggle(isUseJustify)
 
-  // 重置样式
   const resetStyle = () => {
+    themeSettings.value = {
+      ...themeSettings.value,
+      [theme.value]: defaultPerThemeSettings(),
+    }
     isCiteStatus.value = defaultStyleConfig.isCiteStatus
-    isMacCodeBlock.value = defaultStyleConfig.isMacCodeBlock
-    isShowLineNumber.value = defaultStyleConfig.isShowLineNumber
     isCountStatus.value = defaultStyleConfig.isCountStatus
-
-    theme.value = defaultStyleConfig.theme
-    fontFamily.value = defaultStyleConfig.fontFamily
-    fontSize.value = defaultStyleConfig.fontSize
-    primaryColor.value = defaultStyleConfig.primaryColor
-    codeBlockTheme.value = defaultStyleConfig.codeBlockTheme
     legend.value = defaultStyleConfig.legend
-    headingStyles.value = { ...defaultStyleConfig.headingStyles }
-
     isUseIndent.value = false
     isUseJustify.value = false
   }
 
-  // 设置标题样式
   const setHeadingStyle = (level: HeadingLevel, style: HeadingStyleType) => {
+    const existing = headingStyles.value
     headingStyles.value = {
-      ...headingStyles.value,
+      ...existing,
       [level]: style === `default` ? undefined : style,
     }
   }
 
-  // 获取标题样式
   const getHeadingStyle = (level: HeadingLevel): HeadingStyleType => {
     return headingStyles.value[level] || `default`
   }
 
-  // 切换 highlight.js 代码主题
   const updateCodeTheme = () => {
     const cssUrl = codeBlockTheme.value
     const el = document.querySelector(`#hljs`)
@@ -113,10 +125,6 @@ export const useThemeStore = defineStore(`theme`, () => {
     }
   }
 
-  /**
-   * 应用当前主题配置（新主题系统）
-   * 使用 CSS 注入而非内联样式
-   */
   const applyCurrentTheme = async () => {
     try {
       const cssEditorStore = useCssEditorStore()
@@ -141,8 +149,8 @@ export const useThemeStore = defineStore(`theme`, () => {
   }
 
   return {
-    // State
     theme,
+    themeSettings,
     fontFamily,
     fontSize,
     fontSizeNumber,
@@ -157,8 +165,6 @@ export const useThemeStore = defineStore(`theme`, () => {
     isUseJustify,
     previewWidth,
     headingStyles,
-
-    // Actions
     toggleMacCodeBlock,
     toggleShowLineNumber,
     toggleCiteStatus,

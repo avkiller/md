@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Cog, Download, Eraser, FileCode, FileCog, FileText, FolderKanban, FolderOpen, Package, RefreshCw, Upload } from 'lucide-vue-next'
+import { Cloud, Cog, Download, Eraser, FileCode, FileCog, FileText, FolderKanban, FolderOpen, Package, RefreshCw, Settings, Share2, Upload } from '@lucide/vue'
 import DEFAULT_CONTENT_LITE from '@/assets/example/markdown-lite.md?raw'
 import DEFAULT_CONTENT from '@/assets/example/markdown.md?raw'
+import { isShareUiEnabled } from '@/services/share/client'
+import { isSyncUiEnabled } from '@/services/sync/client'
 import { useEditorStore } from '@/stores/editor'
 import { useExportStore } from '@/stores/export'
 import { useUIStore } from '@/stores/ui'
@@ -12,19 +14,24 @@ const props = withDefaults(defineProps<{
   asSub: false,
 })
 
-const emit = defineEmits([`openEditorState`])
-
 const { asSub } = toRefs(props)
+const { t } = useI18n()
 
 const editorStore = useEditorStore()
 const exportStore = useExportStore()
 const uiStore = useUIStore()
 
 const { isOpenPostSlider, isOpenFolderPanel } = storeToRefs(uiStore)
-const { toggleShowTemplateDialog, toggleShowImportMdDialog } = uiStore
+const { toggleShowTemplateDialog, toggleShowImportMdDialog, toggleShowSyncDialog, toggleShowEditorStateDialog, toggleShowPreferencesDialog, openShareDialog } = uiStore
+const showSyncUi = isSyncUiEnabled()
+const showShareUi = isShareUiEnabled()
 
 function openEditorStateDialog() {
-  emit(`openEditorState`)
+  toggleShowEditorStateDialog(true)
+}
+
+function openPreferencesDialog() {
+  toggleShowPreferencesDialog(true)
 }
 
 function openTemplateDialog() {
@@ -75,13 +82,13 @@ function clearContent() {
   <!-- 作为 MenubarSub 使用 -->
   <MenubarSub v-if="asSub">
     <MenubarSubTrigger>
-      文件
+      {{ t('menu.file') }}
     </MenubarSubTrigger>
-    <MenubarSubContent class="w-56">
+    <MenubarSubContent class="min-w-56">
       <!-- 本地文件夹 -->
       <MenubarItem @click="isOpenFolderPanel = !isOpenFolderPanel">
         <FolderOpen class="mr-2 size-4" />
-        本地文件夹
+        {{ t('menu.localFolder') }}
       </MenubarItem>
 
       <MenubarSeparator />
@@ -90,12 +97,12 @@ function clearContent() {
       <MenubarSub>
         <MenubarSubTrigger>
           <Upload class="mr-2 size-4" />
-          导入
+          {{ t('menu.import') }}
         </MenubarSubTrigger>
-        <MenubarSubContent class="w-56">
+        <MenubarSubContent class="min-w-56">
           <MenubarItem @click="toggleShowImportMdDialog(true)">
             <FileText class="mr-2 size-4" />
-            导入 Markdown
+            {{ t('menu.importMarkdown') }}
           </MenubarItem>
         </MenubarSubContent>
       </MenubarSub>
@@ -104,30 +111,30 @@ function clearContent() {
       <MenubarSub>
         <MenubarSubTrigger>
           <Download class="mr-2 size-4" />
-          导出
+          {{ t('menu.export') }}
         </MenubarSubTrigger>
-        <MenubarSubContent class="w-56">
+        <MenubarSubContent class="min-w-56">
           <MenubarItem @click="exportEditorContent2MD()">
             <FileText class="mr-2 size-4" />
-            Markdown 文件
+            {{ t('menu.exportMarkdown') }}
           </MenubarItem>
           <MenubarSeparator />
           <MenubarItem @click="exportEditorContent2HTML()">
             <FileCode class="mr-2 size-4" />
-            HTML 文件
+            {{ t('menu.exportHtml') }}
           </MenubarItem>
           <MenubarItem @click="exportEditorContent2PureHTML()">
             <FileCode class="mr-2 size-4" />
-            HTML（无样式）
+            {{ t('menu.exportHtmlNoStyle') }}
           </MenubarItem>
           <MenubarSeparator />
           <MenubarItem @click="exportEditorContent2PDF()">
             <FileText class="mr-2 size-4" />
-            PDF 文档
+            {{ t('menu.exportPdf') }}
           </MenubarItem>
           <MenubarItem @click="downloadAsCardImage()">
             <Download class="mr-2 size-4" />
-            PNG 图片
+            {{ t('menu.exportPng') }}
           </MenubarItem>
         </MenubarSubContent>
       </MenubarSub>
@@ -166,21 +173,41 @@ function clearContent() {
       <!-- 模板管理 -->
       <MenubarItem @click="openTemplateDialog()">
         <Package class="mr-2 size-4" />
-        模板管理
+        {{ t('menu.templateManage') }}
       </MenubarItem>
 
       <!-- 内容管理 -->
       <MenubarItem @click="isOpenPostSlider = !isOpenPostSlider">
         <FolderKanban class="mr-2 size-4" />
-        内容管理
+        {{ t('menu.contentManage') }}
       </MenubarItem>
+
+      <template v-if="showSyncUi || showShareUi">
+        <MenubarSeparator />
+        <!-- 云同步 -->
+        <MenubarItem v-if="showSyncUi" @click="toggleShowSyncDialog(true)">
+          <Cloud class="mr-2 size-4" />
+          {{ t('menu.cloudSync') }}
+        </MenubarItem>
+        <!-- 分享预览 -->
+        <MenubarItem v-if="showShareUi" @click="openShareDialog()">
+          <Share2 class="mr-2 size-4" />
+          {{ t('menu.sharePreview') }}
+        </MenubarItem>
+      </template>
 
       <MenubarSeparator />
 
-      <!-- 项目配置 -->
+      <!-- 偏好设置 -->
+      <MenubarItem @click="openPreferencesDialog()">
+        <Settings class="mr-2 size-4" />
+        {{ t('menu.preferences') }}
+      </MenubarItem>
+
+      <!-- 导入/导出配置 -->
       <MenubarItem @click="openEditorStateDialog()">
         <FileCog class="mr-2 size-4" />
-        项目配置
+        {{ t('menu.importExportConfig') }}
       </MenubarItem>
     </MenubarSubContent>
   </MenubarSub>
@@ -188,13 +215,13 @@ function clearContent() {
   <!-- 作为 MenubarMenu 使用（默认） -->
   <MenubarMenu v-else>
     <MenubarTrigger>
-      文件
+      {{ t('menu.file') }}
     </MenubarTrigger>
-    <MenubarContent class="w-56" align="start">
+    <MenubarContent class="min-w-56" align="start">
       <!-- 本地文件夹 -->
       <MenubarItem @click="isOpenFolderPanel = !isOpenFolderPanel">
         <FolderOpen class="mr-2 size-4" />
-        本地文件夹
+        {{ t('menu.localFolder') }}
       </MenubarItem>
 
       <MenubarSeparator />
@@ -203,12 +230,12 @@ function clearContent() {
       <MenubarSub>
         <MenubarSubTrigger>
           <Upload class="mr-2 size-4" />
-          导入
+          {{ t('menu.import') }}
         </MenubarSubTrigger>
-        <MenubarSubContent class="w-56">
+        <MenubarSubContent class="min-w-56">
           <MenubarItem @click="toggleShowImportMdDialog(true)">
             <FileText class="mr-2 size-4" />
-            导入 Markdown
+            {{ t('menu.importMarkdown') }}
           </MenubarItem>
         </MenubarSubContent>
       </MenubarSub>
@@ -217,30 +244,30 @@ function clearContent() {
       <MenubarSub>
         <MenubarSubTrigger>
           <Download class="mr-2 size-4" />
-          导出
+          {{ t('menu.export') }}
         </MenubarSubTrigger>
-        <MenubarSubContent class="w-56">
+        <MenubarSubContent class="min-w-56">
           <MenubarItem @click="exportEditorContent2MD()">
             <FileText class="mr-2 size-4" />
-            Markdown 文件
+            {{ t('menu.exportMarkdown') }}
           </MenubarItem>
           <MenubarSeparator />
           <MenubarItem @click="exportEditorContent2HTML()">
             <FileCode class="mr-2 size-4" />
-            HTML 文件
+            {{ t('menu.exportHtml') }}
           </MenubarItem>
           <MenubarItem @click="exportEditorContent2PureHTML()">
             <FileCode class="mr-2 size-4" />
-            HTML（无样式）
+            {{ t('menu.exportHtmlNoStyle') }}
           </MenubarItem>
           <MenubarSeparator />
           <MenubarItem @click="exportEditorContent2PDF()">
             <FileText class="mr-2 size-4" />
-            PDF 文档
+            {{ t('menu.exportPdf') }}
           </MenubarItem>
           <MenubarItem @click="downloadAsCardImage()">
             <Download class="mr-2 size-4" />
-            PNG 图片
+            {{ t('menu.exportPng') }}
           </MenubarItem>
         </MenubarSubContent>
       </MenubarSub>
@@ -278,21 +305,41 @@ function clearContent() {
       <!-- 模板管理 -->
       <MenubarItem @click="openTemplateDialog()">
         <Package class="mr-2 size-4" />
-        模板管理
+        {{ t('menu.templateManage') }}
       </MenubarItem>
 
       <!-- 内容管理 -->
       <MenubarItem @click="isOpenPostSlider = !isOpenPostSlider">
         <FolderKanban class="mr-2 size-4" />
-        内容管理
+        {{ t('menu.contentManage') }}
       </MenubarItem>
+
+      <template v-if="showSyncUi || showShareUi">
+        <MenubarSeparator />
+        <!-- 云同步 -->
+        <MenubarItem v-if="showSyncUi" @click="toggleShowSyncDialog(true)">
+          <Cloud class="mr-2 size-4" />
+          {{ t('menu.cloudSync') }}
+        </MenubarItem>
+        <!-- 分享预览 -->
+        <MenubarItem v-if="showShareUi" @click="openShareDialog()">
+          <Share2 class="mr-2 size-4" />
+          {{ t('menu.sharePreview') }}
+        </MenubarItem>
+      </template>
 
       <MenubarSeparator />
 
-      <!-- 项目配置 -->
+      <!-- 偏好设置 -->
+      <MenubarItem @click="openPreferencesDialog()">
+        <Settings class="mr-2 size-4" />
+        {{ t('menu.preferences') }}
+      </MenubarItem>
+
+      <!-- 导入/导出配置 -->
       <MenubarItem @click="openEditorStateDialog()">
         <FileCog class="mr-2 size-4" />
-        项目配置
+        {{ t('menu.importExportConfig') }}
       </MenubarItem>
     </MenubarContent>
   </MenubarMenu>

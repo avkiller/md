@@ -2,11 +2,13 @@
 import type { DecorationSet } from '@codemirror/view'
 import { StateEffect, StateField } from '@codemirror/state'
 import { Decoration, EditorView } from '@codemirror/view'
-import { CaseSensitive, ChevronDown, ChevronRight, ChevronUp, Regex, Replace, ReplaceAll, WholeWord, X } from 'lucide-vue-next'
+import { CaseSensitive, ChevronDown, ChevronRight, ChevronUp, Regex, Replace, ReplaceAll, WholeWord, X } from '@lucide/vue'
 
 const props = defineProps<{
   editorView: EditorView
 }>()
+
+const { t } = useI18n()
 
 const showSearchTab = ref(false)
 const searchInputRef = ref<{ focus: () => void, select: () => void } | null>(null)
@@ -213,7 +215,7 @@ function findAllMatches() {
             { line: actualLineNumber, ch: index },
             { line: actualLineNumber, ch: index + searchTerm.length },
           ])
-          startIndex = index + 1
+          startIndex = index + searchTerm.length
           index = lineForCompare.indexOf(searchTermForCompare, startIndex)
         }
       })
@@ -281,11 +283,20 @@ function handleSearchInputKeyDown(e: KeyboardEvent) {
 }
 
 function handleReplaceInputKeyDown(e: KeyboardEvent) {
-  switch (e.key) {
-    case `Enter`:
-      handleReplace()
-      e.preventDefault()
+  if (e.key === `Enter` && !e.shiftKey && !e.isComposing) {
+    e.preventDefault()
+    handleReplace()
   }
+}
+
+function autoResizeTextarea(e: Event) {
+  const el = e.target as HTMLTextAreaElement
+  if (!el.value.includes(`\n`)) {
+    el.style.height = `28px`
+    return
+  }
+  el.style.height = `auto`
+  el.style.height = `${Math.min(150, el.scrollHeight)}px`
 }
 
 function handleReplace() {
@@ -359,11 +370,6 @@ function handleReplaceAll() {
   findAllMatches()
 }
 
-// function handleEditorChange() {
-//   const debouncedSearch = useDebounceFn(findAllMatches, 300)
-//   debouncedSearch()
-// }
-
 function setSearchWord(word: string) {
   searchWord.value = word
   if (!showSearchTab.value) {
@@ -421,14 +427,14 @@ defineExpose({
   <Transition name="slide-down">
     <div
       v-if="showSearchTab"
-      class="bg-background absolute right-0 top-0 z-50 min-w-[300px] w-fit flex gap-1 border rounded-lg px-2 py-1 shadow-md transition-all"
+      class="bg-background absolute right-0 top-0 z-50 flex max-w-[calc(100%-1rem)] gap-1 rounded-lg border px-2 py-1 shadow-md transition-all"
       :class="showReplace ? 'items-start' : 'items-center'"
     >
       <!-- 折叠/展开按钮 -->
       <Button
         variant="ghost"
-        title="切换替换"
-        aria-label="切换替换"
+        :title="t('search.toggleReplace')"
+        :aria-label="t('search.toggleReplace')"
         class="h-7 w-5 flex items-center justify-center p-0"
         @click="toggleShowReplace"
       >
@@ -436,57 +442,61 @@ defineExpose({
       </Button>
 
       <!-- 查找 / 替换主体 -->
-      <div class="flex flex-col gap-0.5">
+      <div class="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-0.5">
         <!-- 查找行 -->
-        <div class="flex items-center gap-1">
+        <div class="relative min-w-0">
           <Input
             ref="searchInputRef"
             v-model="searchWord"
-            placeholder="查找"
-            class="h-7 w-40 text-sm"
+            :placeholder="t('search.find')"
+            class="h-7 w-full min-w-0 pr-16 text-sm"
             @keydown="handleSearchInputKeyDown"
           />
-          <Button
-            variant="ghost"
-            size="xs"
-            title="区分大小写"
-            aria-label="区分大小写"
-            class="h-6 w-6 p-0"
-            :class="{ 'bg-accent': isCaseSensitive }"
-            @click="toggleCaseSensitive"
-          >
-            <CaseSensitive class="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="xs"
-            title="正则表达式"
-            aria-label="正则表达式"
-            class="h-6 w-6 p-0"
-            :class="{ 'bg-accent': isRegex }"
-            @click="toggleRegex"
-          >
-            <Regex class="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="xs"
-            title="在选区内查找"
-            aria-label="在选区内查找"
-            class="h-6 w-6 p-0"
-            :class="{ 'bg-accent': findInSelection }"
-            @click="toggleFindInSelection"
-          >
-            <WholeWord class="h-3 w-3" />
-          </Button>
+          <div class="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="xs"
+              :title="t('search.caseSensitive')"
+              :aria-label="t('search.caseSensitive')"
+              class="h-5 w-5 p-0"
+              :class="{ 'bg-accent': isCaseSensitive }"
+              @click="toggleCaseSensitive"
+            >
+              <CaseSensitive class="h-3 w-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              :title="t('search.regex')"
+              :aria-label="t('search.regex')"
+              class="h-5 w-5 p-0"
+              :class="{ 'bg-accent': isRegex }"
+              @click="toggleRegex"
+            >
+              <Regex class="h-3 w-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              :title="t('search.findInSelection')"
+              :aria-label="t('search.findInSelection')"
+              class="h-5 w-5 p-0"
+              :class="{ 'bg-accent': findInSelection }"
+              @click="toggleFindInSelection"
+            >
+              <WholeWord class="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+        <div class="flex items-center gap-1">
           <span class="w-10 select-none text-center text-xs">
             {{ numberOfMatches ? indexOfMatch + 1 : 0 }}/{{ numberOfMatches }}
           </span>
           <Button
             variant="ghost"
             size="xs"
-            title="上一处"
-            aria-label="上一处"
+            :title="t('search.previous')"
+            :aria-label="t('search.previous')"
             class="h-6 w-6 p-0"
             @click="prevMatch"
           >
@@ -495,8 +505,8 @@ defineExpose({
           <Button
             variant="ghost"
             size="xs"
-            title="下一处"
-            aria-label="下一处"
+            :title="t('search.next')"
+            :aria-label="t('search.next')"
             class="h-6 w-6 p-0"
             @click="nextMatch"
           >
@@ -505,8 +515,8 @@ defineExpose({
           <Button
             variant="ghost"
             size="xs"
-            title="关闭"
-            aria-label="关闭"
+            :title="t('search.close')"
+            :aria-label="t('search.close')"
             class="h-6 w-6 p-0"
             @click="closeSearchTab"
           >
@@ -515,34 +525,38 @@ defineExpose({
         </div>
 
         <!-- 替换行（可折叠） -->
-        <div v-if="showReplace" class="flex items-center gap-1">
-          <Input
+        <template v-if="showReplace">
+          <textarea
             v-model="replaceWord"
-            placeholder="替换"
-            class="h-7 w-40 text-sm"
+            :placeholder="t('search.replacePlaceholder')"
+            class="mt-0.5 min-w-0 rounded-md border border-input bg-background px-3 py-[7px] text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none leading-none overflow-hidden max-h-[150px]"
+            style="height: 28px; min-height: 28px"
             @keydown="handleReplaceInputKeyDown"
+            @input="autoResizeTextarea($event)"
           />
-          <Button
-            variant="ghost"
-            size="xs"
-            title="替换"
-            aria-label="替换"
-            class="h-6 w-6 p-0"
-            @click="handleReplace"
-          >
-            <Replace class="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="xs"
-            title="全部替换"
-            aria-label="全部替换"
-            class="h-6 w-6 p-0"
-            @click="handleReplaceAll"
-          >
-            <ReplaceAll class="h-3 w-3" />
-          </Button>
-        </div>
+          <div class="flex items-start gap-1 mt-0.5 self-start">
+            <Button
+              variant="ghost"
+              size="xs"
+              :title="t('search.replace')"
+              :aria-label="t('search.replace')"
+              class="h-6 w-6 p-0"
+              @click="handleReplace"
+            >
+              <Replace class="h-3 w-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              :title="t('search.replaceAll')"
+              :aria-label="t('search.replaceAll')"
+              class="h-6 w-6 p-0"
+              @click="handleReplaceAll"
+            >
+              <ReplaceAll class="h-3 w-3" />
+            </Button>
+          </div>
+        </template>
       </div>
     </div>
   </Transition>

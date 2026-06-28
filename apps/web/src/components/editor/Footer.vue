@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import type { MarkdownHeading } from '@/lib/markdown/headings'
 import { StateEffect } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
-import { BookOpen, ChevronRight, ChevronsUpDown, Clock, Columns2, Eye, FileText, Keyboard, ListTree, Monitor, Moon, PenLine, Pilcrow, Search, Smartphone, Sun, Type } from 'lucide-vue-next'
+import { ArrowUpDown, BookOpen, ChevronRight, ChevronsUpDown, Clock, Columns2, Ellipsis, Eye, FileText, Keyboard, ListTree, LogIn, Monitor, Moon, PenLine, Pilcrow, Search, Share2, Smartphone, Sun, Type, User } from '@lucide/vue'
 import {
   Popover,
   PopoverContent,
@@ -13,6 +14,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useSyncFooterMeta } from '@/composables/useSyncStatusMeta'
+import { formatRelativeTime } from '@/lib/format/relative-time'
+import {
+  clampGoToLineValue,
+  findOutlineFocusIndex,
+  jumpToLine,
+  moveOutlineFocusIndex,
+} from '@/lib/markdown/headingNavigation'
+import { computeHeadingBreadcrumbs, extractMarkdownHeadings } from '@/lib/markdown/headings'
+import { isAccountUiEnabled } from '@/services/account/config'
+import { isShareUiEnabled } from '@/services/share/client'
+import { isSyncUiEnabled } from '@/services/sync/client'
+import { useAuthStore } from '@/stores/auth'
 import { useEditorStore } from '@/stores/editor'
 import { usePostStore } from '@/stores/post'
 import { useRenderStore } from '@/stores/render'
@@ -22,32 +36,45 @@ const renderStore = useRenderStore()
 const editorStore = useEditorStore()
 const postStore = usePostStore()
 const uiStore = useUIStore()
+const authStore = useAuthStore()
 const { readingTime } = storeToRefs(renderStore)
 const { editor } = storeToRefs(editorStore)
 const { currentPost } = storeToRefs(postStore)
 const { isDark } = storeToRefs(uiStore)
-const { isMobile, viewMode, previewDevice } = storeToRefs(uiStore)
+const { isMobile, viewMode, previewDevice, enableScrollSync } = storeToRefs(uiStore)
+const { isLoggedIn } = storeToRefs(authStore)
+const showAccountUi = isAccountUiEnabled()
+const showSyncUi = isSyncUiEnabled()
+const showShareUi = isShareUiEnabled()
+const { syncFooterIcon, syncFooterIconClass, syncTooltip } = useSyncFooterMeta()
 
-// 相对时间格式化（复用）
-function formatRelativeTime(date: Date | string) {
-  const now = new Date()
-  const d = new Date(date)
-  const diff = now.getTime() - d.getTime()
-  const seconds = Math.floor(diff / 1000)
-  if (seconds < 10)
-    return `刚刚`
-  if (seconds < 60)
-    return `${seconds} 秒前`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60)
-    return `${minutes} 分钟前`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24)
-    return `${hours} 小时前`
-  const days = Math.floor(hours / 24)
-  if (days < 30)
-    return `${days} 天前`
-  return d.toLocaleDateString(`zh-CN`)
+const isMoreOpen = ref(false)
+const { t, locale } = useI18n()
+
+const accountTooltip = computed(() => {
+  if (!isLoggedIn.value)
+    return t(`footer.loginAccount`)
+  return t(`footer.accountWithLogin`, { login: authStore.user?.login ?? '' })
+})
+
+function openAccountDialog() {
+  isMoreOpen.value = false
+  uiStore.toggleShowAccountDialog(true)
+}
+
+function openSyncDialog() {
+  isMoreOpen.value = false
+  uiStore.toggleShowSyncDialog(true)
+}
+
+function openShareDialog() {
+  isMoreOpen.value = false
+  uiStore.openShareDialog()
+}
+
+function toggleTheme() {
+  isMoreOpen.value = false
+  uiStore.toggleDark()
 }
 
 // 快速文档切换器
@@ -70,7 +97,9 @@ function buildTree(posts: typeof postStore.posts): TreeNode[] {
   }
   const roots: TreeNode[] = []
   for (const p of posts) {
-    const node = map.get(p.id)!
+    const node = map.get(p.id)
+    if (!node)
+      continue
     if (p.parentId && map.has(p.parentId)) {
       map.get(p.parentId)!.children.push(node)
     }
@@ -139,15 +168,10 @@ function goToLine() {
   const view = editor.value
   if (!view)
     return
-  const target = Math.max(1, Math.min(Number.parseInt(goToLineInput.value) || 1, totalLines.value))
-  const line = view.state.doc.line(target)
-  view.dispatch({
-    selection: { anchor: line.from },
-    scrollIntoView: true,
-  })
-  view.focus()
+  const target = clampGoToLineValue(goToLineInput.value, totalLines.value)
+  jumpToLine(view as EditorView, target)
   isGoToLineActive.value = false
-  updateCursorInfo(view)
+  updateCursorInfo(view as EditorView, { rebuildHeadings: true })
 }
 
 function cancelGoToLine() {
@@ -158,6 +182,28 @@ function cancelGoToLine() {
 // 监听编辑器变化，更新光标位置
 const attachedViews = new WeakSet()
 
+// 大纲 & 面包屑
+const breadcrumbs = ref<MarkdownHeading[]>([])
+const allHeadings = ref<MarkdownHeading[]>([])
+const isOutlineOpen = ref(false)
+const outlineScrollRef = ref<HTMLElement | null>(null)
+const outlineFocusIndex = ref(-1)
+
+function updateCursorInfo(view: EditorView, options: { rebuildHeadings?: boolean } = {}) {
+  const state = view.state
+  const main = state.selection.main
+  const line = state.doc.lineAt(main.head)
+  cursorLine.value = line.number
+  cursorCol.value = main.head - line.from + 1
+  totalLines.value = state.doc.lines
+  selectionLength.value = Math.abs(main.to - main.from)
+
+  if (options.rebuildHeadings) {
+    allHeadings.value = extractMarkdownHeadings(state.doc)
+  }
+  breadcrumbs.value = computeHeadingBreadcrumbs(allHeadings.value, line.number)
+}
+
 watch(editor, (view) => {
   if (!view || attachedViews.has(view))
     return
@@ -165,11 +211,13 @@ watch(editor, (view) => {
   attachedViews.add(view)
 
   // 初始化一次
-  updateCursorInfo(view)
+  updateCursorInfo(view as EditorView, { rebuildHeadings: true })
 
   const extension = EditorView.updateListener.of((update) => {
-    // 只在光标或文档变化时更新
-    if (update.selectionSet || update.docChanged) {
+    if (update.docChanged) {
+      updateCursorInfo(update.view, { rebuildHeadings: true })
+    }
+    else if (update.selectionSet) {
       updateCursorInfo(update.view)
     }
   })
@@ -183,88 +231,10 @@ watch(editor, (view) => {
 watch(currentPost, () => {
   nextTick(() => {
     if (editor.value) {
-      updateCursorInfo(editor.value)
+      updateCursorInfo(editor.value as EditorView, { rebuildHeadings: true })
     }
   })
 })
-
-function updateCursorInfo(view: any) {
-  const state = view.state
-  const main = state.selection.main
-  const line = state.doc.lineAt(main.head)
-  cursorLine.value = line.number
-  cursorCol.value = main.head - line.from + 1
-  totalLines.value = state.doc.lines
-  selectionLength.value = Math.abs(main.to - main.from)
-  updateHeadingsAndBreadcrumb(state.doc, line.number)
-}
-
-// 大纲 & 面包屑
-interface BreadcrumbItem {
-  title: string
-  level: number
-  line: number
-}
-
-const breadcrumbs = ref<BreadcrumbItem[]>([])
-const allHeadings = ref<BreadcrumbItem[]>([])
-const isOutlineOpen = ref(false)
-const outlineScrollRef = ref<HTMLElement | null>(null)
-
-function updateHeadingsAndBreadcrumb(doc: any, currentLine: number) {
-  const items: BreadcrumbItem[] = []
-  const stack: BreadcrumbItem[] = []
-  let codeFenceChar = ``
-  let codeFenceCount = 0
-  let inFrontMatter = false
-
-  for (let i = 1; i <= doc.lines; i++) {
-    const text = doc.line(i).text
-    const trimmed = text.trimStart()
-
-    if (i === 1 && trimmed === `---`) {
-      inFrontMatter = true
-      continue
-    }
-    if (inFrontMatter) {
-      if (trimmed === `---` || trimmed === `...`)
-        inFrontMatter = false
-      continue
-    }
-
-    if (codeFenceChar) {
-      const closeMatch = trimmed.match(/^(`{3,}|~{3,})\s*$/)
-      if (closeMatch && closeMatch[1][0] === codeFenceChar && closeMatch[1].length >= codeFenceCount) {
-        codeFenceChar = ``
-        codeFenceCount = 0
-      }
-      continue
-    }
-    const openMatch = trimmed.match(/^(`{3,}|~{3,})/)
-    if (openMatch) {
-      codeFenceChar = openMatch[1][0]
-      codeFenceCount = openMatch[1].length
-      continue
-    }
-
-    const match = text.match(/^(\s{0,3})(#{1,6})\s+(.+)/)
-    if (match) {
-      const level = match[2].length
-      const title = match[3].replace(/\s*#+\s*$/, ``).trim()
-      const item = { title, level, line: i }
-      items.push(item)
-
-      if (i <= currentLine) {
-        while (stack.length > 0 && stack[stack.length - 1].level >= level)
-          stack.pop()
-        stack.push(item)
-      }
-    }
-  }
-
-  breadcrumbs.value = [...stack]
-  allHeadings.value = items
-}
 
 const activeHeadingLine = computed(() => {
   if (breadcrumbs.value.length === 0)
@@ -287,8 +257,11 @@ function jumpToHeadingAndClose(line: number) {
 
 watch(isOutlineOpen, (open) => {
   if (open) {
+    syncOutlineFocusIndex()
     nextTick(() => {
-      const el = outlineScrollRef.value?.querySelector(`[data-active="true"]`)
+      outlineScrollRef.value?.focus()
+      const el = outlineScrollRef.value?.querySelector(`[data-outline-index="${outlineFocusIndex.value}"]`)
+        ?? outlineScrollRef.value?.querySelector(`[data-active="true"]`)
       el?.scrollIntoView({ block: `nearest` })
     })
   }
@@ -298,50 +271,116 @@ function jumpToHeading(line: number) {
   const view = editor.value
   if (!view)
     return
-  const target = view.state.doc.line(line)
-  view.dispatch({
-    selection: { anchor: target.from },
-    scrollIntoView: true,
-  })
-  view.focus()
-  updateCursorInfo(view)
+  jumpToLine(view as EditorView, line)
+  updateCursorInfo(view as EditorView)
 }
 
-// 上次保存时间（复用 formatRelativeTime）
+watch(() => uiStore.goToLineRequest, () => {
+  if (isGoToLineActive.value)
+    return
+  openGoToLine()
+})
+
+function syncOutlineFocusIndex() {
+  outlineFocusIndex.value = findOutlineFocusIndex(allHeadings.value, activeHeadingLine.value)
+}
+
+function scrollOutlineFocusIntoView() {
+  nextTick(() => {
+    const container = outlineScrollRef.value
+    if (!container || outlineFocusIndex.value < 0)
+      return
+    const el = container.querySelector(`[data-outline-index="${outlineFocusIndex.value}"]`)
+    el?.scrollIntoView({ block: `nearest` })
+  })
+}
+
+function handleOutlineKeydown(event: KeyboardEvent) {
+  if (allHeadings.value.length === 0)
+    return
+
+  const key = event.key
+  if (key === `Escape`) {
+    isOutlineOpen.value = false
+    editor.value?.focus()
+    event.preventDefault()
+    return
+  }
+
+  if (key === `Enter`) {
+    const item = allHeadings.value[outlineFocusIndex.value]
+    if (item)
+      jumpToHeadingAndClose(item.line)
+    event.preventDefault()
+    return
+  }
+
+  if (key === `ArrowUp` || key === `ArrowDown` || key === `Home` || key === `End`) {
+    outlineFocusIndex.value = moveOutlineFocusIndex(
+      allHeadings.value,
+      outlineFocusIndex.value,
+      key,
+    )
+    scrollOutlineFocusIntoView()
+    event.preventDefault()
+  }
+}
+
+// 上次保存时间
 const savedTimeAgo = computed(() => {
+  void locale.value
   if (!currentPost.value?.updateDatetime)
     return ``
   return formatRelativeTime(currentPost.value.updateDatetime)
 })
 
-// 每 10 秒刷新一次相对时间
-const refreshKey = ref(0)
-const refreshTimer = setInterval(() => refreshKey.value++, 10_000)
-onUnmounted(() => clearInterval(refreshTimer))
+function relativeTime(datetime: string | Date) {
+  void locale.value
+  return formatRelativeTime(datetime)
+}
 
-// 强制 computed 依赖 refreshKey
+// 每 10 秒刷新一次相对时间（页面不可见时暂停）
+const refreshKey = ref(0)
+const REFRESH_INTERVAL_MS = 10_000
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+
+function startRefreshTimer() {
+  refreshTimer = setInterval(() => {
+    if (!document.hidden) {
+      refreshKey.value++
+    }
+  }, REFRESH_INTERVAL_MS)
+}
+
+startRefreshTimer()
+onUnmounted(() => {
+  if (refreshTimer)
+    clearInterval(refreshTimer)
+})
+
+// 强制 computed 依赖 refreshKey 与 locale
 const displaySavedTime = computed(() => {
   // eslint-disable-next-line ts/no-unused-expressions
   refreshKey.value
+  void locale.value
   return savedTimeAgo.value
 })
 
 // 右侧统计项
 const stats = computed(() => [
-  { icon: Pilcrow, value: readingTime.value.words, tooltip: `词数` },
-  { icon: Type, value: readingTime.value.chars, tooltip: `字符数` },
-  { icon: Clock, value: `${readingTime.value.minutes} 分钟`, tooltip: `预计阅读时间` },
-  { icon: BookOpen, value: totalLines.value, tooltip: `总行数` },
+  { icon: Pilcrow, value: readingTime.value.words, tooltip: t(`footer.wordCount`) },
+  { icon: Type, value: readingTime.value.chars, tooltip: t(`footer.charCount`) },
+  { icon: Clock, value: t(`footer.readingTimeMinutes`, { minutes: readingTime.value.minutes }), tooltip: t(`footer.estimatedReadingTime`) },
+  { icon: BookOpen, value: totalLines.value, tooltip: t(`footer.totalLines`) },
 ])
 
-// 视图模式选项
-const allViewModes = [
-  { key: `edit` as const, icon: PenLine, label: `编辑` },
-  { key: `split` as const, icon: Columns2, label: `双屏` },
-  { key: `preview` as const, icon: Eye, label: `预览` },
-]
+const allViewModes = computed(() => [
+  { key: `edit` as const, icon: PenLine, label: t(`footer.viewEdit`) },
+  { key: `split` as const, icon: Columns2, label: t(`footer.viewSplit`) },
+  { key: `preview` as const, icon: Eye, label: t(`footer.viewPreview`) },
+])
 const viewModes = computed(() =>
-  isMobile.value ? allViewModes.filter(m => m.key !== `split`) : allViewModes,
+  isMobile.value ? allViewModes.value.filter(m => m.key !== `split`) : allViewModes.value,
 )
 
 // 是否显示设备切换（双屏/预览模式 + 非真实移动端）
@@ -350,7 +389,7 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
 
 <template>
   <footer
-    class="flex select-none items-center overflow-hidden px-3 py-1 text-xs text-muted-foreground"
+    class="flex select-none items-center overflow-hidden px-3 py-1 text-xs text-muted-foreground max-md:px-4 max-md:py-1.5 max-md:pb-[max(0.375rem,env(safe-area-inset-bottom,0px))]"
   >
     <TooltipProvider :delay-duration="300">
       <!-- 左侧：光标位置 & 选区 -->
@@ -374,12 +413,12 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
           <TooltipTrigger as-child>
             <span class="flex cursor-pointer items-center gap-1 tabular-nums transition-colors hover:text-foreground" @click="openGoToLine">
               <Keyboard class="size-3 opacity-60" />
-              <span class="hidden sm:inline">行 {{ cursorLine }}，列 {{ cursorCol }}</span>
+              <span class="hidden sm:inline">{{ t('footer.lineCol', { line: cursorLine, col: cursorCol }) }}</span>
               <span class="sm:hidden">{{ cursorLine }}:{{ cursorCol }}</span>
             </span>
           </TooltipTrigger>
           <TooltipContent side="top" :side-offset="6" class="text-xs text-muted-foreground">
-            <p>光标位置（共 {{ totalLines }} 行） · 点击跳转</p>
+            <p>{{ t('footer.cursorPosition', { total: totalLines }) }}</p>
           </TooltipContent>
         </Tooltip>
 
@@ -387,7 +426,7 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
           v-if="selectionLength > 0"
           class="hidden items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-primary tabular-nums sm:flex"
         >
-          已选 {{ selectionLength }} 字符
+          {{ t('footer.selectedChars', { count: selectionLength }) }}
         </span>
       </div>
 
@@ -401,12 +440,12 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
                 @click="openSwitcher"
               >
                 <FileText class="size-3 shrink-0 opacity-60" />
-                <span class="truncate">{{ currentPost?.title || '未命名' }}</span>
+                <span class="truncate">{{ currentPost?.title || t('common.unnamed') }}</span>
                 <ChevronsUpDown class="size-3 shrink-0 opacity-40" />
               </button>
             </TooltipTrigger>
             <TooltipContent v-if="!isSwitcherOpen" side="top" :side-offset="6" class="text-xs text-muted-foreground">
-              <p>切换文档</p>
+              <p>{{ t('footer.switchDocument') }}</p>
             </TooltipContent>
           </Tooltip>
         </PopoverTriggerPrimitive>
@@ -418,13 +457,13 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
               v-model="switcherQuery"
               type="text"
               class="h-5 w-full bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
-              placeholder="搜索文档..."
+              :placeholder="t('footer.searchDocuments')"
               @keydown.escape="isSwitcherOpen = false"
             >
           </div>
           <div class="max-h-52 overflow-y-auto py-1">
             <div v-if="filteredPosts.length === 0" class="px-3 py-4 text-center text-xs text-muted-foreground">
-              无匹配文档
+              {{ t('footer.noMatchingDocuments') }}
             </div>
             <button
               v-for="post in filteredPosts"
@@ -436,7 +475,7 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
             >
               <FileText class="size-3 shrink-0 opacity-50" />
               <span class="min-w-0 flex-1 truncate">{{ post.title }}</span>
-              <span class="shrink-0 text-[10px] opacity-50">{{ formatRelativeTime(post.updateDatetime) }}</span>
+              <span class="shrink-0 text-[10px] opacity-50">{{ relativeTime(post.updateDatetime) }}</span>
             </button>
           </div>
         </PopoverContent>
@@ -458,27 +497,41 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
                     <span class="max-w-24 truncate">{{ crumb.title }}</span>
                   </template>
                 </div>
-                <span v-else class="hidden opacity-50 sm:inline">大纲</span>
+                <span v-else class="hidden opacity-50 sm:inline">{{ t('footer.outline') }}</span>
               </button>
             </TooltipTrigger>
             <TooltipContent v-if="!isOutlineOpen" side="top" :side-offset="6" class="text-xs text-muted-foreground">
-              <p>目录大纲</p>
+              <p>{{ t('footer.outlineTooltip') }}</p>
             </TooltipContent>
           </Tooltip>
         </PopoverTriggerPrimitive>
-        <PopoverContent side="top" :side-offset="8" align="center" class="w-72 p-0">
+        <PopoverContent
+          side="top"
+          :side-offset="8"
+          align="center"
+          class="w-72 p-0"
+        >
           <div class="flex items-center justify-between border-b px-3 py-2">
-            <span class="text-xs font-medium tracking-wide text-muted-foreground">大纲</span>
-            <span class="text-[10px] tabular-nums text-muted-foreground/50">{{ allHeadings.length }} 个标题</span>
+            <span class="text-xs font-medium tracking-wide text-muted-foreground">{{ t('footer.outline') }}</span>
+            <span class="text-[10px] tabular-nums text-muted-foreground/50">{{ t('footer.headingCount', { count: allHeadings.length }) }}</span>
           </div>
-          <div ref="outlineScrollRef" class="max-h-72 overflow-y-auto overflow-x-hidden py-1">
+          <div
+            ref="outlineScrollRef"
+            tabindex="-1"
+            class="max-h-72 overflow-y-auto overflow-x-hidden py-1 outline-none"
+            @keydown.stop="handleOutlineKeydown"
+          >
             <template v-if="allHeadings.length > 0">
               <button
-                v-for="item in allHeadings"
+                v-for="(item, index) in allHeadings"
                 :key="item.line"
+                :data-outline-index="index"
                 :data-active="activeHeadingLine === item.line"
                 class="group flex w-full items-start px-2 py-1 text-left text-[13px] transition-colors hover:bg-accent"
-                :class="activeHeadingLine === item.line ? 'bg-accent/60' : ''"
+                :class="[
+                  activeHeadingLine === item.line ? 'bg-accent/60' : '',
+                  outlineFocusIndex === index ? 'bg-accent/40 ring-1 ring-primary/30' : '',
+                ]"
                 :style="{ paddingLeft: `${8 + (item.level - 1) * 16}px` }"
                 @click="jumpToHeadingAndClose(item.line)"
               >
@@ -495,7 +548,7 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
               </button>
             </template>
             <div v-else class="px-3 py-8 text-center text-xs text-muted-foreground">
-              暂无标题
+              {{ t('footer.noHeadings') }}
             </div>
           </div>
         </PopoverContent>
@@ -505,9 +558,9 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
       <div class="hidden min-w-0 flex-1 sm:block" />
 
       <!-- 右侧：统计信息 -->
-      <div class="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+      <div class="ml-auto flex shrink-0 items-center gap-2.5 sm:gap-3.5">
         <!-- 视图模式切换 -->
-        <div class="flex items-center rounded-md border border-border/60 p-0.5">
+        <div class="flex items-center gap-0.5 rounded-md border border-border/60 p-0.5">
           <Tooltip v-for="mode in viewModes" :key="mode.key">
             <TooltipTrigger as-child>
               <button
@@ -531,7 +584,7 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
         <Tooltip v-if="!isMobile">
           <TooltipTrigger as-child>
             <button
-              :aria-label="previewDevice === 'desktop' ? '移动端预览' : '桌面端预览'"
+              :aria-label="previewDevice === 'desktop' ? t('footer.mobilePreview') : t('footer.desktopPreview')"
               class="flex cursor-pointer items-center rounded-sm px-1.5 py-0.5 transition-all duration-200"
               :class="showDeviceToggle
                 ? 'text-muted-foreground hover:bg-accent hover:text-foreground opacity-100'
@@ -543,7 +596,26 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
             </button>
           </TooltipTrigger>
           <TooltipContent side="top" :side-offset="6" class="text-xs text-muted-foreground">
-            <p>{{ previewDevice === 'desktop' ? '移动端预览' : '桌面端预览' }}</p>
+            <p>{{ previewDevice === 'desktop' ? t('footer.mobilePreview') : t('footer.desktopPreview') }}</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <!-- 同步滚动（双屏模式下可用，真实移动端隐藏） -->
+        <Tooltip v-if="!isMobile && viewMode === 'split'">
+          <TooltipTrigger as-child>
+            <button
+              :aria-label="enableScrollSync ? t('footer.disableScrollSync') : t('footer.enableScrollSync')"
+              class="flex cursor-pointer items-center rounded-sm px-1.5 py-0.5 transition-all duration-200"
+              :class="enableScrollSync
+                ? 'bg-accent text-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
+              @click="uiStore.toggleScrollSync()"
+            >
+              <ArrowUpDown class="size-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" :side-offset="6" class="text-xs text-muted-foreground">
+            <p>{{ enableScrollSync ? t('footer.disableScrollSync') : t('footer.enableScrollSync') }}</p>
           </TooltipContent>
         </Tooltip>
 
@@ -558,7 +630,7 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
             </span>
           </TooltipTrigger>
           <TooltipContent side="top" :side-offset="6" class="text-xs text-muted-foreground">
-            <p>上次修改时间</p>
+            <p>{{ t('footer.lastModified') }}</p>
           </TooltipContent>
         </Tooltip>
 
@@ -579,22 +651,145 @@ const showDeviceToggle = computed(() => viewMode.value !== `edit` && !isMobile.v
 
         <span class="hidden text-border sm:block">·</span>
 
-        <!-- 深浅色切换 -->
-        <Tooltip>
-          <TooltipTrigger as-child>
+        <!-- 账户 & 同步 & 分享 & 主题（桌面端） -->
+        <div class="hidden items-center gap-0.5 sm:flex">
+          <template v-if="showAccountUi">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <button
+                  :aria-label="t('common.account')"
+                  class="flex cursor-pointer items-center rounded-md p-1.5 transition-colors hover:bg-accent hover:text-foreground"
+                  :class="isLoggedIn ? 'text-primary' : ''"
+                  @click="openAccountDialog"
+                >
+                  <img
+                    v-if="isLoggedIn && authStore.user?.avatar"
+                    :src="authStore.user.avatar"
+                    :alt="authStore.user.login"
+                    class="size-3 rounded-full"
+                  >
+                  <User v-else-if="isLoggedIn" class="size-3" />
+                  <LogIn v-else class="size-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" :side-offset="6" class="text-xs text-muted-foreground">
+                <p>{{ accountTooltip }}</p>
+              </TooltipContent>
+            </Tooltip>
+          </template>
+
+          <template v-if="showSyncUi">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <button
+                  :aria-label="t('menu.cloudSync')"
+                  class="flex cursor-pointer items-center rounded-md p-1.5 transition-colors hover:bg-accent hover:text-foreground"
+                  @click="openSyncDialog"
+                >
+                  <component
+                    :is="syncFooterIcon"
+                    class="size-3"
+                    :class="syncFooterIconClass"
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" :side-offset="6" class="text-xs text-muted-foreground">
+                <p>{{ isLoggedIn ? syncTooltip : t('menu.cloudSync') }}</p>
+              </TooltipContent>
+            </Tooltip>
+          </template>
+
+          <template v-if="showShareUi">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <button
+                  :aria-label="t('menu.sharePreview')"
+                  class="flex cursor-pointer items-center rounded-md p-1.5 transition-colors hover:bg-accent hover:text-foreground"
+                  @click="openShareDialog"
+                >
+                  <Share2 class="size-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" :side-offset="6" class="text-xs text-muted-foreground">
+                <p>{{ t('menu.sharePreview') }}</p>
+              </TooltipContent>
+            </Tooltip>
+          </template>
+
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <button
+                :aria-label="t('footer.toggleDarkMode')"
+                class="flex cursor-pointer items-center rounded-md p-1.5 transition-colors hover:bg-accent hover:text-foreground"
+                :class="isDark ? 'text-foreground' : ''"
+                @click="toggleTheme"
+              >
+                <Moon v-if="isDark" class="size-3" />
+                <Sun v-else class="size-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" :side-offset="6" class="text-xs text-muted-foreground">
+              <p>{{ isDark ? t('common.lightMode') : t('common.darkMode') }}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        <!-- 移动端：更多操作 -->
+        <Popover v-model:open="isMoreOpen">
+          <PopoverTriggerPrimitive as-child>
             <button
-              class="flex cursor-pointer items-center rounded p-0.5 transition-colors hover:bg-accent hover:text-foreground"
-              :class="isDark ? 'text-foreground' : ''"
-              @click="uiStore.toggleDark()"
+              :aria-label="t('common.moreActions')"
+              class="flex cursor-pointer items-center rounded-md p-1.5 transition-colors hover:bg-accent hover:text-foreground sm:hidden"
             >
-              <Moon v-if="isDark" class="size-3" />
-              <Sun v-else class="size-3" />
+              <Ellipsis class="size-3" />
             </button>
-          </TooltipTrigger>
-          <TooltipContent side="top" :side-offset="6" class="text-xs text-muted-foreground">
-            <p>{{ isDark ? '浅色模式' : '深色模式' }}</p>
-          </TooltipContent>
-        </Tooltip>
+          </PopoverTriggerPrimitive>
+          <PopoverContent side="top" :side-offset="8" align="end" class="w-48 p-1">
+            <button
+              v-if="showAccountUi"
+              class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors hover:bg-accent"
+              @click="openAccountDialog"
+            >
+              <img
+                v-if="isLoggedIn && authStore.user?.avatar"
+                :src="authStore.user.avatar"
+                :alt="authStore.user.login"
+                class="size-3 rounded-full"
+              >
+              <User v-else-if="isLoggedIn" class="size-3 shrink-0" />
+              <LogIn v-else class="size-3 shrink-0" />
+              <span class="min-w-0 flex-1 truncate">{{ accountTooltip }}</span>
+            </button>
+            <button
+              v-if="showSyncUi"
+              class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors hover:bg-accent"
+              @click="openSyncDialog"
+            >
+              <component
+                :is="syncFooterIcon"
+                class="size-3 shrink-0"
+                :class="syncFooterIconClass"
+              />
+              <span>{{ isLoggedIn ? syncTooltip : t('menu.cloudSync') }}</span>
+            </button>
+            <button
+              v-if="showShareUi"
+              class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors hover:bg-accent"
+              @click="openShareDialog"
+            >
+              <Share2 class="size-3 shrink-0" />
+              <span>{{ t('menu.sharePreview') }}</span>
+            </button>
+            <button
+              class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors hover:bg-accent"
+              @click="toggleTheme"
+            >
+              <Moon v-if="isDark" class="size-3 shrink-0" />
+              <Sun v-else class="size-3 shrink-0" />
+              <span>{{ isDark ? t('common.lightMode') : t('common.darkMode') }}</span>
+            </button>
+          </PopoverContent>
+        </Popover>
       </div>
     </TooltipProvider>
   </footer>

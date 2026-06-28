@@ -1,5 +1,7 @@
 import { initRenderer } from '@md/core'
-import { postProcessHtml, renderMarkdown } from '@/utils'
+import { postProcessHtml, renderMarkdown } from '@md/core/utils'
+import { t } from '@/i18n/translate'
+import { useCustomComponentStore } from './customComponent'
 import { useThemeStore } from './theme'
 import { useUIStore } from './ui'
 
@@ -43,6 +45,15 @@ export const useRenderStore = defineStore(`render`, () => {
   // 获取渲染器
   const getRenderer = () => renderer
 
+  const buildDiagramMessages = () => ({
+    mermaidLoading: t(`store.diagram.mermaidLoading`),
+    mermaidError: t(`store.diagram.mermaidError`),
+    plantumlLoading: t(`store.diagram.plantumlLoading`),
+    plantumlError: t(`store.diagram.plantumlError`),
+    infographicLoading: t(`store.diagram.infographicLoading`),
+    infographicError: t(`store.diagram.infographicError`),
+  })
+
   // 提取标题
   const extractTitles = () => {
     const div = document.createElement(`div`)
@@ -64,13 +75,15 @@ export const useRenderStore = defineStore(`render`, () => {
   }
 
   // 渲染内容
-  const render = (content: string) => {
+  const render = (content: string, options?: { themeMode?: 'light' | 'dark' }) => {
     if (!renderer) {
       throw new Error(`Renderer not initialized. Call initRendererInstance first.`)
     }
 
     const themeStore = useThemeStore()
     const uiStore = useUIStore()
+    const componentStore = useCustomComponentStore()
+    const themeMode = options?.themeMode ?? (uiStore.isDark ? `dark` : `light`)
 
     // 重置渲染器配置
     // 注意：isUseIndent 和 isUseJustify 通过 CSS 变量处理，不需要传递给渲染器
@@ -80,7 +93,9 @@ export const useRenderStore = defineStore(`render`, () => {
       countStatus: themeStore.isCountStatus,
       isMacCodeBlock: themeStore.isMacCodeBlock,
       isShowLineNumber: themeStore.isShowLineNumber,
-      themeMode: uiStore.isDark ? 'dark' : 'light',
+      themeMode,
+      components: componentStore.registry,
+      diagramMessages: buildDiagramMessages(),
     })
 
     // 渲染 Markdown

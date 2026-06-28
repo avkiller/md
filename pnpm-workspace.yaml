@@ -1,61 +1,71 @@
+minimumReleaseAge: 0
+
 shellEmulator: true
-minimumReleaseAge: 4320
-minimumReleaseAgeExclude:
-- vue
-- vite
-- '@vue/*'
-- '@cloudflare/*'
-- '@aws-sdk/*'
-- '@fsegurai/*'
-- reka-ui
-- eslint
-- '@types/*'
-- '@modelcontextprotocol'
-- '@webext-core/*'
-- '@eslint/*'
 
 trustPolicy: no-downgrade
-trustPolicyExclude:
-  - '@webext-core/isolated-element@1.1.5'
+
 packages:
   - apps/*
   - packages/*
 
 overrides:
-  '@codemirror/state': 6.6.0
-  '@codemirror/view': 6.40.0
-  ajv@^8: ^8.18.0
+  '@codemirror/view': 6.43.3
+  '@webext-core/isolated-element': 1.1.4
+  ajv@^8: ^8.20.0
   bn.js: '>=5.2.3'
   bn.js@^5: ^5.2.3
-  confbox: 0.2.2
-  core-js: ^3.48.0
+  confbox: 0.2.4
+  core-js: ^3.49.0
   cross-spawn@<7: ^7.0.6
   crypto-browserify: npm:empty-module@0.0.2
-  dompurify@<3.3.2: ^3.3.2
-  flatted@<3.4.0: ^3.4.0
-  glob@<8: ^10.5.0
-  glob@^10: ^10.5.0
+  dompurify: ^3.4.11
+  esbuild: '>=0.28.1'
+  flatted@<3.4.0: ^3.4.2
+  glob@<8: ^13.0.6
+  glob@^10: ^13.0.6
+  glob@^11: ^11.1.0
   inflight: npm:@hishprorg/voluptates-laborum@^2.0.0
-  juice: 11.0.3
-  lodash-es: ^4.17.23
-  markdown-it: ^14.1.1
-  minimatch: ^10.2.4
-  minimatch@^10: ^10.2.4
-  minimatch@^5: ^10.2.4
-  minimatch@^9: ^10.2.4
+  ini: '>=7.0.0'
+  js-yaml: ^4.2.0
+  jsdom>undici: ^7.25.0
+  lodash-es: ^4.18.1
+  markdown-it: ^14.2.0
+  minimatch: ^10.2.5
+  minimatch@^10: ^10.2.5
+  minimatch@^5: ^10.2.5
+  minimatch@^9: ^10.2.5
   prettier: 2.8.8
-  qs: ^6.14.2
-  querystring: npm:qs@^6.14.2
-  semver: ^7.0.0
-
-  serialize-javascript@<7.0.3: ^7.0.4
+  qs: ^6.15.2
+  querystring: npm:qs@^6.15.2
+  semver: ^7.8.3
+  serialize-javascript@<7.0.3: ^7.0.5
+  shell-quote: ^1.8.4
   source-map@0.8.0-beta.0: 0.7.4
+  tinyexec: 1.2.4
+  tmp: '>=0.2.6'
   underscore@<1.13.8: 1.13.8
-  undici@^6: ^6.24.0
-  undici@^7: ^7.24.0
+  undici@^6: ^8.4.1
+  undici@^7: ^8.4.1
+  uuid: ^14.0.0
   workbox-build>source-map: 0.7.4
-  yauzl: ^3.2.1
+  ws@<8.21.0: ^8.21.0
+  yauzl: ^3.4.0
 
+allowBuilds:
+  '@vscode/vsce-sign': true
+  core-js: true
+  esbuild: true
+  keytar: true
+  sharp: true
+  simple-git-hooks: true
+  spawn-sync: true
+  vue-demi: true
+  workerd: true
 
 patchedDependencies:
-  '@codemirror/view@6.40.0': patches/@codemirror__view@6.40.0.patch
+  '@codemirror/view@6.43.3': patches/@codemirror__view@6.43.3.patch
+  front-matter@4.0.2: patches/front-matter@4.0.2.patch
+  juice@12.1.1: patches/juice@12.1.1.patch
+peerDependencyRules:
+  allowedVersions:
+    vite: '8'
