@@ -7,36 +7,47 @@
     <meta name="description" content="Wechat Markdown Editor | 一款高度简洁的微信 Markdown 编辑器" />
     <meta
       name="viewport"
-      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, minimum-scale=1.0"
     />
     <title>微信 Markdown 编辑器 Diy by fireworld 2025</title>
-    <link rel="shortcut icon" href="/static/png/md-favicon-BUe6jSmB.png" />
-    <link rel="apple-touch-icon-precomposed" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABHPGVmAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JQAAgIMAAPn/AACA6QAAdTAAAOpgAAA6mAAAF2+SX8VGAAAAt1BMVEX///8AAABIz0hHzkdIzkhIz0hIz0hHzkdIzkhFz0VAz0BHzUdIz0hHzkdIzkhIzUhHzUdHzUdIzkhEzEREzERGz0ZIz0hHzUdIzkhIzUhHzkdHzkdHzUdGz0ZIzkhHzkdKzkpIzUhGzUZD00NIzUhGzUZIzkhIzkhHzkdHzkdIzkhHz0dIzUhK1UpHzUdC0EJHzkdHzkdIz0hH1UdHzUdGzkZIzUhJ20lD10NJzklIzkhIzkj////r6/fCAAAAO3RSTlMAACDvoEBg0MAwEI9fz9+A8JDgDx5Ff/r9i+VdbHSDkx9RTRdce+6q6brLb58YSBvtd0oScFTxBxM/v5xq7LMAAAABYktHRACIBR1IAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4wwcCBssFsYwawAAAe9JREFUaN7t2tlywiAUBmABiQY1W6vWbna1i6Z2sYs97/9eNcQ6U40kEMhoh/824qeAxwSo1Wx2MUgimAAQLNNCAanDInWzCAUeahRxUsQx212NxGgaHhMq21sqCHIpdZFpRDoW2ROEtdpY/S1xu8XyEdZZ/BA8VcNbNO6wPIQbAK6akZa2v0rWN0mLk6+G+Gnr3O5qgnR1EjfOQviHCRS7yw02uyELwWGkbHAlCnGR3wkuM4WxLSuGkQNfmLYW5BDE8fUgXcHVXv9oYB45PoGBeQSd5ioaEHSWp+hA0DkMzSNoKFZKI78zuWsQuaA8l3BlEFnm2iL/FrlpZqanFbntZxmjO73IfdbVh31ERjQjj1LImEyYGMn+9xUjbELGKyRObviJI57CTzBdu/b8Ip7CDkkeQuIlQrffY5dB0rtvuqvINHnpqwISR8nTQsExSWbVW7ExSZ4jong1u2ZByJDu7kKsHszkCqQCIl+FLbKLyPtaefwwgWxEP2LvVixiEYtoQgqlHPJJC+XLLqoZRsyvpuKJB0R9XZiA18pfF+Yr3KqKS4qtcFeyVl/FrgNrlN8/aeTun3AlUh34aMPYsqcVOmWmsBMyW1Ysooi487nx/fhKThbwDdVvs0glpz0qObdSyQkchAOAQOUskU3h/AAe7qmqtAqp/QAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAxOS0xMi0yOFQwODoyNzo0NCswMDowMPJYdAwAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMTktMTItMjhUMDg6Mjc6NDQrMDA6MDCDBcywAAAAAElFTkSuQmCC" />
+    <link rel="shortcut icon" href="/favicon.png" />
+    <link rel="apple-touch-icon-precomposed" href="/favicon.png" />
     <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+
       .loading {
         position: fixed;
-        top: 0;
-        left: 0;
+        inset: 0;
         z-index: 99999;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        width: 100vw;
-        height: 100vh;
         font-size: 18px;
+        color: #171717;
+        background-color: #ffffff;
+      }
+
+      html.dark .loading {
+        color: #fafafa;
+        background-color: #141414;
       }
 
       .loading::before {
-        content: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABHPGVmAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JQAAgIMAAPn/AACA6QAAdTAAAOpgAAA6mAAAF2+SX8VGAAAAt1BMVEX///8AAABIz0hHzkdIzkhIz0hIz0hHzkdIzkhFz0VAz0BHzUdIz0hHzkdIzkhIzUhHzUdHzUdIzkhEzEREzERGz0ZIz0hHzUdIzkhIzUhHzkdHzkdHzUdGz0ZIzkhHzkdKzkpIzUhGzUZD00NIzUhGzUZIzkhIzkhHzkdHzkdIzkhHz0dIzUhK1UpHzUdC0EJHzkdHzkdIz0hH1UdHzUdGzkZIzUhJ20lD10NJzklIzkhIzkj////r6/fCAAAAO3RSTlMAACDvoEBg0MAwEI9fz9+A8JDgDx5Ff/r9i+VdbHSDkx9RTRdce+6q6brLb58YSBvtd0oScFTxBxM/v5xq7LMAAAABYktHRACIBR1IAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4wwcCBssFsYwawAAAe9JREFUaN7t2tlywiAUBmABiQY1W6vWbna1i6Z2sYs97/9eNcQ6U40kEMhoh/824qeAxwSo1Wx2MUgimAAQLNNCAanDInWzCAUeahRxUsQx212NxGgaHhMq21sqCHIpdZFpRDoW2ROEtdpY/S1xu8XyEdZZ/BA8VcNbNO6wPIQbAK6akZa2v0rWN0mLk6+G+Gnr3O5qgnR1EjfOQviHCRS7yw02uyELwWGkbHAlCnGR3wkuM4WxLSuGkQNfmLYW5BDE8fUgXcHVXv9oYB45PoGBeQSd5ioaEHSWp+hA0DkMzSNoKFZKI78zuWsQuaA8l3BlEFnm2iL/FrlpZqanFbntZxmjO73IfdbVh31ERjQjj1LImEyYGMn+9xUjbELGKyRObviJI57CTzBdu/b8Ip7CDkkeQuIlQrffY5dB0rtvuqvINHnpqwISR8nTQsExSWbVW7ExSZ4jong1u2ZByJDu7kKsHszkCqQCIl+FLbKLyPtaefwwgWxEP2LvVixiEYtoQgqlHPJJC+XLLqoZRsyvpuKJB0R9XZiA18pfF+Yr3KqKS4qtcFeyVl/FrgNrlN8/aeTun3AlUh34aMPYsqcVOmWmsBMyW1Ysooi487nx/fhKThbwDdVvs0glpz0qObdSyQkchAOAQOUskU3h/AAe7qmqtAqp/QAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAxOS0xMi0yOFQwODoyNzo0NCswMDowMPJYdAwAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMTktMTItMjhUMDg6Mjc6NDQrMDA6MDCDBcywAAAAAElFTkSuQmCC');
+        content: url('/favicon.png');
         width: 100px;
         height: 100px;
         margin-bottom: 26px;
       }
 
-      .loading.dark {
-        color: #ffffff;
-        background-color: #141414;
+      .loading strong,
+      .loading .txt {
+        color: inherit;
       }
 
       .loading .txt {
@@ -64,43 +75,121 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/static/js/md-index-Bg1cYd4a.js"></script>
-    <link rel="modulepreload" crossorigin href="/static/js/md-rolldown-runtime-CkD7bpl4.js">
-    <link rel="modulepreload" crossorigin href="/static/js/md-aws-infra-CtpD1FTG.js">
-    <link rel="modulepreload" crossorigin href="/static/js/md-chevrotain-Dko97DwC.js">
-    <link rel="modulepreload" crossorigin href="/static/js/md-d3-2Z0nJI-h.js">
-    <link rel="modulepreload" crossorigin href="/static/js/md-marked-DfzT1GPG.js">
-    <link rel="modulepreload" crossorigin href="/static/js/md-mermaid-C2rwP6p3.js">
-    <link rel="modulepreload" crossorigin href="/static/js/md-vendor-antv-engine-Ckl81Jcp.js">
-    <link rel="modulepreload" crossorigin href="/static/js/md-aws-s3-BURPkCK7.js">
-    <link rel="modulepreload" crossorigin href="/static/js/md-vendor-lib-ClAhta_8.js">
-    <link rel="modulepreload" crossorigin href="/static/js/md-codemirror-Djq4FbSZ.js">
-    <link rel="modulepreload" crossorigin href="/static/js/md-editor-langs-BRvFuie7.js">
-    <link rel="modulepreload" crossorigin href="/static/js/md-vue-bundle-ClSTPCI3.js">
-    <link rel="modulepreload" crossorigin href="/static/js/md-utils-B1MHQ3d1.js">
-    <link rel="stylesheet" crossorigin href="/static/css/md-style-IHV3qYG6.css">
+    <script>
+      ;(function () {
+        const LOCALE_KEY = 'locale'
+
+        window.__MD_LOADER_TEXT__ = {
+          'zh-CN': {
+            tagline: '致力于让 Markdown 编辑更简单',
+            loading: '正在加载编辑器',
+            timeout: '加载时间过长，请尝试刷新页面或按 F12 查看控制台是否有异常信息',
+            title: '微信 Markdown 编辑器 | Doocs',
+            description: 'Wechat Markdown Editor | 一款高度简洁的微信 Markdown 编辑器',
+          },
+          'en-US': {
+            tagline: 'Making Markdown editing simpler',
+            loading: 'Loading editor',
+            timeout:
+              'Loading is taking too long. Try refreshing the page or press F12 to check the console for errors.',
+            title: 'WeChat Markdown Editor | Doocs',
+            description: 'Wechat Markdown Editor | A minimalist Markdown editor for WeChat Official Accounts',
+          },
+        }
+
+        function normalizeLocale(value) {
+          if (value === 'zh-CN' || value === 'en-US') return value
+          if (typeof value === 'string' && value.startsWith('zh')) return 'zh-CN'
+          if (typeof value === 'string' && value.startsWith('en')) return 'en-US'
+          return null
+        }
+
+        function detectFromNavigator() {
+          const languages = navigator.languages?.length ? navigator.languages : [navigator.language]
+          for (const language of languages) {
+            const normalized = normalizeLocale(language)
+            if (normalized) return normalized
+          }
+          return 'zh-CN'
+        }
+
+        function readLocaleFromLocalStorage() {
+          try {
+            return normalizeLocale(localStorage.getItem(LOCALE_KEY))
+          } catch {
+            return null
+          }
+        }
+
+        window.__MD_APPLY_LOADER_LOCALE__ = function applyLoaderLocale(locale) {
+          const text = window.__MD_LOADER_TEXT__[locale] || window.__MD_LOADER_TEXT__['zh-CN']
+          document.documentElement.lang = locale
+          document.title = text.title
+
+          const description = document.querySelector('meta[name="description"]')
+          if (description) description.setAttribute('content', text.description)
+
+          const loader = document.getElementById('app-initial-loader')
+          if (!loader) return
+
+          const tagline = loader.querySelector('strong')
+          const loading = loader.querySelector('.txt')
+          const timeout = loader.querySelector('.timeout-tip')
+          if (tagline) tagline.textContent = text.tagline
+          if (loading) loading.textContent = text.loading
+          if (timeout) timeout.textContent = text.timeout
+        }
+
+        window.__MD_BOOT_LOCALE__ = readLocaleFromLocalStorage() || detectFromNavigator()
+
+        const theme = localStorage.getItem('vueuse-color-scheme') ?? 'auto'
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (theme === 'dark' || (theme === 'auto' && prefersDark)) {
+          document.documentElement.classList.add('dark')
+        }
+      })()
+    </script>
+    <script type="module" crossorigin src="/static/js/md-index-S6v_eiua.js"></script>
+    <link rel="modulepreload" crossorigin href="/static/js/md-rolldown-runtime-aKtaBQYM.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-aws-infra-B6m_uxNF.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-utils-B7nBXXfQ.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-marked-dpwwL3IK.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-d3-Cregq6Jf.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-mermaid-yYH_4dW1.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-aws-s3-fIkemJfK.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-vendor-lib-BbJ0py_c.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-utils-7y6bGMRt.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-codemirror-CdnbcADt.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-editor-langs-D1wYKNXn.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-vue-bundle-B1bBtp7b.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-fetch-DgTtyS-X.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-utils-CHZE-7d-.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-storage-g9nK6OH3.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-fileHelpers-BynaGm-d.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-customComponent-BFidOI--.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-utils-DOXcxVNs.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-config-CJBn8ZN-.js">
+    <link rel="modulepreload" crossorigin href="/static/js/md-browser-image-compression-CwQLQgZd.js">
+    <link rel="stylesheet" crossorigin href="/static/css/md-style-Da2YrLqm.css">
   </head>
 
   <body>
     <noscript>
       <strong>Please enable JavaScript to continue.</strong>
     </noscript>
-    <div id="app">
-      <div class="loading">
-        <strong>致力于让 Markdown 编辑更简单</strong>
-        <p class="txt">正在加载编辑器</p>
-        <p class="timeout-tip" style="display: none; color: #e53935; font-size: 16px; margin-top: 2em">
-          加载时间过长，请尝试刷新页面或按 F12 查看控制台是否有异常信息
-        </p>
-      </div>
+    <div id="app-initial-loader" class="loading">
+      <strong></strong>
+      <p class="txt"></p>
+      <p class="timeout-tip" style="display: none; color: #e53935; font-size: 16px; margin-top: 2em"></p>
     </div>
     <script>
-      const theme = localStorage.getItem('vueuse-color-scheme')
-      if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.querySelector('.loading').classList.add('dark')
-      }
+      window.__MD_APPLY_LOADER_LOCALE__(window.__MD_BOOT_LOCALE__ || 'zh-CN')
+    </script>
+    <div id="app"></div>
+    <script>
+      const loader = document.getElementById('app-initial-loader')
       setTimeout(() => {
-        const tip = document.querySelector('.loading .timeout-tip')
+        const tip = loader?.querySelector('.timeout-tip')
         if (tip) {
           tip.style.display = 'block'
         }
@@ -123,12 +212,11 @@
         },
       }
     </script>
-    <script
+    <!-- <script
       id="MathJax-script"
       src="https://s4.zstatic.net/ajax/libs/mathjax/4.0.0/tex-svg.min.js"
       integrity="sha384-/sTw2V251WGs5ZvBcl9n8AbdOpbOV7ahBT+/w3spog95/TPHD4aXxjYhB6ay2/Xi"
       crossorigin="anonymous"
-    ></script>
+    ></script> -->
   </body>
-  <!-- <script src="https://cdn-doocs.oss-cn-shenzhen.aliyuncs.com/gh/wechatsync/article-syncjs@latest/dist/main.js"></script> -->
 </html>

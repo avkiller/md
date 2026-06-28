@@ -1,0 +1,1 @@
+import{a as e}from"./md-utils-B7nBXXfQ.js";import{l as t}from"./md-vendor-lib-BbJ0py_c.js";function n(...n){return e(t(n))}export{n as t};

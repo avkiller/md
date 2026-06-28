@@ -1,0 +1,1 @@
+import{Ai as e}from"./md-vue-bundle-B1bBtp7b.js";var t=e.create({baseURL:``,timeout:30*1e3});t.interceptors.request.use(e=>(/^(?:post|put|delete)$/i.test(`${e.method}`)&&e.data&&e.data.upload&&(e.headers[`Content-Type`]=`multipart/form-data`),e),e=>{Promise.reject(e)}),t.interceptors.response.use(e=>e.data?e.data:Promise.reject(e),e=>Promise.reject(e));export{t};
