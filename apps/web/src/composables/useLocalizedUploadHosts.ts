@@ -7,15 +7,15 @@ export const UPLOAD_HOST_VALUES = [
   `github`,
   `aliOSS`,
   `txCOS`,
-  `qiniu`,
-  `minio`,
-  `s3`,
+  // `qiniu`,
+  // `minio`,
+  // `s3`,
   `mp`,
   `r2`,
-  `upyun`,
-  `telegram`,
-  `cloudinary`,
-  `formCustom`,
+  // `upyun`,
+  // `telegram`,
+  // `cloudinary`,
+  // `formCustom`,
 ] as const
 
 export type UploadHostValue = typeof UPLOAD_HOST_VALUES[number]

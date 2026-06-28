@@ -4,7 +4,6 @@ import fetch from '@md/shared/utils/fetch'
 // import { base64encode, safe64, utf16to8 } from '@md/shared/utils/tokenTools'
 // import Buffer from 'buffer-from'
 // import CryptoJS from 'crypto-js'
-// import * as qiniu from 'qiniu-js'
 import { v4 as uuidv4 } from 'uuid'
 import { t } from '@/i18n/translate'
 import { uploadDefaultImage } from '@/services/upload/client'
@@ -127,21 +126,24 @@ async function ghFileUpload(content: string, filename: string) {
 //   return `${accessKey}:${safe64(encodedSigned)}:${encoded}`
 // }
 
+// async function loadQiniu() {
+//   return import(`qiniu-js`)
+// }
+
 // async function qiniuUpload(file: File) {
+//   const qiniu = await loadQiniu()
 //   const configStr = await store.get(`qiniuConfig`)
-//   const { accessKey, secretKey, bucket, region, path, domain } = JSON.parse(configStr!)
+//   const { accessKey, secretKey, bucket, region, path, domain } = safeJsonParse<{ accessKey: string, secretKey: string, bucket: string, region?: string, path: string, domain: string }>(configStr, `qiniu config`)
 //   const token = getQiniuToken(accessKey, secretKey, {
 //     scope: bucket,
 //     deadline: Math.trunc(Date.now() / 1000) + 3600,
 //   })
 //   const dir = path ? `${path}/` : ``
 //   const dateFilename = dir + getDateFilename(file.name)
-//   const observable = qiniu.upload(file, dateFilename, token, {}, { region })
+//   const observable = qiniu.upload(file, dateFilename, token, {}, { region: region as any })
 //   return new Promise<string>((resolve, reject) => {
 //     observable.subscribe({
-//       next: (result) => {
-//         console.log(result)
-//       },
+//       next: () => {},
 //       error: (err) => {
 //         reject(err.message)
 //       },
@@ -167,7 +169,8 @@ async function aliOSSFileUpload(file: File) {
   const secure = useSSL === undefined || useSSL
   const protocol = secure ? `https` : `http`
   const endpoint = `${protocol}://${region}.aliyuncs.com`
-  const clientConfig: any = {
+
+  const clientConfig: S3ClientConfig = {
     region,
     credentials: {
       accessKeyId,
@@ -176,9 +179,14 @@ async function aliOSSFileUpload(file: File) {
     endpoint,
     forcePathStyle: false,
   }
+
+  const { S3Client, PutObjectCommand, getSignedUrl } = await loadS3Sdk()
+
   const s3Client = new S3Client(clientConfig)
+
   const dir = path ? `${path}/` : ``
   const key = dir + dateFilename
+
   const command = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
@@ -194,13 +202,16 @@ async function aliOSSFileUpload(file: File) {
       },
       body: file,
     })
+
     if (!response.ok) {
       throw new Error(`Upload failed: ${response.statusText}`)
     }
+
     if (cdnHost) {
       const host = cdnHost.endsWith('/') ? cdnHost.slice(0, -1) : cdnHost
       return `${host}/${key}`
     }
+
     // Default OSS URL format
     return `${protocol}://${bucket}.${region}.aliyuncs.com/${key}`
   }
@@ -216,7 +227,8 @@ async function aliOSSFileUpload(file: File) {
 async function txCOSFileUpload(file: File) {
   const dateFilename = getDateFilename(file.name)
   const configStr = await store.get(`txCOSConfig`)
-  const { secretId, secretKey, bucket, region, path, cdnHost } = JSON.parse(configStr!)
+  const { secretId, secretKey, bucket, region, path, cdnHost } = safeJsonParse<{ secretId: string, secretKey: string, bucket: string, region: string, path: string, cdnHost: string }>(configStr, `txCOS config`)
+
   // Transform txCOSConfig to S3 format
   // Tencent Cloud COS S3 endpoint: https://cos.<Region>.myqcloud.com
   const endpoint = `https://cos.${region}.myqcloud.com`
@@ -237,11 +249,13 @@ async function txCOSFileUpload(file: File) {
 
   const dir = path ? `${path}/` : ``
   const key = dir + dateFilename
+
   const command = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
     ContentType: file.type,
   })
+
   try {
     const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 })
     const response = await window.fetch(presignedUrl, {
@@ -255,6 +269,7 @@ async function txCOSFileUpload(file: File) {
     if (!response.ok) {
       throw new Error(`Upload failed: ${response.statusText}`)
     }
+
     if (cdnHost) {
       return path === ``
         ? `${cdnHost}/${dateFilename}`
@@ -264,6 +279,7 @@ async function txCOSFileUpload(file: File) {
     // Default COS URL: https://<BucketName-APPID>.cos.<Region>.myqcloud.com/<Key>
     // The 'bucket' param in COS usually is 'name-appid', if not, user might need to check.
     // However, for S3 client, we just use the bucket name provided.
+
     return `https://${bucket}.cos.${region}.myqcloud.com/${key}`
   }
   catch (e) {
@@ -278,7 +294,8 @@ async function txCOSFileUpload(file: File) {
 // async function minioFileUpload(file: File) {
 //   const dateFilename = getDateFilename(file.name)
 //   const configStr = await store.get(`minioConfig`)
-//   const { endpoint, port, useSSL, bucket, accessKey, secretKey } = JSON.parse(configStr!)
+//   const { endpoint, port, useSSL, bucket, accessKey, secretKey } = safeJsonParse<{ endpoint: string, port: string, useSSL: boolean, bucket: string, accessKey: string, secretKey: string }>(configStr, `minio config`)
+//   const { S3Client, PutObjectCommand, getSignedUrl } = await loadS3Sdk()
 //   const s3Client = new S3Client({
 //     endpoint: `${useSSL ? `https` : `http`}://${endpoint}${port ? `:${port}` : ``}`,
 //     credentials: {
@@ -295,19 +312,25 @@ async function txCOSFileUpload(file: File) {
 //     ContentType: file.type,
 //   })
 //   const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 })
-//   await fetch(presignedUrl, {
+//   const minioResponse = await window.fetch(presignedUrl, {
 //     method: `PUT`,
 //     headers: {
 //       'Content-Type': file.type,
 //     },
-//     data: file,
-//   }).catch((err) => { console.log(err) })
+//     body: file,
+//   })
+//   if (!minioResponse.ok) {
+//     throw new Error(`MinIO upload failed: ${minioResponse.status} ${minioResponse.statusText}`)
+//   }
 //   return `${useSSL ? `https` : `http`}://${endpoint}${port ? `:${port}` : ``}/${bucket}/${dateFilename}`
 // }
+
 // -----------------------------------------------------------------------
 // S3 File Upload
 // -----------------------------------------------------------------------
+
 // const PROTOCOL_REGEX = /^https?:\/\//
+
 // async function s3Upload(file: File) {
 //   const dateFilename = getDateFilename(file.name)
 //   const config = await store.getJSON(`s3Config`, {
@@ -321,57 +344,64 @@ async function txCOSFileUpload(file: File) {
 //     pathStyle: false,
 //   })
 //   const { endpoint, region, bucket, accessKeyId, accessKeySecret, path, cdnHost, pathStyle } = config
-//   const clientConfig: any = {
+
+//   const resolvedEndpoint = endpoint
+//     ? endpoint.startsWith('http') ? endpoint : `https://${endpoint}`
+//     : undefined
+
+//   const clientConfig: S3ClientConfig = {
 //     region,
 //     credentials: {
 //       accessKeyId,
 //       secretAccessKey: accessKeySecret,
 //     },
 //     forcePathStyle: pathStyle,
+//     endpoint: resolvedEndpoint,
 //   }
-//   if (endpoint) {
-//     clientConfig.endpoint = endpoint.startsWith('http') ? endpoint : `https://${endpoint}`
-//   }
+
+//   const { S3Client, PutObjectCommand, getSignedUrl } = await loadS3Sdk()
+
 //   const s3Client = new S3Client(clientConfig)
+
 //   const dir = path ? `${path}/` : ``
 //   const key = dir + dateFilename
+
 //   const command = new PutObjectCommand({
 //     Bucket: bucket,
 //     Key: key,
 //     ContentType: file.type,
 //   })
-//   try {
-//     const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 })
-//     const response = await window.fetch(presignedUrl, {
-//       method: `PUT`,
-//       headers: {
-//         'Content-Type': file.type,
-//       },
-//       body: file,
-//     })
-//     if (!response.ok) {
-//       throw new Error(`Upload failed: ${response.statusText}`)
-//     }
-//     if (cdnHost) {
-//       const host = cdnHost.endsWith('/') ? cdnHost.slice(0, -1) : cdnHost
-//       return `${host}/${key}`
-//     }
-//     if (endpoint) {
-//       const proto = clientConfig.endpoint.startsWith('https') ? 'https' : 'http'
-//       const host = clientConfig.endpoint.replace(PROTOCOL_REGEX, '')
-//       if (pathStyle) {
-//         return `${proto}://${host}/${bucket}/${key}`
-//       }
-//       else {
-//         return `${proto}://${bucket}.${host}/${key}`
-//       }
-//     }
-//     return `https://${bucket}.s3.${region}.amazonaws.com/${key}`
+
+//   const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 })
+//   const response = await window.fetch(presignedUrl, {
+//     method: `PUT`,
+//     headers: {
+//       'Content-Type': file.type,
+//     },
+//     body: file,
+//   })
+
+//   if (!response.ok) {
+//     throw new Error(`Upload failed: ${response.statusText}`)
 //   }
-//   catch (err) {
-//     console.error(err)
-//     throw err
+
+//   if (cdnHost) {
+//     const host = cdnHost.endsWith('/') ? cdnHost.slice(0, -1) : cdnHost
+//     return `${host}/${key}`
 //   }
+
+//   if (endpoint && resolvedEndpoint) {
+//     const proto = resolvedEndpoint.startsWith('https') ? 'https' : 'http'
+//     const host = resolvedEndpoint.replace(PROTOCOL_REGEX, '')
+//     if (pathStyle) {
+//       return `${proto}://${host}/${bucket}/${key}`
+//     }
+//     else {
+//       return `${proto}://${bucket}.${host}/${key}`
+//     }
+//   }
+
+//   return `https://${bucket}.s3.${region}.amazonaws.com/${key}`
 // }
 
 // -----------------------------------------------------------------------
@@ -421,6 +451,7 @@ async function getMpToken(appID: string, appsecret: string, proxyOrigin?: string
 }
 // Cloudflare Workers 环境
 const isCfWorkers = import.meta.env.CF_WORKERS === `1`
+
 async function mpFileUpload(file: File) {
   const configStr = await store.get(`mpConfig`)
   let { appID, appsecret, proxyOrigin } = safeJsonParse<{ appID: string, appsecret: string, proxyOrigin?: string }>(configStr, `mp config`)
@@ -500,7 +531,7 @@ async function r2Upload(file: File) {
 
 // async function upyunUpload(file: File) {
 //   const configStr = await store.get(`upyunConfig`)
-//   const { bucket, operator, password, path, domain } = JSON.parse(configStr!)
+//   const { bucket, operator, password, path, domain } = safeJsonParse<{ bucket: string, operator: string, password: string, path: string, domain: string }>(configStr, `upyun config`)
 //   const filename = `${path}/${getDateFilename(file.name)}`
 //   const uri = `/${bucket}/${filename}`
 //   const arrayBuffer = await file.arrayBuffer()
@@ -522,7 +553,7 @@ async function r2Upload(file: File) {
 //   })
 
 //   if (!res.ok) {
-//     throw new Error(`上传失败: ${await res.text()}`)
+//     throw new Error(t(`upload.provider.uploadFailedWithDetail`, { detail: await res.text() }))
 //   }
 
 //   return `${domain}/${filename}`
@@ -552,7 +583,7 @@ async function r2Upload(file: File) {
 //   })
 
 //   if (!sendRes.ok || !sendRes.result.photo.length) {
-//     throw new Error(`Telegram sendPhoto 失败`)
+//     throw new Error(t(`upload.provider.telegramSendPhotoFailed`))
 //   }
 //   // 取最大的分辨率那张图
 //   const fileId = sendRes.result.photo[sendRes.result.photo.length - 1].file_id
@@ -566,7 +597,7 @@ async function r2Upload(file: File) {
 //     method: `GET`,
 //   })
 //   if (!fileRes.ok) {
-//     throw new Error(`Telegram getFile 失败`)
+//     throw new Error(t(`upload.provider.telegramGetFileFailed`))
 //   }
 
 //   const filePath = fileRes.result.file_path
@@ -601,7 +632,7 @@ async function r2Upload(file: File) {
 //   } = config || { cloudName: ``, apiKey: ``, apiSecret: ``, uploadPreset: ``, folder: ``, domain: `` }
 
 //   if (!cloudName || !apiKey)
-//     throw new Error(`Cloudinary 配置缺少 cloudName / apiKey`)
+//     throw new Error(t(`upload.provider.cloudinaryMissingConfig`))
 
 //   const timestamp = Math.floor(Date.now() / 1000) // Cloudinary 要求秒级时间戳
 //   const formData = new FormData()
@@ -628,7 +659,7 @@ async function r2Upload(file: File) {
 //     formData.append(`upload_preset`, uploadPreset)
 //   }
 //   else {
-//     throw new Error(`未配置 apiSecret 时必须提供 uploadPreset`)
+//     throw new Error(t(`upload.provider.cloudinaryMissingPreset`))
 //   }
 
 //   if (folder)
@@ -642,7 +673,7 @@ async function r2Upload(file: File) {
 
 //   const originUrl = res.secure_url || res.url
 //   if (!originUrl)
-//     throw new Error(`Cloudinary 返回缺少 url 字段`)
+//     throw new Error(t(`upload.provider.cloudinaryMissingUrl`))
 
 //   // 如果配置了自定义域名，则把 host 换掉
 //   if (domain) {
@@ -659,6 +690,10 @@ async function r2Upload(file: File) {
 
 // async function formCustomUpload(content: string, file: File) {
 //   const customConfig = await store.get(`formCustomConfig`)
+//   const [{ S3Client, PutObjectCommand, getSignedUrl }, qiniu] = await Promise.all([
+//     loadS3Sdk(),
+//     loadQiniu(),
+//   ])
 //   const str = `
 //     async (CUSTOM_ARG) => {
 //       ${customConfig}
@@ -690,9 +725,8 @@ async function r2Upload(file: File) {
 //     }
 //     // Use Function constructor instead of eval
 //     // eslint-disable-next-line no-new-func
-//     const fn = new Function(`return ${str}`)()
-//     fn(exportObj).catch((err: any) => {
-//       console.error(err)
+//     const fn = new Function(`return (${str})`)()
+//     fn(exportObj).catch((err: unknown) => {
 //       reject(err)
 //     })
 //   })
@@ -707,15 +741,13 @@ export async function fileUpload(content: string, file: File) {
     case `aliOSS`:
       return aliOSSFileUpload(file)
     // case `minio`:
-    //   return minioFileUpload(file)	
-    //case `s3`:
-    //  return s3Upload(file)
+    //   return minioFileUpload(file)
+    // case `s3`:
+    //   return s3Upload(file)
     case `txCOS`:
       return txCOSFileUpload(file)
     // case `qiniu`:
     //   return qiniuUpload(file)
-    case `gitee`:
-      return giteeUpload(content, file.name)
     case `github`:
       return ghFileUpload(content, file.name)
     case `mp`:

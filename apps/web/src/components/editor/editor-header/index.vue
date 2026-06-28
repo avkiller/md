@@ -17,8 +17,8 @@ import StyleDropdown from './StyleDropdown.vue'
 
 const emit = defineEmits([`startCopy`, `endCopy`])
 const { t } = useI18n()
-const AboutDialog = defineAsyncComponent(() => import('./AboutDialog.vue'))
-const FundDialog = defineAsyncComponent(() => import('./FundDialog.vue'))
+// const AboutDialog = defineAsyncComponent(() => import('./AboutDialog.vue'))
+// const FundDialog = defineAsyncComponent(() => import('./FundDialog.vue'))
 const EditorStateDialog = defineAsyncComponent(() => import('@/components/editor/dialogs/EditorStateDialog.vue'))
 const PreferencesDialog = defineAsyncComponent(() => import('@/components/editor/dialogs/PreferencesDialog.vue'))
 const MarkdownHelpDialog = defineAsyncComponent(() => import('./MarkdownHelpDialog.vue'))
@@ -37,35 +37,11 @@ const { editorRefresh } = useEditorRefresh()
 const { editor } = storeToRefs(editorStore)
 const { output } = storeToRefs(renderStore)
 const { primaryColor } = storeToRefs(themeStore)
-const { isOpenRightSlider } = storeToRefs(uiStore)
+const { isOpenRightSlider, isShowSyncDialog, isShowAccountDialog, isShowShareDialog,
+  // isShowAboutDialog, isShowFundDialog,
+  isShowEditorStateDialog, isShowPreferencesDialog, isShowMarkdownHelpDialog, isShowKeyboardShortcutsDialog, copyMode } = storeToRefs(uiStore)
 
-// Editor refresh function
-function editorRefresh() {
-  themeStore.updateCodeTheme()
-
-  const raw = editorStore.getContent()
-  renderStore.render(raw)
-}
-
-// 对话框状态
-// const aboutDialogVisible = ref(false)
-// const fundDialogVisible = ref(false)
-const editorStateDialogVisible = ref(false)
-
-// 处理帮助菜单事件
-// function handleOpenAbout() {
-//   aboutDialogVisible.value = true
-// }
-
-// function handleOpenFund() {
-//   fundDialogVisible.value = true
-// }
-
-function handleOpenEditorState() {
-  editorStateDialogVisible.value = true
-}
-
-const copyMode = store.reactive(addPrefix(`copyMode`), `txt`)
+const isCopying = ref(false)
 
 const { copy: copyContent } = useClipboard({
   legacy: true,
@@ -265,8 +241,7 @@ function copyToWeChat() {
         <FormatDropdown />
         <InsertDropdown />
         <StyleDropdown />
-        <ViewDropdown />
-        <!-- <HelpDropdown @open-about="handleOpenAbout" @open-fund="handleOpenFund" /> -->
+        <!-- <HelpDropdown /> -->
       </Menubar>
     </div>
 
@@ -285,8 +260,7 @@ function copyToWeChat() {
             <FormatDropdown :as-sub="true" />
             <InsertDropdown :as-sub="true" />
             <StyleDropdown :as-sub="true" />
-            <ViewDropdown :as-sub="true" />
-            <!-- <HelpDropdown :as-sub="true" @open-about="handleOpenAbout" @open-fund="handleOpenFund" /> -->
+            <!-- <HelpDropdown :as-sub="true" /> -->
           </MenubarContent>
         </MenubarMenu>
       </Menubar>
@@ -323,10 +297,15 @@ function copyToWeChat() {
   </header>
 
   <!-- 对话框组件，嵌套菜单无法正常挂载，需要提取层级 -->
-  <!-- <AboutDialog :visible="aboutDialogVisible" @close="aboutDialogVisible = false" />
-  <FundDialog :visible="fundDialogVisible" @close="fundDialogVisible = false" /> -->
-  <EditorStateDialog :visible="editorStateDialogVisible" @close="editorStateDialogVisible = false" />
-  <AIImageGeneratorPanel v-model:open="uiStore.aiImageDialogVisible" />
+  <!-- <AboutDialog v-if="isShowAboutDialog" v-model:open="isShowAboutDialog" /> -->
+  <!-- <FundDialog v-if="isShowFundDialog" v-model:open="isShowFundDialog" /> -->
+  <EditorStateDialog v-if="isShowEditorStateDialog" v-model:open="isShowEditorStateDialog" />
+  <PreferencesDialog v-model:open="isShowPreferencesDialog" />
+  <MarkdownHelpDialog v-if="isShowMarkdownHelpDialog" v-model:open="isShowMarkdownHelpDialog" />
+  <KeyboardShortcutsDialog v-if="isShowKeyboardShortcutsDialog" v-model:open="isShowKeyboardShortcutsDialog" />
+  <AccountDialog v-if="isShowAccountDialog" v-model:open="isShowAccountDialog" />
+  <SyncDialog v-if="isShowSyncDialog" v-model:open="isShowSyncDialog" />
+  <ShareDialog v-if="isShowShareDialog" v-model:open="isShowShareDialog" />
 </template>
 
 <style lang="less" scoped>

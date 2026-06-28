@@ -89,14 +89,14 @@ function openReleases() {
         <Tag class="mr-2 h-4 w-4" />
         {{ t('menu.releaseHistory') }}
       </MenubarItem>
-      <!-- <MenubarItem @click="openAboutDialog()">
+      <MenubarItem @click="openAboutDialog()">
         <HelpCircle class="mr-2 h-4 w-4" />
         {{ t('menu.about') }}
       </MenubarItem>
       <MenubarItem @click="openFundDialog()">
         <Heart class="mr-2 h-4 w-4" />
-        赞赏
-      </MenubarItem> -->
+        {{ t('menu.fund') }}
+      </MenubarItem>
     </MenubarSubContent>
   </MenubarSub>
 

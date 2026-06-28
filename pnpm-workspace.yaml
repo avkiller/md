@@ -1,20 +1,6 @@
 minimumReleaseAge: 0
 
 shellEmulator: true
-minimumReleaseAge: 4320
-minimumReleaseAgeExclude:
-- vue
-- vite
-- '@vue/*'
-- '@cloudflare/*'
-- '@aws-sdk/*'
-- '@fsegurai/*'
-- reka-ui
-- eslint
-- '@types/*'
-- '@modelcontextprotocol'
-- '@webext-core/*'
-- '@eslint/*'
 
 trustPolicy: no-downgrade
 

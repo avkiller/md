@@ -1,4 +1,4 @@
-const MATHJAX_CDN_URL = `https://cdn-doocs.oss-cn-shenzhen.aliyuncs.com/npm/mathjax@3/es5/tex-svg.js`
+const MATHJAX_CDN_URL = `https://s4.zstatic.net/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js`
 const MATHJAX_LOCAL_URL = `./static/libs/mathjax/tex-svg.js`
 const MATHJAX_SCRIPT_ID = `MathJax-script`
 

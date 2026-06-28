@@ -1,4 +1,3 @@
-import type { Plugin } from 'vite'
 import path from 'node:path'
 
 import process from 'node:process'
@@ -31,7 +30,13 @@ export default defineConfig(({ mode }) => {
     base,
     envPrefix: [`VITE_`, `CF_`],
     plugins: [
-      vue(),
+      vue({
+        template: {
+          compilerOptions: {
+            isCustomElement: tag => tag === `math-field`,
+          },
+        },
+      }),
       // isCfWorkers && cloudflare(),
       tailwindcss(),
       mode === 'development' && vueDevTools({
@@ -48,13 +53,10 @@ export default defineConfig(({ mode }) => {
         gzipSize: true,
       }),
       AutoImport({
-        imports: [`vue`, `pinia`, `@vueuse/core`],
-        dirs: [`./src/stores`, `./src/utils/toast`, `./src/composables`],
-        dts: 'src/auto-imports.d.ts',
+        imports: [`vue`, `pinia`, `@vueuse/core`, `vue-i18n`],
+        dirs: [`./src/stores`, `./src/lib/toast`, `./src/composables`],
       }),
       Components({
-        exclude: [/[\\/]node_modules[\\/]/, /[\\/]\.git[\\/]/, /[\\/]\.pnpm[\\/]/],
-        extensions: ['vue', 'tsx'],
         resolvers: [],
       }),
       // isUTools && utoolsLocalAssetsPlugin(),
@@ -69,6 +71,12 @@ export default defineConfig(({ mode }) => {
       cssCodeSplit: false,
       // minify: 'terser',
       rolldownOptions: {
+        onwarn(warning, warn) {
+          // @vueuse/core 中的 /* #__PURE__ */ 注释位置不符合 Rolldown 要求，忽略该警告
+          if (warning.code === `INVALID_ANNOTATION` && warning.message?.includes(`@vueuse/core`))
+            return
+          warn(warning)
+        },
         output: {
           chunkFileNames: `static/js/md-[name]-[hash].js`,
           entryFileNames: `static/js/md-[name]-[hash].js`,

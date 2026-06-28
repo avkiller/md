@@ -7,11 +7,11 @@
     <meta name="description" content="Wechat Markdown Editor | 一款高度简洁的微信 Markdown 编辑器" />
     <meta
       name="viewport"
-      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, minimum-scale=1.0"
     />
     <title>微信 Markdown 编辑器 Diy by fireworld 2025</title>
-    <link rel="shortcut icon" href="/src/assets/images/favicon.png" />
-    <link rel="apple-touch-icon-precomposed" href="/src/assets/images/favicon.png" />
+    <link rel="shortcut icon" href="/favicon.png" />
+    <link rel="apple-touch-icon-precomposed" href="/favicon.png" />
     <style>
       html,
       body {
@@ -161,10 +161,11 @@
       <p class="timeout-tip" style="display: none; color: #e53935; font-size: 16px; margin-top: 2em"></p>
     </div>
     <script>
-      const theme = localStorage.getItem('vueuse-color-scheme')
-      if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.querySelector('.loading').classList.add('dark')
-      }
+      window.__MD_APPLY_LOADER_LOCALE__(window.__MD_BOOT_LOCALE__ || 'zh-CN')
+    </script>
+    <div id="app"></div>
+    <script>
+      const loader = document.getElementById('app-initial-loader')
       setTimeout(() => {
         const tip = loader?.querySelector('.timeout-tip')
         if (tip) {
@@ -189,14 +190,13 @@
         },
       }
     </script>
-    <script
+    <!-- <script
       id="MathJax-script"
       src="https://s4.zstatic.net/ajax/libs/mathjax/4.0.0/tex-svg.min.js"
       integrity="sha384-/sTw2V251WGs5ZvBcl9n8AbdOpbOV7ahBT+/w3spog95/TPHD4aXxjYhB6ay2/Xi"
       crossorigin="anonymous"
-    ></script>
+    ></script> -->
     <script type="module" src="/src/main.ts"></script>
     <script type="module" src="/src/sidepanel.ts"></script>
   </body>
-  <!-- <script src="https://cdn-doocs.oss-cn-shenzhen.aliyuncs.com/gh/wechatsync/article-syncjs@latest/dist/main.js"></script> -->
 </html>

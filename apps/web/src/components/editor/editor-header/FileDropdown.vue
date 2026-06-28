@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Cog, Download, Eraser, FileCode, FileCog, FileText, FolderKanban, FolderOpen, Package, RefreshCw, Upload } from 'lucide-vue-next'
+import { Cloud, Cog, Download, Eraser, FileCode, FileCog, FileText, FolderKanban, FolderOpen, Package, RefreshCw, Settings, Share2, Upload } from '@lucide/vue'
 import DEFAULT_CONTENT_LITE from '@/assets/example/markdown-lite.md?raw'
 import DEFAULT_CONTENT from '@/assets/example/markdown.md?raw'
+import { isShareUiEnabled } from '@/services/share/client'
+import { isSyncUiEnabled } from '@/services/sync/client'
 import { useEditorStore } from '@/stores/editor'
 import { useExportStore } from '@/stores/export'
 import { useUIStore } from '@/stores/ui'
@@ -132,7 +134,7 @@ function clearContent() {
           </MenubarItem>
           <MenubarItem @click="downloadAsCardImage()">
             <Download class="mr-2 size-4" />
-            PNG 图片
+            {{ t('menu.exportPng') }}
           </MenubarItem>
         </MenubarSubContent>
       </MenubarSub>
