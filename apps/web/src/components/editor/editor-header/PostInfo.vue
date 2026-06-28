@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Post, PostAccount } from '@md/shared/types'
-import { Check, ChevronDown, ChevronRight, Info, Loader2, Minus, Send } from 'lucide-vue-next'
-import { CheckboxIndicator, CheckboxRoot, Primitive } from 'radix-vue'
+import { Check, ChevronDown, ChevronRight, Info, Loader2, Minus, Send } from '@lucide/vue'
+import { CheckboxIndicator, CheckboxRoot, Primitive } from 'reka-ui'
 import { useEditorStore } from '@/stores/editor'
 import { useRenderStore } from '@/stores/render'
 import { useUIStore } from '@/stores/ui'
@@ -10,6 +10,7 @@ defineOptions({
   inheritAttrs: false,
 })
 
+const { t } = useI18n()
 const editorStore = useEditorStore()
 const { editor } = storeToRefs(editorStore)
 
@@ -20,6 +21,7 @@ const uiStore = useUIStore()
 const { isMobile } = storeToRefs(uiStore)
 
 const dialogVisible = ref(false)
+const thumbPreviewVisible = ref(false)
 const extensionInstalled = ref(false)
 const allAccounts = ref<PostAccount[]>([])
 const postTaskDialogVisible = ref(false)
@@ -39,21 +41,21 @@ const allowPost = computed(() => extensionInstalled.value && allAccounts.value.s
 // 平台分类配置
 const platformCategories = [
   {
-    name: `媒体平台`,
+    id: `media`,
     platforms: [`wechat`, `toutiao`, `zhihu`, `baijiahao`, `wangyihao`, `sohu`, `weibo`, `bilibili`, `sspai`, `twitter`, `douyin`, `xiaohongshu`, `douban`],
   },
   {
-    name: `博客平台`,
+    id: `blog`,
     platforms: [`csdn`, `cnblogs`, `juejin`, `medium`, `cto51`, `segmentfault`, `oschina`, `infoq`, `jianshu`],
   },
   {
-    name: `云平台及开发者社区`,
+    id: `cloud`,
     platforms: [`tencentcloud`, `aliyun`, `huaweicloud`, `huaweidev`, `qianfan`, `alipayopen`, `modelscope`, `volcengine`, `elecfans`],
   },
 ]
 
 // 分类折叠状态（默认折叠云平台及开发者社区）
-const collapsedCategories = ref<Set<string>>(new Set([`云平台及开发者社区`]))
+const collapsedCategories = ref<Set<string>>(new Set([`cloud`]))
 
 function toggleCategory(categoryName: string) {
   if (collapsedCategories.value.has(categoryName)) {
@@ -67,7 +69,8 @@ function toggleCategory(categoryName: string) {
 // 按分类获取账号
 const accountsByCategory = computed(() => {
   return platformCategories.map(category => ({
-    name: category.name,
+    id: category.id,
+    name: t(`postInfo.categories.${category.id}`),
     accounts: category.platforms
       .map(type => allAccounts.value.find(a => a.type === type))
       .filter((a): a is PostAccount => a !== undefined),
@@ -114,7 +117,7 @@ async function prePost() {
     auto = {
       thumb: document.querySelector<HTMLImageElement>(`#output img`)?.src ?? ``,
       title: [1, 2, 3, 4, 5, 6]
-        .map(h => document.querySelector(`#output h${h}`)!)
+        .map(h => document.querySelector(`#output h${h}`))
         .find(h => h)
         ?.textContent ?? ``,
       desc: document.querySelector(`#output p`)?.textContent?.trim() ?? ``,
@@ -123,8 +126,8 @@ async function prePost() {
       accounts,
     }
   }
-  catch (error) {
-    console.log(`error`, error)
+  catch {
+    // 静默失败
   }
   finally {
     form.value = {
@@ -143,6 +146,7 @@ watch(dialogVisible, (newVal) => {
 declare global {
   interface Window {
     syncPost: (data: { thumb: string, title: string, desc: string, content: string }) => void
+
     $cose: any
   }
 }
@@ -175,13 +179,13 @@ function startLoginDetection() {
   let hasReceivedAny = false
 
   // 设置超时机制：如果 15 秒内没有任何响应，则停止检测
+  const LOGIN_CHECK_TIMEOUT_MS = 15000
   const timeoutId = setTimeout(() => {
     if (!hasReceivedAny) {
-      console.log('[COSE] 登录检测超时，停止检测')
       allAccounts.value = allAccounts.value.map(a => ({ ...a, isChecking: false }))
       isCheckingLogin.value = false
     }
-  }, 15000)
+  }, LOGIN_CHECK_TIMEOUT_MS)
 
   // 检查是否支持渐进式 API
   if (typeof window.$cose.getAccountsProgressive === 'function') {
@@ -288,6 +292,8 @@ function checkExtension() {
   }
 
   // 如果插件还没加载，5秒内每 500ms 检查一次
+  const EXTENSION_CHECK_INTERVAL_MS = 500
+  const MAX_EXTENSION_CHECKS = 10
   let count = 0
   const timer = setInterval(async () => {
     if (window.$cose !== undefined) {
@@ -298,10 +304,10 @@ function checkExtension() {
     }
 
     count++
-    if (count > 10) {
+    if (count > MAX_EXTENSION_CHECKS) {
       clearInterval(timer)
     }
-  }, 500)
+  }, EXTENSION_CHECK_INTERVAL_MS)
 }
 
 onBeforeMount(() => {
@@ -315,128 +321,150 @@ onBeforeMount(() => {
       <DialogTrigger>
         <Button v-if="!isMobile" variant="outline" class="h-9">
           <Send class="mr-2 h-4 w-4" />
-          发布
+          {{ t('postInfo.publish') }}
         </Button>
       </DialogTrigger>
-      <DialogContent class="!w-[750px] !max-w-[95vw] max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent class="!max-w-[95vw] !w-[min(750px,95vw)] max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
-          <DialogTitle>发布</DialogTitle>
-          <DialogDescription>
-            将文章发布到多个平台
+          <DialogTitle>{{ t('postInfo.title') }}</DialogTitle>
+          <DialogDescription class="text-left leading-relaxed">
+            {{ t('postInfo.description') }}
           </DialogDescription>
         </DialogHeader>
         <div class="flex-1 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex flex-col gap-4">
+          <Alert v-if="!extensionInstalled">
+            <Info class="h-4 w-4" />
+            <AlertTitle>{{ t('postInfo.extensionMissingTitle') }}</AlertTitle>
+            <AlertDescription>
+              <i18n-t keypath="postInfo.extensionMissingDescription" tag="span">
+                <template #link>
+                  <a href="https://chromewebstore.google.com/detail/ilhikcdphhpjofhlnbojifbihhfmmhfk" target="_blank" rel="noopener noreferrer" class="underline text-primary">{{ t('postInfo.extensionLinkText') }}</a>
+                </template>
+              </i18n-t>
+            </AlertDescription>
+          </Alert>
+
           <Alert>
             <Info class="h-4 w-4" />
             <AlertDescription>
-              此功能由 <a href="https://github.com/doocs/cose" target="_blank" class="underline"> GitHub 开源插件 COSE</a> 支持，完全本地运行，不收集、不存储任何用户信息。<br>如需添加更多平台或改善同步准确度，欢迎提 <a href="https://github.com/doocs/cose/issues" target="_blank" class="underline">Issue</a> 或 PR。
+              <i18n-t keypath="postInfo.coseHint" tag="span">
+                <template #githubLink>
+                  <a href="https://github.com/doocs/cose" target="_blank" rel="noopener noreferrer" class="underline">{{ t('postInfo.coseGithubText') }}</a>
+                </template>
+              </i18n-t>
+              <br>
+              <i18n-t keypath="postInfo.coseContribute" tag="span">
+                <template #issueLink>
+                  <a href="https://github.com/doocs/cose/issues" target="_blank" rel="noopener noreferrer" class="underline">{{ t('postInfo.issueLinkText') }}</a>
+                </template>
+              </i18n-t>
             </AlertDescription>
           </Alert>
 
-          <Alert v-if="!extensionInstalled">
-            <Info class="h-4 w-4" />
-            <AlertTitle>未检测到插件</AlertTitle>
-            <AlertDescription>
-              请安装 <a href="https://chromewebstore.google.com/detail/ilhikcdphhpjofhlnbojifbihhfmmhfk" target="_blank" class="underline text-primary">cose 文章同步助手</a> 浏览器扩展
-            </AlertDescription>
-          </Alert>
+          <div class="w-full flex flex-col gap-4" :class="{ 'pointer-events-none opacity-50': !extensionInstalled }" :inert="!extensionInstalled || undefined" :aria-disabled="!extensionInstalled">
+            <div class="grid grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(5.5rem,auto)_1fr] sm:gap-x-4">
+              <Label for="thumb" class="sm:text-end">
+                {{ t('postInfo.cover') }}
+              </Label>
+              <div class="flex min-w-0 items-center gap-2">
+                <Input id="thumb" v-model="form.thumb" :placeholder="t('postInfo.coverPlaceholder')" class="min-w-0 flex-1" />
+                <Button v-if="form.thumb" variant="outline" size="sm" class="shrink-0" @click="thumbPreviewVisible = true">
+                  {{ t('common.view') }}
+                </Button>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(5.5rem,auto)_1fr] sm:gap-x-4">
+              <Label for="title" class="sm:text-end">
+                {{ t('postInfo.titleLabel') }}
+              </Label>
+              <Input id="title" v-model="form.title" :placeholder="t('postInfo.titlePlaceholder')" class="min-w-0" />
+            </div>
+            <div class="grid grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(5.5rem,auto)_1fr] sm:gap-x-4">
+              <Label for="desc" class="sm:pt-2 sm:text-end">
+                {{ t('postInfo.descLabel') }}
+              </Label>
+              <Textarea id="desc" v-model="form.desc" :placeholder="t('postInfo.descPlaceholder')" class="min-w-0" />
+            </div>
 
-          <div class="w-full flex items-center gap-4">
-            <Label for="thumb" class="w-10 text-end">
-              封面
-            </Label>
-            <Input id="thumb" v-model="form.thumb" placeholder="自动提取第一张图" />
-          </div>
-          <div class="w-full flex items-center gap-4">
-            <Label for="title" class="w-10 text-end">
-              标题
-            </Label>
-            <Input id="title" v-model="form.title" placeholder="自动提取第一个标题" />
-          </div>
-          <div class="w-full flex items-start gap-4">
-            <Label for="desc" class="w-10 text-end">
-              描述
-            </Label>
-            <Textarea id="desc" v-model="form.desc" placeholder="自动提取第一个段落" />
-          </div>
-
-          <div class="w-full flex items-start gap-4">
-            <Label class="w-10 text-end">
-              平台
-            </Label>
-            <div class="flex-1 space-y-3">
-              <div v-for="category in accountsByCategory" :key="category.name">
-                <div class="flex items-center gap-2 mb-2">
-                  <div
-                    class="flex items-center gap-1 cursor-pointer select-none text-sm font-medium text-muted-foreground hover:text-foreground"
-                    @click="toggleCategory(category.name)"
-                  >
-                    <ChevronDown v-if="!collapsedCategories.has(category.name)" class="h-4 w-4" />
-                    <ChevronRight v-else class="h-4 w-4" />
-                    <span>{{ category.name }}</span>
-                    <span class="text-xs">({{ category.accounts.length }})</span>
-                  </div>
-                  <div class="flex items-center gap-1 ml-2">
-                    <CheckboxRoot
-                      :checked="isCategoryAllSelected(category.accounts) ? true : isCategoryIndeterminate(category.accounts) ? 'indeterminate' : false"
-                      class="bg-background hover:bg-muted h-[18px] w-[18px] flex shrink-0 appearance-none items-center justify-center border border-gray-300 rounded-[3px] outline-hidden"
-                      @click.stop="toggleCategorySelectAll(category.accounts)"
+            <div class="grid grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(5.5rem,auto)_1fr] sm:gap-x-4">
+              <Label class="sm:pt-1 sm:text-end">
+                {{ t('postInfo.platform') }}
+              </Label>
+              <div class="min-w-0 flex-1 space-y-3">
+                <div v-for="category in accountsByCategory" :key="category.id">
+                  <div class="flex items-center gap-2 mb-2">
+                    <div
+                      class="flex items-center gap-1 cursor-pointer select-none text-sm font-medium text-muted-foreground hover:text-foreground"
+                      @click="toggleCategory(category.id)"
                     >
-                      <CheckboxIndicator>
-                        <Check v-if="isCategoryAllSelected(category.accounts)" class="h-3 w-3" />
-                        <Minus v-else-if="isCategoryIndeterminate(category.accounts)" class="h-3 w-3" />
-                      </CheckboxIndicator>
-                    </CheckboxRoot>
-                    <span class="text-xs text-muted-foreground">全选</span>
-                  </div>
-                </div>
-                <div v-show="!collapsedCategories.has(category.name)" class="grid grid-cols-2 gap-x-8 gap-y-2 pl-5">
-                  <div
-                    v-for="account in category.accounts"
-                    :key="account.uid"
-                    class="flex items-center gap-2 whitespace-nowrap"
-                  >
-                    <CheckboxRoot
-                      v-model:checked="account.checked"
-                      :disabled="!account.loggedIn"
-                      class="bg-background hover:bg-muted h-[18px] w-[18px] flex shrink-0 appearance-none items-center justify-center border border-gray-300 rounded-[3px] outline-hidden disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <CheckboxIndicator>
-                        <Check v-if="account.checked" class="h-3 w-3" />
-                      </CheckboxIndicator>
-                    </CheckboxRoot>
-                    <img
-                      :src="account.icon"
-                      alt=""
-                      class="inline-block h-[16px] w-[16px] shrink-0"
-                    >
-                    <span class="text-sm font-medium">{{ account.title }}</span>
-                    <!-- 检测中：显示转圈动画 -->
-                    <template v-if="account.isChecking">
-                      <Loader2 class="ml-1 h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                      <span class="text-xs text-muted-foreground">检测中</span>
-                    </template>
-                    <!-- 已登录：显示头像和用户名 -->
-                    <template v-else-if="account.loggedIn">
-                      <img
-                        v-if="account.avatar"
-                        :src="account.avatar"
-                        alt=""
-                        class="ml-1 h-4 w-4 rounded-full object-cover"
-                        @error="onAvatarError(account, $event)"
+                      <ChevronDown v-if="!collapsedCategories.has(category.id)" class="h-4 w-4" />
+                      <ChevronRight v-else class="h-4 w-4" />
+                      <span>{{ category.name }}</span>
+                      <span class="text-xs">({{ category.accounts.length }})</span>
+                    </div>
+                    <div class="flex items-center gap-1 ml-2">
+                      <CheckboxRoot
+                        :model-value="isCategoryAllSelected(category.accounts) ? true : isCategoryIndeterminate(category.accounts) ? 'indeterminate' : false"
+                        class="bg-background hover:bg-muted h-[18px] w-[18px] flex shrink-0 appearance-none items-center justify-center border border-gray-300 rounded-[3px] outline-hidden"
+                        @click.stop="toggleCategorySelectAll(category.accounts)"
                       >
-                      <span class="text-sm text-muted-foreground">@{{ account.displayName }}</span>
-                    </template>
-                    <!-- 未登录：显示登录链接 -->
-                    <Primitive
-                      v-else
-                      as="a"
-                      :href="getPlatformUrl(account.type)"
-                      target="_blank"
-                      class="ml-1 text-sm text-muted-foreground hover:underline"
+                        <CheckboxIndicator>
+                          <Check v-if="isCategoryAllSelected(category.accounts)" class="h-3 w-3" />
+                          <Minus v-else-if="isCategoryIndeterminate(category.accounts)" class="h-3 w-3" />
+                        </CheckboxIndicator>
+                      </CheckboxRoot>
+                      <span class="text-xs text-muted-foreground">{{ t('common.selectAll') }}</span>
+                    </div>
+                  </div>
+                  <div v-show="!collapsedCategories.has(category.id)" class="grid grid-cols-1 gap-x-6 gap-y-2 pl-5 sm:grid-cols-2">
+                    <div
+                      v-for="account in category.accounts"
+                      :key="account.uid"
+                      class="flex min-w-0 items-center gap-2"
                     >
-                      登录
-                    </Primitive>
+                      <CheckboxRoot
+                        v-model="account.checked"
+                        :disabled="!account.loggedIn"
+                        class="bg-background hover:bg-muted h-[18px] w-[18px] flex shrink-0 appearance-none items-center justify-center border border-gray-300 rounded-[3px] outline-hidden disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <CheckboxIndicator>
+                          <Check v-if="account.checked" class="h-3 w-3" />
+                        </CheckboxIndicator>
+                      </CheckboxRoot>
+                      <img
+                        :src="account.icon"
+                        alt=""
+                        class="inline-block h-[16px] w-[16px] shrink-0"
+                      >
+                      <span class="truncate text-sm font-medium">{{ account.title }}</span>
+                      <!-- 检测中：显示转圈动画 -->
+                      <template v-if="account.isChecking">
+                        <Loader2 class="ml-1 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                        <span class="text-xs text-muted-foreground">{{ t('postInfo.checking') }}</span>
+                      </template>
+                      <!-- 已登录：显示头像和用户名 -->
+                      <template v-else-if="account.loggedIn">
+                        <img
+                          v-if="account.avatar"
+                          :src="account.avatar"
+                          alt=""
+                          class="ml-1 h-4 w-4 rounded-full object-cover"
+                          @error="onAvatarError(account, $event)"
+                        >
+                        <span class="truncate text-sm text-muted-foreground">@{{ account.displayName }}</span>
+                      </template>
+                      <!-- 未登录：显示登录链接 -->
+                      <Primitive
+                        v-else
+                        as="a"
+                        :href="getPlatformUrl(account.type)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="ml-1 text-sm text-muted-foreground hover:underline"
+                      >
+                        {{ t('common.login') }}
+                      </Primitive>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -446,12 +474,29 @@ onBeforeMount(() => {
 
         <DialogFooter>
           <Button variant="outline" @click="dialogVisible = false">
-            取 消
+            {{ t('common.cancel') }}
           </Button>
           <Button :disabled="!allowPost" @click="post">
-            确 定
+            {{ t('common.confirm') }}
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog v-model:open="thumbPreviewVisible">
+      <DialogContent class="!max-w-[80vw] !w-fit">
+        <DialogHeader>
+          <DialogTitle>{{ t('postInfo.coverPreview') }}</DialogTitle>
+        </DialogHeader>
+        <div class="flex items-center justify-center p-2">
+          <img
+            :src="form.thumb"
+            :alt="t('postInfo.coverPreviewAlt')"
+            class="max-h-[70vh] max-w-full rounded-md object-contain"
+            @load="($event.target as HTMLImageElement).style.removeProperty('display')"
+            @error="($event.target as HTMLImageElement).style.display = 'none'"
+          >
+        </div>
       </DialogContent>
     </Dialog>
 

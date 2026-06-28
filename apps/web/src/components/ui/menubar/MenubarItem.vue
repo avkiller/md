@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { MenubarItemEmits, MenubarItemProps } from 'radix-vue'
+import type { MenubarItemEmits, MenubarItemProps } from 'reka-ui'
 import type { HTMLAttributes } from 'vue'
 import {
   MenubarItem,
 
   useForwardPropsEmits,
-} from 'radix-vue'
+} from 'reka-ui'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<MenubarItemProps & { class?: HTMLAttributes[`class`], inset?: boolean }>()
@@ -25,7 +25,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
   <MenubarItem
     v-bind="forwarded"
     :class="cn(
-      'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50',
+      'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 whitespace-nowrap',
       inset && 'pl-8',
       props.class,
     )"

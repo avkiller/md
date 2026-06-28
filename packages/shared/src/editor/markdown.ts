@@ -7,7 +7,6 @@ import { highlightSelectionMatches } from '@codemirror/search'
 import { EditorSelection, EditorState, Prec } from '@codemirror/state'
 import { EditorView, keymap, placeholder } from '@codemirror/view'
 import { indentationMarkers } from '@replit/codemirror-indentation-markers'
-import { formatDoc } from '../utils/fileHelpers'
 import { applyHeading, formatBold, formatCode, formatItalic, formatLink, formatOrderedList, formatStrikethrough, formatUnorderedList, redoAction, undoAction } from './format'
 
 /**
@@ -15,6 +14,7 @@ import { applyHeading, formatBold, formatCode, formatItalic, formatLink, formatO
  */
 async function formatMarkdown(view: EditorView) {
   const content = view.state.doc.toString()
+  const { formatDoc } = await import('../utils/formatDoc')
   const formatted = await formatDoc(content, `markdown`)
   view.dispatch({
     changes: { from: 0, to: view.state.doc.length, insert: formatted },
@@ -37,6 +37,10 @@ function insertTabAtCursor(view: EditorView): boolean {
 interface MarkdownKeymapOptions {
   onSearch?: (view: EditorView) => void
   onReplace?: (view: EditorView) => void
+  onGoToLine?: (view: EditorView) => void
+  placeholder?: string
+  /** 为 true 时不注入 history()，由调用方通过 Compartment 管理（便于切换文档时清空撤销栈） */
+  withoutHistory?: boolean
 }
 
 /**
@@ -46,7 +50,7 @@ interface MarkdownKeymapOptions {
  * @param options.onSearch - 搜索回调（可选）
  */
 export function markdownKeymap(options?: MarkdownKeymapOptions) {
-  const { onSearch, onReplace } = options || {}
+  const { onSearch, onReplace, onGoToLine } = options || {}
 
   return keymap.of([
     // Tab 键在光标位置插入缩进
@@ -82,8 +86,9 @@ export function markdownKeymap(options?: MarkdownKeymapOptions) {
     // 格式化
     { key: `Shift-Alt-f`, run: (view: EditorView) => { formatMarkdown(view); return true } },
 
-    // 阻止 Mod-g（避免触发 CodeMirror 内置搜索）
-    { key: `Mod-g`, run: () => true },
+    ...(onGoToLine
+      ? [{ key: `Mod-g`, run: (view: EditorView) => { onGoToLine(view); return true } }]
+      : [{ key: `Mod-g`, run: () => true }]),
   ])
 }
 
@@ -98,9 +103,11 @@ export function markdownKeymap(options?: MarkdownKeymapOptions) {
  *
  */
 export function markdownSetup(options?: MarkdownKeymapOptions) {
+  const { placeholder: placeholderText, withoutHistory } = options || {}
+
   return [
     // 基础功能
-    history(),
+    ...(withoutHistory ? [] : [history()]),
     highlightSelectionMatches(),
     closeBrackets(),
 
@@ -132,6 +139,6 @@ export function markdownSetup(options?: MarkdownKeymapOptions) {
     EditorView.lineWrapping,
     EditorState.allowMultipleSelections.of(true),
 
-    placeholder(`开始写作...`),
+    ...(placeholderText ? [placeholder(placeholderText)] : []),
   ]
 }

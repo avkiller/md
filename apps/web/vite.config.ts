@@ -1,4 +1,6 @@
+import type { Plugin } from 'vite'
 import path from 'node:path'
+
 import process from 'node:process'
 
 // import { cloudflare } from '@cloudflare/vite-plugin'
@@ -27,7 +29,6 @@ export default defineConfig(({ mode }) => {
 
   return {
     base,
-    define: { process },
     envPrefix: [`VITE_`, `CF_`],
     plugins: [
       vue(),

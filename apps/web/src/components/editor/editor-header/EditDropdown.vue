@@ -1,20 +1,22 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
-import { altSign, ctrlSign, shiftSign } from '@md/shared/configs'
-import { redoAction, undoAction } from '@md/shared/editor'
 import {
   ClipboardPaste,
   Copy,
   Redo2,
+  RefreshCw,
   Replace,
   Search,
+  Trash2,
   Undo2,
   WandSparkles,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
+import { altSign, ctrlSign, shiftSign } from '@md/shared/configs'
+import { redoAction, undoAction } from '@md/shared/editor'
+import { useEditorDocumentActions } from '@/composables/useEditorDocumentActions'
+import { copyPlain, readPlainFromClipboard } from '@/lib/browser/clipboard'
 import { useEditorStore } from '@/stores/editor'
-import { usePostStore } from '@/stores/post'
 import { useUIStore } from '@/stores/ui'
-import { copyPlain } from '@/utils/clipboard'
 
 const props = withDefaults(defineProps<{
   asSub?: boolean
@@ -25,38 +27,26 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits(['copy'])
 
 const { asSub } = toRefs(props)
+const { t } = useI18n()
 
 const editorStore = useEditorStore()
-const postStore = usePostStore()
 const uiStore = useUIStore()
+
+const { formatContent, resetContent, clearContent } = useEditorDocumentActions()
 
 const { editor } = storeToRefs(editorStore)
 
-// Format content function
-async function formatContent() {
-  const doc = await editorStore.formatContent()
-  if (doc && postStore.currentPost) {
-    postStore.updatePostContent(postStore.currentPostId, doc)
-  }
-}
-
-// Clipboard operations
 async function copyToClipboard() {
   const selectedText = editorStore.getSelection()
   copyPlain(selectedText)
 }
 
 async function pasteFromClipboard() {
-  try {
-    const text = await navigator.clipboard.readText()
+  const text = await readPlainFromClipboard()
+  if (text !== null)
     editorStore.replaceSelection(text)
-  }
-  catch (error) {
-    console.log(`粘贴失败`, error)
-  }
 }
 
-// Undo/Redo
 function undo() {
   if (!editor.value)
     return
@@ -85,25 +75,20 @@ function redo() {
   }
 }
 
-// Search/Replace - 使用项目已有的 SearchTab 组件
 function openSearch() {
-  // 触发打开搜索面板
   if (editor.value) {
     const selection = editor.value.state.selection.main
     const selected = editor.value.state.doc.sliceString(selection.from, selection.to).trim()
 
-    // 使用 UI store 来触发搜索面板的打开
     uiStore.openSearchTab(selected)
   }
 }
 
 function openReplace() {
-  // 打开搜索面板并展开替换功能
   if (editor.value) {
     const selection = editor.value.state.selection.main
     const selected = editor.value.state.doc.sliceString(selection.from, selection.to).trim()
 
-    // 使用 UI store 来触发搜索面板的打开，并显示替换选项
     uiStore.openSearchTab(selected, true)
   }
 }
@@ -113,13 +98,12 @@ function openReplace() {
   <!-- 作为 MenubarSub 使用 -->
   <MenubarSub v-if="asSub">
     <MenubarSubTrigger>
-      编辑
+      {{ t('menu.edit') }}
     </MenubarSubTrigger>
-    <MenubarSubContent class="w-64">
-      <!-- 历史操作 -->
+    <MenubarSubContent class="min-w-64">
       <MenubarItem @click="undo()">
         <Undo2 class="mr-2 h-4 w-4" />
-        撤销
+        {{ t('menu.undo') }}
         <MenubarShortcut>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ ctrlSign }}</kbd>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">Z</kbd>
@@ -127,7 +111,7 @@ function openReplace() {
       </MenubarItem>
       <MenubarItem @click="redo()">
         <Redo2 class="mr-2 h-4 w-4" />
-        重做
+        {{ t('menu.redo') }}
         <MenubarShortcut>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ ctrlSign }}</kbd>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">Y</kbd>
@@ -136,31 +120,30 @@ function openReplace() {
 
       <MenubarSeparator />
 
-      <!-- 剪贴板操作 -->
       <MenubarSub>
         <MenubarSubTrigger>
           <Copy class="mr-2 h-4 w-4" />
-          复制
+          {{ t('menu.copy') }}
         </MenubarSubTrigger>
-        <MenubarSubContent>
+        <MenubarSubContent class="min-w-52">
           <MenubarItem @click="emit('copy', 'txt')">
-            公众号格式
+            {{ t('menu.copyWechat') }}
           </MenubarItem>
           <MenubarItem @click="emit('copy', 'html')">
-            HTML 格式
+            {{ t('menu.copyHtml') }}
           </MenubarItem>
           <MenubarItem @click="emit('copy', 'html-without-style')">
-            HTML 格式（无样式）
+            {{ t('menu.copyHtmlNoStyle') }}
           </MenubarItem>
           <MenubarItem @click="emit('copy', 'html-and-style')">
-            HTML 格式（兼容样式）
+            {{ t('menu.copyHtmlCompat') }}
           </MenubarItem>
           <MenubarItem @click="emit('copy', 'md')">
-            MD 格式
+            {{ t('menu.copyMd') }}
           </MenubarItem>
           <MenubarSeparator />
           <MenubarItem @click="copyToClipboard()">
-            复制选中内容
+            {{ t('menu.copySelection') }}
             <MenubarShortcut>
               <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ ctrlSign }}</kbd>
               <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">C</kbd>
@@ -170,7 +153,7 @@ function openReplace() {
       </MenubarSub>
       <MenubarItem @click="pasteFromClipboard()">
         <ClipboardPaste class="mr-2 h-4 w-4" />
-        粘贴
+        {{ t('menu.paste') }}
         <MenubarShortcut>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ ctrlSign }}</kbd>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">V</kbd>
@@ -179,10 +162,9 @@ function openReplace() {
 
       <MenubarSeparator />
 
-      <!-- 格式化文档 -->
       <MenubarItem @click="formatContent()">
         <WandSparkles class="mr-2 h-4 w-4" />
-        格式化文档
+        {{ t('menu.formatContent') }}
         <MenubarShortcut>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ altSign }}</kbd>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ shiftSign }}</kbd>
@@ -192,10 +174,20 @@ function openReplace() {
 
       <MenubarSeparator />
 
-      <!-- 查找替换 -->
+      <MenubarItem @click="resetContent()">
+        <RefreshCw class="mr-2 h-4 w-4" />
+        {{ t('menu.reset') }}
+      </MenubarItem>
+      <MenubarItem @click="clearContent()">
+        <Trash2 class="mr-2 h-4 w-4" />
+        {{ t('menu.clear') }}
+      </MenubarItem>
+
+      <MenubarSeparator />
+
       <MenubarItem @click="openSearch()">
         <Search class="mr-2 h-4 w-4" />
-        查找
+        {{ t('menu.find') }}
         <MenubarShortcut>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ ctrlSign }}</kbd>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">F</kbd>
@@ -203,7 +195,7 @@ function openReplace() {
       </MenubarItem>
       <MenubarItem @click="openReplace()">
         <Replace class="mr-2 h-4 w-4" />
-        替换
+        {{ t('menu.replace') }}
         <MenubarShortcut>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ ctrlSign }}</kbd>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">H</kbd>
@@ -215,13 +207,12 @@ function openReplace() {
   <!-- 作为 MenubarMenu 使用（默认） -->
   <MenubarMenu v-else>
     <MenubarTrigger>
-      编辑
+      {{ t('menu.edit') }}
     </MenubarTrigger>
-    <MenubarContent class="w-64" align="start">
-      <!-- 历史操作 -->
+    <MenubarContent class="min-w-64" align="start">
       <MenubarItem @click="undo()">
         <Undo2 class="mr-2 h-4 w-4" />
-        撤销
+        {{ t('menu.undo') }}
         <MenubarShortcut>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ ctrlSign }}</kbd>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">Z</kbd>
@@ -229,7 +220,7 @@ function openReplace() {
       </MenubarItem>
       <MenubarItem @click="redo()">
         <Redo2 class="mr-2 h-4 w-4" />
-        重做
+        {{ t('menu.redo') }}
         <MenubarShortcut>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ ctrlSign }}</kbd>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">Y</kbd>
@@ -238,31 +229,30 @@ function openReplace() {
 
       <MenubarSeparator />
 
-      <!-- 剪贴板操作 -->
       <MenubarSub>
         <MenubarSubTrigger>
           <Copy class="mr-2 h-4 w-4" />
-          复制
+          {{ t('menu.copy') }}
         </MenubarSubTrigger>
-        <MenubarSubContent>
+        <MenubarSubContent class="min-w-52">
           <MenubarItem @click="emit('copy', 'txt')">
-            公众号格式
+            {{ t('menu.copyWechat') }}
           </MenubarItem>
           <MenubarItem @click="emit('copy', 'html')">
-            HTML 格式
+            {{ t('menu.copyHtml') }}
           </MenubarItem>
           <MenubarItem @click="emit('copy', 'html-without-style')">
-            HTML 格式（无样式）
+            {{ t('menu.copyHtmlNoStyle') }}
           </MenubarItem>
           <MenubarItem @click="emit('copy', 'html-and-style')">
-            HTML 格式（兼容样式）
+            {{ t('menu.copyHtmlCompat') }}
           </MenubarItem>
           <MenubarItem @click="emit('copy', 'md')">
-            MD 格式
+            {{ t('menu.copyMd') }}
           </MenubarItem>
           <MenubarSeparator />
           <MenubarItem @click="copyToClipboard()">
-            复制选中内容
+            {{ t('menu.copySelection') }}
             <MenubarShortcut>
               <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ ctrlSign }}</kbd>
               <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">C</kbd>
@@ -272,7 +262,7 @@ function openReplace() {
       </MenubarSub>
       <MenubarItem @click="pasteFromClipboard()">
         <ClipboardPaste class="mr-2 h-4 w-4" />
-        粘贴
+        {{ t('menu.paste') }}
         <MenubarShortcut>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ ctrlSign }}</kbd>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">V</kbd>
@@ -281,10 +271,9 @@ function openReplace() {
 
       <MenubarSeparator />
 
-      <!-- 格式化文档 -->
       <MenubarItem @click="formatContent()">
         <WandSparkles class="mr-2 h-4 w-4" />
-        格式化文档
+        {{ t('menu.formatContent') }}
         <MenubarShortcut>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ altSign }}</kbd>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ shiftSign }}</kbd>
@@ -294,10 +283,20 @@ function openReplace() {
 
       <MenubarSeparator />
 
-      <!-- 查找替换 -->
+      <MenubarItem @click="resetContent()">
+        <RefreshCw class="mr-2 h-4 w-4" />
+        {{ t('menu.reset') }}
+      </MenubarItem>
+      <MenubarItem @click="clearContent()">
+        <Trash2 class="mr-2 h-4 w-4" />
+        {{ t('menu.clear') }}
+      </MenubarItem>
+
+      <MenubarSeparator />
+
       <MenubarItem @click="openSearch()">
         <Search class="mr-2 h-4 w-4" />
-        查找
+        {{ t('menu.find') }}
         <MenubarShortcut>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ ctrlSign }}</kbd>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">F</kbd>
@@ -305,7 +304,7 @@ function openReplace() {
       </MenubarItem>
       <MenubarItem @click="openReplace()">
         <Replace class="mr-2 h-4 w-4" />
-        替换
+        {{ t('menu.replace') }}
         <MenubarShortcut>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">{{ ctrlSign }}</kbd>
           <kbd class="mx-1 bg-gray-2 dark:bg-stone-9">H</kbd>

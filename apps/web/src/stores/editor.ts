@@ -1,5 +1,5 @@
 import type { EditorView } from '@codemirror/view'
-import { formatDoc } from '@/utils'
+import { t } from '@/i18n/translate'
 
 /**
  * 编辑器 Store
@@ -9,11 +9,27 @@ export const useEditorStore = defineStore(`editor`, () => {
   // 内容编辑器实例
   const editor = ref<EditorView | null>(null)
 
+  let flushPendingContent: (() => void) | null = null
+
+  function registerContentFlush(fn: () => void) {
+    flushPendingContent = fn
+  }
+
+  function unregisterContentFlush() {
+    flushPendingContent = null
+  }
+
+  /** 将编辑器中尚未防抖落盘的内容同步到 post store（刷新前调用） */
+  function flushContentToPostStore() {
+    flushPendingContent?.()
+  }
+
   // 格式化文档
   const formatContent = async () => {
     if (!editor.value)
       return
 
+    const { formatDoc } = await import('@md/shared/utils/formatDoc')
     const doc = await formatDoc(editor.value.state.doc.toString())
     editor.value.dispatch({
       changes: { from: 0, to: editor.value.state.doc.length, insert: doc },
@@ -39,7 +55,7 @@ export const useEditorStore = defineStore(`editor`, () => {
     editor.value.dispatch({
       changes: { from: 0, to: editor.value.state.doc.length, insert: `` },
     })
-    toast.success(`内容已清空`)
+    toast.success(t('store.editor.contentCleared'))
   }
 
   // 获取当前内容
@@ -64,6 +80,38 @@ export const useEditorStore = defineStore(`editor`, () => {
     editor.value.dispatch(editor.value.state.replaceSelection(text))
   }
 
+  const replaceText = (oldText: string, newText: string) => {
+    if (!editor.value || !oldText)
+      return false
+
+    const content = editor.value.state.doc.toString()
+    const cursor = editor.value.state.selection.main.head
+
+    let bestFrom = -1
+    let bestDist = Infinity
+    let pos = 0
+    while (true) {
+      const idx = content.indexOf(oldText, pos)
+      if (idx === -1)
+        break
+      const dist = Math.abs(idx - cursor)
+      if (dist < bestDist) {
+        bestDist = dist
+        bestFrom = idx
+      }
+      pos = idx + 1
+    }
+
+    if (bestFrom === -1)
+      return false
+
+    editor.value.dispatch({
+      changes: { from: bestFrom, to: bestFrom + oldText.length, insert: newText },
+    })
+    editor.value.focus()
+    return true
+  }
+
   // 在光标位置插入文本
   const insertAtCursor = (text: string) => {
     if (!editor.value)
@@ -79,12 +127,16 @@ export const useEditorStore = defineStore(`editor`, () => {
 
   return {
     editor,
+    registerContentFlush,
+    unregisterContentFlush,
+    flushContentToPostStore,
     formatContent,
     importContent,
     clearContent,
     getContent,
     getSelection,
     replaceSelection,
+    replaceText,
     insertAtCursor,
   }
 })

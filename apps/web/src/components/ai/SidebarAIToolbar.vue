@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { Bot, Image as ImageIcon, Settings2, Wand2 } from 'lucide-vue-next'
+import { Bot, Image as ImageIcon, Settings2, Wand2 } from '@lucide/vue'
+import { defineAsyncComponent } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { useUIStore } from '@/stores/ui'
-import AIAssistantPanel from './chat-box/AIAssistantPanel.vue'
-import AIImageGeneratorPanel from './image-generator/AIImageGeneratorPanel.vue'
 import { AIPolishPopover } from './tool-box'
 
 defineProps<{
   isMobile: boolean
   showEditor: boolean
 }>()
+const AIAssistantPanel = defineAsyncComponent(() => import('./chat-box/AIAssistantPanel.vue'))
+const AIImageGeneratorPanel = defineAsyncComponent(() => import('./image-generator/AIImageGeneratorPanel.vue'))
+
+const SELECTION_HINT_TIMEOUT_MS = 3000
 
 const uiStore = useUIStore()
 const { aiDialogVisible, aiImageDialogVisible } = storeToRefs(uiStore)
@@ -19,6 +22,7 @@ const editorStore = useEditorStore()
 const { editor } = storeToRefs(editorStore)
 
 const { hasShownAIToolboxHint } = storeToRefs(uiStore)
+const { t } = useI18n()
 
 // 工具栏状态：false=默认(只显示贴边栏), true=展开(显示AI图标)
 const isExpanded = ref(false) // 默认收起状态
@@ -29,7 +33,6 @@ const toolBoxVisible = ref(false)
 // 是否显示选中文本提示动画
 const showSelectionHint = ref(false)
 let selectionHintTimer: NodeJS.Timeout | null = null
-let selectionCheckInterval: NodeJS.Timeout | null = null
 let lastSelectedText = ``
 
 // 检查选中文本的函数
@@ -74,7 +77,7 @@ function checkSelectionAndUpdateHint() {
       // 3秒后自动隐藏提示
       selectionHintTimer = setTimeout(() => {
         showSelectionHint.value = false
-      }, 3000)
+      }, SELECTION_HINT_TIMEOUT_MS)
     }
     else {
       showSelectionHint.value = false
@@ -125,10 +128,11 @@ function openAIToolBox() {
 
 // 监听编辑区点击，自动收起工具栏
 onMounted(() => {
-  // 启动定时检查选中文本
-  selectionCheckInterval = setInterval(() => {
+  // 使用 selectionchange 事件替代轮询，检测选中文本变化
+  const handleSelectionChange = () => {
     checkSelectionAndUpdateHint()
-  }, 300) // 每300ms检查一次
+  }
+  document.addEventListener(`selectionchange`, handleSelectionChange)
 
   const handleInteraction = (e: Event) => {
     // 只有在展开状态才需要处理
@@ -174,17 +178,12 @@ onMounted(() => {
   onUnmounted(() => {
     document.removeEventListener(`click`, handleInteraction, true)
     document.removeEventListener(`touchstart`, handleInteraction, true)
+    document.removeEventListener(`selectionchange`, handleSelectionChange)
 
     // 清理定时器
     if (selectionHintTimer) {
       clearTimeout(selectionHintTimer)
       selectionHintTimer = null
-    }
-
-    // 清理轮询
-    if (selectionCheckInterval) {
-      clearInterval(selectionCheckInterval)
-      selectionCheckInterval = null
     }
   })
 })
@@ -192,16 +191,18 @@ onMounted(() => {
 
 <template>
   <!-- 编辑区内侧AI工具栏 -->
+  <!-- @mousedown.prevent 防止点击工具栏时编辑器失去焦点，从而保持选区高亮 -->
   <div
     v-if="(!isMobile || (isMobile && showEditor))"
     class="editor-ai-toolbar absolute top-1/2 -translate-y-1/2 right-0 z-30 transition-all duration-300 ease-out"
+    @mousedown.prevent
   >
     <!-- 默认状态：贴边栏 -->
     <div
       v-if="!isExpanded"
       class="w-5 h-16 bg-gradient-to-b from-blue-500/90 to-purple-500/90 hover:from-blue-600/95 hover:to-purple-600/95 dark:from-blue-400/90 dark:to-purple-400/90 dark:hover:from-blue-500/95 dark:hover:to-purple-500/95 backdrop-blur-lg border-l border-y border-blue-300/50 dark:border-blue-600/50 cursor-pointer transition-all duration-200 flex items-center justify-center rounded-l-lg shadow-lg group utools-sidebar-edge"
       :class="{ 'animate-pulse-hint': showSelectionHint }"
-      title="展开AI工具栏"
+      :title="t('ai.toolbar.expand')"
       @click="toggleExpanded"
     >
       <Settings2 class="h-4 w-4 text-white drop-shadow-sm group-hover:scale-110 transition-transform duration-200" />
@@ -215,7 +216,7 @@ onMounted(() => {
         >
           <div class="relative flex items-center gap-2">
             <Wand2 class="h-4 w-4" />
-            <span>点击打开 AI 工具箱</span>
+            <span>{{ t('ai.toolbar.openToolboxHint') }}</span>
             <!-- 箭头 -->
             <div class="hint-arrow absolute top-1/2 -right-2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-l-[6px] border-transparent border-l-purple-500" />
           </div>
@@ -235,7 +236,7 @@ onMounted(() => {
         <div class="flex flex-col items-center gap-1 px-1">
           <button
             class="group relative w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center utools-ai-button"
-            title="AI助手"
+            :title="t('ai.toolbar.assistant')"
             @click="openAIChat"
           >
             <Bot class="h-4 w-4" />
@@ -243,7 +244,7 @@ onMounted(() => {
 
           <!-- 标签 -->
           <span class="text-[9px] text-gray-500 dark:text-gray-400 font-medium text-center leading-tight">
-            助手
+            {{ t('ai.toolbar.assistantLabel') }}
           </span>
         </div>
 
@@ -256,7 +257,7 @@ onMounted(() => {
         <div class="flex flex-col items-center gap-1 px-1">
           <button
             class="group relative w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center utools-ai-button"
-            title="AI文生图"
+            :title="t('ai.toolbar.imageGen')"
             @click="openAIImageGenerator"
           >
             <ImageIcon class="h-4 w-4" />
@@ -264,7 +265,7 @@ onMounted(() => {
 
           <!-- 标签 -->
           <span class="text-[9px] text-gray-500 dark:text-gray-400 font-medium text-center leading-tight">
-            文生图
+            {{ t('ai.toolbar.imageGenLabel') }}
           </span>
         </div>
 
@@ -277,7 +278,7 @@ onMounted(() => {
         <div v-if="hasSelectedText && isExpanded" class="flex flex-col items-center gap-1 px-1">
           <button
             class="group relative w-7 h-7 rounded-lg bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center utools-ai-button"
-            title="AI工具箱"
+            :title="t('ai.toolbar.toolbox')"
             @click="openAIToolBox"
           >
             <Wand2 class="h-4 w-4" />
@@ -285,15 +286,15 @@ onMounted(() => {
 
           <!-- 标签 -->
           <span class="text-[9px] text-gray-500 dark:text-gray-400 font-medium text-center leading-tight">
-            工具箱
+            {{ t('ai.toolbar.toolboxLabel') }}
           </span>
         </div>
       </div>
     </div>
 
     <!-- AI面板组件 -->
-    <AIAssistantPanel v-model:open="aiDialogVisible" />
-    <AIImageGeneratorPanel v-model:open="aiImageDialogVisible" />
+    <AIAssistantPanel v-if="aiDialogVisible" v-model:open="aiDialogVisible" />
+    <AIImageGeneratorPanel v-if="aiImageDialogVisible" v-model:open="aiImageDialogVisible" />
 
     <!-- AI工具箱弹窗 -->
     <AIPolishPopover

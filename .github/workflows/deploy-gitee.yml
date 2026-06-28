@@ -15,7 +15,7 @@ jobs:
     if: github.repository == 'doocs/md'
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0  # 获取完整历史，便于推送到新分支
 
@@ -25,9 +25,9 @@ jobs:
           node-version: 22
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
         with:
-          version: 10
+          version: 11
 
       - name: Install dependencies
         run: pnpm install

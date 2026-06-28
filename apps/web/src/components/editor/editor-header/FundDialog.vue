@@ -1,58 +1,54 @@
 <script setup lang="ts">
-const props = defineProps({
-  visible: {
-    type: Boolean,
-    default: false,
-  },
+import { Heart } from '@lucide/vue'
+import { computed } from 'vue'
+import PanelDialog from '@/components/shared/panel-dialog/PanelDialog.vue'
+
+const props = defineProps<{
+  open: boolean
+}>()
+
+const emit = defineEmits<{
+  'update:open': [value: boolean]
+}>()
+
+const { t } = useI18n()
+
+const dialogOpen = computed({
+  get: () => props.open,
+  set: (val: boolean) => emit(`update:open`, val),
 })
 
-const emit = defineEmits([`close`])
-
-const contributors = [
+const contributors = computed(() => [
   {
     name: `yanglbme`,
     imageUrl: `https://cdn-doocs.oss-cn-shenzhen.aliyuncs.com/gh/doocs/md/images/support1.jpg`,
-    altText: `赞赏二维码 1`,
+    altText: t(`fund.qrAlt1`),
   },
   {
     name: `yangfong`,
     imageUrl: `https://cdn-doocs.oss-cn-shenzhen.aliyuncs.com/gh/doocs/md/images/support2.jpg`,
-    altText: `赞赏二维码 2`,
+    altText: t(`fund.qrAlt2`),
   },
-]
-
-function onUpdate(val: boolean) {
-  if (!val) {
-    emit(`close`)
-  }
-}
+])
 </script>
 
 <template>
-  <Dialog :open="props.visible" @update:open="onUpdate">
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>赞赏</DialogTitle>
-      </DialogHeader>
-      <div class="text-center">
-        <p>若觉得项目不错，可以通过以下方式支持我们～</p>
-        <div class="grid grid-cols-2 my-5 gap-4">
-          <div v-for="contributor in contributors" :key="contributor.name" class="text-center">
-            <img
-              :src="contributor.imageUrl"
-              :alt="contributor.altText"
-              class="mx-auto"
-              style="width: 90%; max-width: 200px;border-radius: 10%;"
-            >
-          </div>
+  <PanelDialog
+    v-model:open="dialogOpen"
+    :title="t('fund.title')"
+    :description="t('fund.description')"
+    :icon="Heart"
+  >
+    <div class="px-4 py-4 sm:px-6">
+      <div class="grid grid-cols-2 gap-4">
+        <div v-for="contributor in contributors" :key="contributor.name" class="text-center">
+          <img
+            :src="contributor.imageUrl"
+            :alt="contributor.altText"
+            class="mx-auto w-full max-w-[200px] rounded-xl ring-1 ring-border"
+          >
         </div>
       </div>
-
-      <DialogFooter class="sm:justify-evenly">
-        <Button @click="emit('close')">
-          关闭
-        </Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
+    </div>
+  </PanelDialog>
 </template>

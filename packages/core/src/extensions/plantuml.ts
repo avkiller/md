@@ -1,11 +1,21 @@
-import type { MarkedExtension, Tokens } from 'marked'
+import type { DiagramMessages } from '@md/shared/types'
+import type { MarkedExtension, Token } from 'marked'
+import type { PlantUMLToken } from '../types/marked-tokens'
+import type { DiagramThemeMode } from './diagram-theme'
 import { deflateSync } from 'fflate'
+import { asDiagramToken, asTextTokenRenderer, isCodeToken } from '../types/marked-tokens'
+import {
+  diagramStateAttr,
+  isSvgMarkup,
+  MD_DIAGRAM_STATE,
+  resolveDiagramMessages,
+} from '../utils/asyncDiagramState'
 import { simpleHash } from '../utils/basicHelpers'
+import { createSVGCache } from '../utils/svgCache'
+import { diagramCacheThemeSuffix, injectPlantUmlTheme } from './diagram-theme'
 
-// key -> svg
-const svgCache = new Map<string, string>()
-// 上一次渲染的结果（用于在新渲染完成前显示旧图片）
-let lastRenderedSvg: string | null = null
+// key -> svg（LRU 缓存，上限 50 条）
+const svgCache = createSVGCache(50)
 
 export interface PlantUMLOptions {
   /**
@@ -34,6 +44,10 @@ export interface PlantUMLOptions {
   styles?: {
     container?: Record<string, string | number>
   }
+  /** 异步图表文案（Web 端按 locale 注入） */
+  getDiagramMessages?: () => DiagramMessages | undefined
+  /** 图表明暗主题（与 Infographic 一致） */
+  getThemeMode?: () => DiagramThemeMode | undefined
 }
 
 /**
@@ -142,10 +156,12 @@ function encodePlantUML(plantumlCode: string): string {
   }
 }
 
+type ResolvedPlantUMLOptions = Required<Omit<PlantUMLOptions, 'getDiagramMessages' | 'getThemeMode'>> & Pick<PlantUMLOptions, 'getDiagramMessages' | 'getThemeMode'>
+
 /**
  * 生成 PlantUML 图片 URL
  */
-function generatePlantUMLUrl(code: string, options: Required<PlantUMLOptions>): string {
+function generatePlantUMLUrl(code: string, options: Pick<ResolvedPlantUMLOptions, 'serverUrl' | 'format'>): string {
   const encoded = encodePlantUML(code)
   const formatPath = options.format === `svg` ? `svg` : `png`
   return `${options.serverUrl}/${formatPath}/${encoded}`
@@ -154,14 +170,36 @@ function generatePlantUMLUrl(code: string, options: Required<PlantUMLOptions>): 
 /**
  * 渲染 PlantUML 图表
  */
-function renderPlantUMLDiagram(token: Tokens.Code, options: Required<PlantUMLOptions>, cacheKey: string): string {
+function resolvePlantUmlCode(code: string, themeMode?: DiagramThemeMode): string {
+  return injectPlantUmlTheme(code, themeMode)
+}
+
+function buildPlantUmlCacheKey(code: string, themeMode?: DiagramThemeMode): string {
+  return simpleHash(`${code}-${diagramCacheThemeSuffix(themeMode)}`)
+}
+
+function wrapPlantUmlSvgHtml(svgContent: string, options: ResolvedPlantUMLOptions, isError = false): string {
+  return createPlantUMLHTML(``, options, svgContent, isError)
+}
+
+function readPlantUmlCachedHtml(cacheKey: string, options: ResolvedPlantUMLOptions): string | null {
+  const cached = svgCache.get(cacheKey)
+  if (!cached)
+    return null
+  if (isSvgMarkup(cached))
+    return wrapPlantUmlSvgHtml(cached, options)
+  return cached
+}
+
+function renderPlantUMLDiagram(
+  token: Pick<PlantUMLToken, 'text'>,
+  options: ResolvedPlantUMLOptions,
+  cacheKey: string,
+): string {
   const { text: code } = token
-
-  // 检查代码是否包含 PlantUML 标记
-  const finalCode = (!code.trim().includes(`@start`) || !code.trim().includes(`@end`))
-    ? `@startuml\n${code.trim()}\n@enduml`
-    : code
-
+  const messages = resolveDiagramMessages(options.getDiagramMessages?.())
+  const themeMode = options.getThemeMode?.()
+  const finalCode = resolvePlantUmlCode(code, themeMode)
   const imageUrl = generatePlantUMLUrl(finalCode, options)
 
   // 如果启用了内嵌SVG且格式是SVG
@@ -169,13 +207,13 @@ function renderPlantUMLDiagram(token: Tokens.Code, options: Required<PlantUMLOpt
     const placeholder = `plantuml-${cacheKey}`
 
     // 异步获取SVG内容并替换
-    fetchSvgContent(imageUrl).then((svgContent) => {
+    fetchSvgContent(imageUrl, messages.plantumlError).then((svgContent) => {
       const placeholderElement = document.querySelector(`[data-placeholder="${placeholder}"]`) as HTMLElement
       if (placeholderElement) {
-        const html = createPlantUMLHTML(imageUrl, options, svgContent)
-        placeholderElement.outerHTML = html
-        svgCache.set(cacheKey, html)
-        lastRenderedSvg = svgContent
+        const isError = !isSvgMarkup(svgContent)
+        if (!isError)
+          svgCache.set(cacheKey, svgContent)
+        placeholderElement.outerHTML = wrapPlantUmlSvgHtml(svgContent, options, isError)
       }
     })
 
@@ -185,13 +223,8 @@ function renderPlantUMLDiagram(token: Tokens.Code, options: Required<PlantUMLOpt
           .join(`; `)
       : ``
 
-    // 如果有上一次渲染的结果，显示旧图片；否则显示占位符
-    if (lastRenderedSvg) {
-      return `<div class="${options.className}" style="${containerStyles}" data-placeholder="${placeholder}">${lastRenderedSvg}</div>`
-    }
-
-    return `<div class="${options.className}" style="${containerStyles}" data-placeholder="${placeholder}">
-      <div style="color: #666; font-style: italic;">正在加载PlantUML图表...</div>
+    return `<div class="${options.className}" style="${containerStyles}" data-placeholder="${placeholder}" ${diagramStateAttr(MD_DIAGRAM_STATE.loading)}>
+      <div style="color: #666; font-style: italic;">${messages.plantumlLoading}</div>
     </div>`
   }
 
@@ -201,7 +234,7 @@ function renderPlantUMLDiagram(token: Tokens.Code, options: Required<PlantUMLOpt
 /**
  * 获取SVG内容
  */
-async function fetchSvgContent(svgUrl: string): Promise<string> {
+async function fetchSvgContent(svgUrl: string, errorMessage: string): Promise<string> {
   try {
     const response = await fetch(svgUrl)
     if (!response.ok) {
@@ -216,17 +249,24 @@ async function fetchSvgContent(svgUrl: string): Promise<string> {
       // 移除style中的width和height
       .replace(/(<svg[^>]*style="[^"]*?)width:[^;]*;?/g, `$1`)
       .replace(/(<svg[^>]*style="[^"]*?)height:[^;]*;?/g, `$1`)
+      // "none" squashes diagrams when only one axis is constrained in preview / WeChat
+      .replace(/preserveAspectRatio="none"/g, `preserveAspectRatio="xMidYMid meet"`)
   }
   catch (error) {
     console.warn(`Failed to fetch SVG content from ${svgUrl}:`, error)
-    return `<div style="color: #666; font-style: italic;">PlantUML图表加载失败</div>`
+    return `<div style="color: #666; font-style: italic;">${errorMessage}</div>`
   }
 }
 
 /**
  * 创建 PlantUML HTML 元素
  */
-function createPlantUMLHTML(imageUrl: string, options: Required<PlantUMLOptions>, svgContent?: string): string {
+function createPlantUMLHTML(
+  imageUrl: string,
+  options: ResolvedPlantUMLOptions,
+  svgContent?: string,
+  isError = false,
+): string {
   const containerStyles = options.styles.container
     ? Object.entries(options.styles.container)
         .map(([key, value]) => `${key.replace(/([A-Z])/g, `-$1`).toLowerCase()}: ${value}`)
@@ -235,13 +275,14 @@ function createPlantUMLHTML(imageUrl: string, options: Required<PlantUMLOptions>
 
   // 如果有SVG内容，直接嵌入
   if (svgContent) {
-    return `<div class="${options.className}" style="${containerStyles}">
+    const state = isError ? MD_DIAGRAM_STATE.error : MD_DIAGRAM_STATE.ready
+    return `<div class="${options.className}" style="${containerStyles}" ${diagramStateAttr(state)}>
       ${svgContent}
     </div>`
   }
 
   // 否则使用图片链接
-  return `<div class="${options.className}" style="${containerStyles}">
+  return `<div class="${options.className}" style="${containerStyles}" ${diagramStateAttr(MD_DIAGRAM_STATE.ready)}>
     <img src="${imageUrl}" alt="PlantUML Diagram" style="max-width: 100%; height: auto;" />
   </div>`
 }
@@ -250,11 +291,12 @@ function createPlantUMLHTML(imageUrl: string, options: Required<PlantUMLOptions>
  * PlantUML marked 扩展
  */
 export function markedPlantUML(options: PlantUMLOptions = {}): MarkedExtension {
-  const resolvedOptions: Required<PlantUMLOptions> = {
+  const resolvedOptions: ResolvedPlantUMLOptions = {
     serverUrl: options.serverUrl || `https://www.plantuml.com/plantuml`,
     format: options.format || `svg`,
     className: options.className || `plantuml-diagram`,
     inlineSvg: options.inlineSvg || false,
+    getDiagramMessages: options.getDiagramMessages,
     styles: {
       container: {
         textAlign: `center`,
@@ -287,23 +329,21 @@ export function markedPlantUML(options: PlantUMLOptions = {}): MarkedExtension {
             }
           }
         },
-        renderer(token: any) {
-          const cacheKey = simpleHash(token.text)
+        renderer: asTextTokenRenderer((token: PlantUMLToken) => {
+          const themeMode = resolvedOptions.getThemeMode?.()
+          const cacheKey = buildPlantUmlCacheKey(token.text, themeMode)
 
-          // 有缓存直接返回
-          const cached = svgCache.get(cacheKey)
-          if (cached) {
+          const cached = readPlantUmlCachedHtml(cacheKey, resolvedOptions)
+          if (cached)
             return cached
-          }
 
           return renderPlantUMLDiagram(token, resolvedOptions, cacheKey)
-        },
+        }),
       },
     ],
-    walkTokens(token: any) {
-      // 处理现有的代码块，如果语言是 plantuml 就转换类型
-      if (token.type === `code` && token.lang === `plantuml`) {
-        token.type = `plantuml`
+    walkTokens(token: Token) {
+      if (isCodeToken(token) && token.lang === `plantuml`) {
+        asDiagramToken<PlantUMLToken>(token, `plantuml`)
       }
     },
   }

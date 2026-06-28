@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { MenubarSubTriggerProps } from 'radix-vue'
+import type { MenubarSubTriggerProps } from 'reka-ui'
 import type { HTMLAttributes } from 'vue'
-import { ChevronRight } from 'lucide-vue-next'
-import { MenubarSubTrigger, useForwardProps } from 'radix-vue'
+import { ChevronRight } from '@lucide/vue'
+import { MenubarSubTrigger, useForwardProps } from 'reka-ui'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<MenubarSubTriggerProps & { class?: HTMLAttributes[`class`], inset?: boolean }>()
@@ -20,7 +20,7 @@ const forwardedProps = useForwardProps(delegatedProps)
   <MenubarSubTrigger
     v-bind="forwardedProps"
     :class="cn(
-      'flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground',
+      'flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground whitespace-nowrap',
       inset && 'pl-8',
       props.class,
     )"

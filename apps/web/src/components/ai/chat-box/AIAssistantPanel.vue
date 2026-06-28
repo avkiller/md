@@ -13,7 +13,8 @@ import {
   Send,
   Settings,
   Trash2,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
+import { v4 as uuidv4 } from 'uuid'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -29,15 +30,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Textarea } from '@/components/ui/textarea'
+import { buildAIHeaders, resolveEndpointUrl, useAIFetch } from '@/composables/useAIFetch'
+import { copyPlain } from '@/lib/browser/clipboard'
+import { store } from '@/storage'
 import useAIConfigStore from '@/stores/aiConfig'
 import { useEditorStore } from '@/stores/editor'
-import { useQuickCommands } from '@/stores/quickCommands'
+import { useQuickCommandsStore } from '@/stores/quickCommands'
 import { useUIStore } from '@/stores/ui'
-import { copyPlain } from '@/utils/clipboard'
-import { store } from '@/utils/storage'
 
 const props = defineProps<{ open: boolean }>()
+
 const emit = defineEmits([`update:open`])
+
+const FEEDBACK_INDICATOR_TIMEOUT_MS = 1500
 
 const editorStore = useEditorStore()
 const { editor } = storeToRefs(editorStore)
@@ -57,8 +62,7 @@ const inputHistory = ref<string[]>([])
 const historyIndex = ref<number | null>(null)
 
 const configVisible = ref(false)
-const loading = ref(false)
-const fetchController = ref<AbortController | null>(null)
+const { loading, abort: abortFetch, fetchSSE } = useAIFetch()
 const copiedIndex = ref<number | null>(null)
 const insertedIndex = ref<number | null>(null)
 const memoryKey = `ai_memory_context`
@@ -81,21 +85,12 @@ const messages = ref<ChatMessage[]>([])
 const AIConfigStore = useAIConfigStore()
 const { apiKey, endpoint, model, temperature, maxToken, type } = storeToRefs(AIConfigStore)
 
-const quickCmdStore = useQuickCommands()
+const quickCmdStore = useQuickCommandsStore()
+const { t } = useI18n()
+const chatInputRef = ref<{ $el: HTMLTextAreaElement } | null>(null)
 
 function getSelectedText(): string {
-  try {
-    const cm: any = editor.value
-    if (!cm)
-      return ``
-    if (typeof cm.getSelection === `function`)
-      return cm.getSelection() || ``
-    return ``
-  }
-  catch (e) {
-    console.warn(`获取选中文本失败`, e)
-    return ``
-  }
+  return editorStore.getSelection()
 }
 
 function applyQuickCommand(cmd: QuickCommandRuntime) {
@@ -103,9 +98,7 @@ function applyQuickCommand(cmd: QuickCommandRuntime) {
   input.value = cmd.buildPrompt(selected)
   historyIndex.value = null
   nextTick(() => {
-    const textarea = document.querySelector(
-      `textarea[placeholder*="说些什么" ]`,
-    ) as HTMLTextAreaElement | null
+    const textarea = chatInputRef.value?.$el
     textarea?.focus()
     if (textarea) {
       textarea.setSelectionRange(textarea.value.length, textarea.value.length)
@@ -114,29 +107,23 @@ function applyQuickCommand(cmd: QuickCommandRuntime) {
 }
 
 onMounted(async () => {
-  const savedList = await store.get(conversationListKey)
-  if (savedList) {
-    conversationList.value = JSON.parse(savedList)
-  }
+  conversationList.value = await store.getJSON(conversationListKey, [])
 
-  const saved = await store.get(memoryKey)
-  messages.value = saved
-    ? JSON.parse(saved).map((msg: ChatMessage) => ({
-        ...msg,
-        id: msg.id || crypto.randomUUID(),
-      }))
+  const saved = await store.getJSON<ChatMessage[]>(memoryKey, [])
+  messages.value = saved.length > 0
+    ? saved.map((msg: ChatMessage) => ({ ...msg, id: msg.id || uuidv4() }))
     : getDefaultMessages()
   await scrollToBottom(true)
 })
 
 function getDefaultMessages(): ChatMessage[] {
-  return [{ role: `assistant`, content: `你好，我是 AI 助手，有什么可以帮你的？`, id: crypto.randomUUID() }]
+  return [{ role: `assistant`, content: t(`ai.chat.greeting`), id: uuidv4() }]
 }
 
 function generateConversationTitle(): string {
   const firstUserMessage = messages.value.find(m => m.role === `user`)
   if (!firstUserMessage)
-    return `对话 ${new Date().toLocaleString()}`
+    return t(`ai.chat.conversationTitle`, { date: new Date().toLocaleString() })
 
   let title = firstUserMessage.content.trim()
   if (title.length > 20) {
@@ -151,7 +138,7 @@ async function autoSaveCurrentConversation() {
     return
 
   if (!currentConversationId.value) {
-    currentConversationId.value = crypto.randomUUID()
+    currentConversationId.value = uuidv4()
 
     const conversation = {
       id: currentConversationId.value,
@@ -179,7 +166,7 @@ async function createNewConversation() {
   messages.value = getDefaultMessages()
   await store.setJSON(memoryKey, messages.value)
   await scrollToBottom(true)
-  toast.success(`已创建新会话`)
+  toast.success(t(`ai.chat.sessionCreated`))
 }
 
 async function loadConversation(id: string) {
@@ -189,12 +176,12 @@ async function loadConversation(id: string) {
   if (saved.length > 0) {
     messages.value = saved.map(msg => ({
       ...msg,
-      id: msg.id || crypto.randomUUID(),
+      id: msg.id || uuidv4(),
     }))
     currentConversationId.value = id
     await store.setJSON(memoryKey, messages.value)
     await scrollToBottom(true)
-    toast.success(`对话已加载`)
+    toast.success(t(`ai.chat.conversationLoaded`))
   }
 }
 
@@ -209,7 +196,7 @@ async function deleteConversation(id: string) {
     await store.setJSON(memoryKey, messages.value)
   }
 
-  toast.success(`对话已删除`)
+  toast.success(t(`ai.chat.conversationDeleted`))
 }
 
 function handleConfigSaved() {
@@ -262,21 +249,18 @@ function handleKeydown(e: KeyboardEvent) {
 async function copyToClipboard(text: string, index: number) {
   copyPlain(text)
   copiedIndex.value = index
-  setTimeout(() => (copiedIndex.value = null), 1500)
+  setTimeout(() => (copiedIndex.value = null), FEEDBACK_INDICATOR_TIMEOUT_MS)
 }
 
 function insertToDocument(text: string, index: number) {
   editorStore.insertAtCursor(text)
   insertedIndex.value = index
-  setTimeout(() => (insertedIndex.value = null), 1500)
-  toast.success(`已插入文档`)
+  setTimeout(() => (insertedIndex.value = null), FEEDBACK_INDICATOR_TIMEOUT_MS)
+  toast.success(t(`ai.chat.insertedToDoc`))
 }
 
 async function resetMessages() {
-  if (fetchController.value) {
-    fetchController.value.abort()
-    fetchController.value = null
-  }
+  abortFetch()
 
   if (currentConversationId.value) {
     conversationList.value = conversationList.value.filter(c => c.id !== currentConversationId.value)
@@ -288,15 +272,11 @@ async function resetMessages() {
   messages.value = getDefaultMessages()
   await store.setJSON(memoryKey, messages.value)
   scrollToBottom(true)
-  toast.success(`会话已清空`)
+  toast.success(t(`ai.chat.sessionCleared`))
 }
 
 function pauseStreaming() {
-  if (fetchController.value) {
-    fetchController.value.abort()
-    fetchController.value = null
-  }
-  loading.value = false
+  abortFetch()
   const last = messages.value[messages.value.length - 1]
   if (last?.role === `assistant`)
     last.done = true
@@ -365,15 +345,14 @@ async function streamResponse(replyMessageProxy: ChatMessage) {
   const quoteMessages: ChatMessage[] = isQuoteAllContent.value
     ? [{
         role: `system`,
-        content:
-          `下面是一篇 Markdown 文章全文，请严格以此为主完成后续指令：\n\n${editor.value?.state.doc.toString()}`,
+        content: t(`ai.chat.systemQuote`, { content: editor.value?.state.doc.toString() ?? `` }),
       }]
     : []
 
   const payloadMessages: ChatMessage[] = [
     {
       role: `system`,
-      content: `你是一个专业的 Markdown 编辑器助手，请用简洁中文回答。`,
+      content: t(`ai.chat.systemPrompt`),
     },
     ...quoteMessages,
     ...contextHistory,
@@ -386,78 +365,42 @@ async function streamResponse(replyMessageProxy: ChatMessage) {
     max_tokens: maxToken.value,
     stream: true,
   }
-  const headers: Record<string, string> = { 'Content-Type': `application/json` }
-  if (apiKey.value && type.value !== `default`)
-    headers.Authorization = `Bearer ${apiKey.value}`
-
-  fetchController.value = new AbortController()
-  const signal = fetchController.value.signal
+  const headers = buildAIHeaders(apiKey.value, type.value)
+  const url = resolveEndpointUrl(endpoint.value, `chat`)
 
   try {
-    const url = new URL(endpoint.value)
-    if (!url.pathname.endsWith(`/chat/completions`))
-      url.pathname = url.pathname.replace(/\/?$/, `/chat/completions`)
-
-    const res = await window.fetch(url.toString(), {
-      method: `POST`,
-      headers,
-      body: JSON.stringify(payload),
-      signal,
-    })
-    if (!res.ok || !res.body)
-      throw new Error(`响应错误：${res.status} ${res.statusText}`)
-
-    const reader = res.body.getReader()
-    const decoder = new TextDecoder(`utf-8`)
-    let buffer = ``
-
-    while (true) {
-      const { value, done } = await reader.read()
-      if (done) {
+    await fetchSSE(url, headers, payload, {
+      onDelta(content) {
+        const last = messages.value[messages.value.length - 1]
+        if (last !== replyMessageProxy)
+          return
+        last.content += content
+        scrollToBottom()
+      },
+      onReasoningDelta(reasoning) {
+        const last = messages.value[messages.value.length - 1]
+        if (last !== replyMessageProxy)
+          return
+        last.reasoning = (last.reasoning || ``) + reasoning
+        scrollToBottom()
+      },
+      onDone() {
         const last = messages.value[messages.value.length - 1]
         if (last.role === `assistant`) {
           last.done = true
-          await scrollToBottom(true)
+          scrollToBottom(true)
         }
-        break
-      }
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split(`\n`)
-      buffer = lines.pop() || ``
-
-      for (const line of lines) {
-        if (!line.trim() || line.trim() === `data: [DONE]`)
-          continue
-        try {
-          const json = JSON.parse(line.replace(/^data: /, ``))
-          const delta = json.choices?.[0]?.delta || {}
-          const last = messages.value[messages.value.length - 1]
-          if (last !== replyMessageProxy)
-            return
-          if (delta.content)
-            last.content += delta.content
-          else if (delta.reasoning_content)
-            last.reasoning = (last.reasoning || ``) + delta.reasoning_content
-          await scrollToBottom()
-        }
-        catch {
-        }
-      }
-    }
+      },
+    })
   }
   catch (e) {
-    if ((e as Error).name !== `AbortError`) {
-      messages.value[messages.value.length - 1].content
-        = `❌ 请求失败: ${(e as Error).message}`
-    }
+    messages.value[messages.value.length - 1].content
+      = t(`ai.chat.requestFailed`, { message: (e as Error).message })
     await scrollToBottom(true)
   }
   finally {
     await store.setJSON(memoryKey, messages.value)
     await autoSaveCurrentConversation()
-    loading.value = false
-    fetchController.value = null
   }
 }
 
@@ -490,11 +433,11 @@ async function sendMessage() {
       <!-- ============ 头部 ============ -->
       <DialogHeader class="space-y-1 flex flex-col items-start">
         <div class="space-x-1 flex items-center">
-          <DialogTitle>AI 对话</DialogTitle>
+          <DialogTitle>{{ t('ai.chat.title') }}</DialogTitle>
 
           <Button
-            :title="configVisible ? 'AI 对话' : '配置参数'"
-            :aria-label="configVisible ? 'AI 对话' : '配置参数'"
+            :title="configVisible ? t('ai.chat.title') : t('ai.chat.configParams')"
+            :aria-label="configVisible ? t('ai.chat.title') : t('ai.chat.configParams')"
             variant="ghost"
             size="icon"
             @click="configVisible = !configVisible"
@@ -504,8 +447,8 @@ async function sendMessage() {
           </Button>
 
           <Button
-            title="AI 文生图"
-            aria-label="AI 文生图"
+            :title="t('ai.chat.imageGen')"
+            :aria-label="t('ai.chat.imageGen')"
             variant="ghost"
             size="icon"
             @click="switchToImageGenerator()"
@@ -514,8 +457,8 @@ async function sendMessage() {
           </Button>
 
           <Button
-            title="新建会话"
-            aria-label="新建会话"
+            :title="t('ai.chat.newSession')"
+            :aria-label="t('ai.chat.newSession')"
             variant="ghost"
             size="icon"
             @click="createNewConversation"
@@ -526,8 +469,8 @@ async function sendMessage() {
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
               <Button
-                title="加载对话"
-                aria-label="加载对话"
+                :title="t('ai.chat.loadConversation')"
+                :aria-label="t('ai.chat.loadConversation')"
                 variant="ghost"
                 size="icon"
               >
@@ -540,7 +483,7 @@ async function sendMessage() {
                 disabled
                 class="text-muted-foreground text-sm"
               >
-                暂无保存的对话
+                {{ t('ai.chat.noSavedConversations') }}
               </DropdownMenuItem>
               <DropdownMenuItem
                 v-for="conv in conversationList"
@@ -564,8 +507,8 @@ async function sendMessage() {
           </DropdownMenu>
 
           <Button
-            title="清空对话内容"
-            aria-label="清空对话内容"
+            :title="t('ai.chat.clearConversation')"
+            :aria-label="t('ai.chat.clearConversation')"
             variant="ghost"
             size="icon"
             @click="resetMessages"
@@ -574,7 +517,7 @@ async function sendMessage() {
           </Button>
         </div>
         <DialogDescription class="text-muted-foreground text-sm">
-          使用 AI 助手帮助您编写和优化内容
+          {{ t('ai.chat.description') }}
         </DialogDescription>
       </DialogHeader>
 
@@ -599,13 +542,13 @@ async function sendMessage() {
           <div
             class="text-muted-foreground flex items-center gap-2 border rounded-md border-dashed px-3 py-1 text-xs"
           >
-            还没有任何快捷指令，点击右侧添加
+            {{ t('ai.chat.noQuickCommands') }}
           </div>
         </template>
         <Button
           variant="ghost"
           size="sm"
-          title="管理指令"
+          :title="t('ai.chat.manageCommands')"
           @click="cmdMgrOpen = true"
         >
           <Plus class="h-4 w-4" />
@@ -651,7 +594,7 @@ async function sendMessage() {
             >
               {{
                 msg.content
-                  || (msg.role === 'assistant' && !msg.done ? '思考中…' : '')
+                  || (msg.role === 'assistant' && !msg.done ? t('ai.chat.thinking') : '')
               }}
             </div>
 
@@ -665,7 +608,7 @@ async function sendMessage() {
                 variant="ghost"
                 size="icon"
                 class="ml-0 h-5 w-5 p-1"
-                aria-label="复制内容"
+                :aria-label="t('ai.chat.copyContent')"
                 @click="copyToClipboard(msg.content, index)"
               >
                 <Check
@@ -679,7 +622,7 @@ async function sendMessage() {
                 variant="ghost"
                 size="icon"
                 class="ml-1 h-5 w-5 p-1"
-                aria-label="插入文档"
+                :aria-label="t('ai.chat.insertDoc')"
                 @click="insertToDocument(msg.content, index)"
               >
                 <Check
@@ -693,7 +636,7 @@ async function sendMessage() {
                 variant="ghost"
                 size="icon"
                 class="ml-1 h-5 w-5 p-1"
-                aria-label="重新生成"
+                :aria-label="t('ai.chat.regenerate')"
                 @click="regenerateLast"
               >
                 <RefreshCcw class="text-muted-foreground h-3 w-3" />
@@ -709,8 +652,9 @@ async function sendMessage() {
           class="bg-background border-border flex flex-col items-baseline gap-2 border rounded-xl px-3 py-2 pr-12 shadow-inner"
         >
           <Textarea
+            ref="chatInputRef"
             v-model="input"
-            placeholder="说些什么… (Enter 发送，Shift+Enter 换行)"
+            :placeholder="t('ai.chat.inputPlaceholder')"
             rows="2"
             class="custom-scroll min-h-16 w-full resize-none border-none bg-transparent p-0 focus-visible:outline-hidden focus:outline-hidden focus-visible:ring-0 focus:ring-0 focus-visible:ring-offset-0 focus:ring-offset-0 focus-visible:ring-transparent focus:ring-transparent"
             @keydown="handleKeydown"
@@ -726,11 +670,11 @@ async function sendMessage() {
                 ? 'bg-primary text-white border-primary dark:bg-white dark:text-black dark:border-white'
                 : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-foreground dark:bg-muted dark:text-gray-400 dark:hover:text-white dark:hover:border-white/60',
             ]"
-            aria-label="引用全文"
+            :aria-label="t('ai.chat.quoteFullText')"
             @click="quoteAllContent"
           >
             <component :is="isQuoteAllContent ? Check : Copy" class="h-4 w-4" />
-            <span class="text-xs">引用全文</span>
+            <span class="text-xs">{{ t('ai.chat.quoteFullText') }}</span>
           </Button>
 
           <!-- 发送 / 暂停按钮 -->
@@ -743,7 +687,7 @@ async function sendMessage() {
               // eslint-disable-next-line vue/prefer-separate-static-class
               'bg-primary hover:bg-primary/90 text-primary-foreground',
             ]"
-            :aria-label="loading ? '暂停' : '发送'"
+            :aria-label="loading ? t('common.pause') : t('common.send')"
             @click="loading ? pauseStreaming() : sendMessage()"
           >
             <Pause v-if="loading" class="h-4 w-4" />
